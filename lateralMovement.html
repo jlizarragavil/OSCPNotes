@@ -27,7 +27,12 @@
         <a href="checklist.html">Checklist</a>
         <a href="pivoting.html">Pivoting</a>
     </nav>
-
+    <div class="search-bar">
+        <input type="text" id="global-search" placeholder="Buscar..." />
+        <button onclick="performSearch()">🔍 Search</button>
+        <button id="toggle-results" onclick="toggleSearchResults()">▲</button>
+        <div id="search-results" class="search-results collapsed"></div>
+    </div>
     <div class="container">
 
         <h1>Active Directory Lateral Movement Techniques</h1>
@@ -704,7 +709,67 @@ OS{35e1ce1a01dc3236faae1aad1afb0a68}</code></pre>
     <script>
         document.querySelectorAll(".section-header").forEach(h => {
             h.addEventListener("click", () => h.parentElement.classList.toggle("active"))
-        })
+        });
+        function toggleSearchResults() {
+            const results = document.getElementById("search-results");
+            const toggleBtn = document.getElementById("toggle-results");
+
+            results.classList.toggle("collapsed");
+
+            if (results.classList.contains("collapsed")) {
+                toggleBtn.textContent = "▼";
+            } else {
+                toggleBtn.textContent = "▲";
+            }
+        }
+
+        function performSearch() {
+            const query = document.getElementById("global-search").value.toLowerCase();
+            const resultsContainer = document.getElementById("search-results");
+            resultsContainer.innerHTML = "";
+
+            if (!query) {
+                resultsContainer.classList.add("collapsed");
+                return;
+            }
+
+            const allElements = Array.from(document.body.querySelectorAll("*"))
+                .filter(el => el.children.length === 0 && el.textContent.toLowerCase().includes(query));
+
+            if (allElements.length === 0) {
+                resultsContainer.innerHTML = "<div>No se encontraron resultados</div>";
+            } else {
+                allElements.forEach((el, idx) => {
+                    let container = el.closest(".section, .sub-section") || el;
+
+                    if (!container.id) {
+                        container.id = `search-target-${idx}`;
+                    }
+
+                    const div = document.createElement("div");
+                    div.textContent = el.textContent;
+                    div.style.cursor = "pointer";
+                    div.style.padding = "5px 10px";
+                    div.style.borderBottom = "1px solid #1e293b";
+                    div.onmouseover = () => div.style.backgroundColor = "#1e293b";
+                    div.onmouseout = () => div.style.backgroundColor = "";
+                    div.onclick = () => {
+                        if (container.classList.contains("section") || container.classList.contains("sub-section")) {
+                            container.classList.add("active");
+                        }
+
+                        container.scrollIntoView({ behavior: "smooth", block: "center" });
+
+                        container.classList.add("highlight-fade");
+                        setTimeout(() => container.classList.remove("highlight-fade"), 2000);
+                    };
+
+                    resultsContainer.appendChild(div);
+                });
+            }
+
+            resultsContainer.classList.remove("collapsed");
+        }
     </script>
 
 </body>
