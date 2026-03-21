@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Checklist - AD Notes</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+    <nav>
+        <a href="index.html">Home</a>
+
+        <div class="dropdown">
+            <a href="#">AD ▾</a>
+            <div class="dropdown-content">
+                <a href="enumeration.html">Enumeration</a>
+                <a href="attacking.html">Attacking</a>
+                <a href="lateralMovement.html">Lateral Movement</a>
+                <a href="metodologie.html">Methodology</a>
+            </div>
+        </div>
+        <a href="windows_privesc.html">Windows PrivEsc</a>
+        <a href="linux-privesc.html">Linux Privesc</a>
+        <a href="file-transfer.html">File Transfer</a>
+        <a href="checklist.html">Checklist</a>
+    </nav>
+
+    <div class="container">
+        <h1>Checklist</h1>
+
+        <div class="section">
+            <div class="section-header">Linux - After Shell</div>
+            <div class="section-content">
+                <ul>
+                    <li>Check current user: <code>whoami</code></li>
+                    <li>Check UID 0: <code>id</code></li>
+                    <li>List running processes: <code>ps auxf</code></li>
+                    <li>Check open ports: <code>ss -tulpn</code> or <code>netstat -tulpn</code></li>
+                    <li>Check kernel version: <code>uname -a</code></li>
+                    <li>Check system info: <code>cat /etc/os-release</code></li>
+                    <li>Check SUID binaries: <code>find / -perm -4000 -type f 2>/dev/null</code></li>
+                    <li>Check capabilities: <code>getcap -r / 2>/dev/null</code></li>
+                    <li>Check writable files/directories: <code>find / -writable -type f 2>/dev/null</code></li>
+                    <li>Check scheduled cron jobs: <code>crontab -l</code>, <code>ls -la /etc/cron*</code></li>
+                    <li>Check Docker/LXD groups: <code>groups</code> + <code>id</code></li>
+                    <li>Check PATH hijack opportunities: <code>echo $PATH</code> + look for writable dirs</li>
+                    <li>Check for passwords: <code>grep -i password /etc/passwd /etc/shadow /home/*/.bash_history</code></li>
+                    <li>Look for SSH keys: <code>find /home -name '*.pem' -o -name '*.key' 2>/dev/null</code></li>
+                    <li>Run enumeration scripts (LinPEAS, LinEnum) if possible</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="section">
+            <div class="section-header">Windows - After Shell</div>
+            <div class="section-content">
+                <ul>
+                    <li>Check current user: <code>whoami</code></li>
+                    <li>Check groups and privileges: <code>whoami /groups</code></li>
+                    <li>Check if admin: <code>net session</code> (will fail if not admin)</li>
+                    <li>List running processes: <code>tasklist /v</code></li>
+                    <li>Check listening ports: <code>netstat -ano</code></li>
+                    <li>Check Windows version: <code>systeminfo</code></li>
+                    <li>Enumerate services: <code>sc query</code></li>
+                    <li>List scheduled tasks: <code>schtasks /query /fo LIST /v</code></li>
+                    <li>List SUID-equivalent binaries (Check for dangerous executables and permissions)</li>
+                    <li>Look for interesting files: <code>dir /s /b *.txt</code>, <code>dir /s /b *.config</code></li>
+                    <li>Check mapped drives and shares: <code>net use</code></li>
+                    <li>Run PowerUp, WinPEAS, Sherlock scripts if possible</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="section">
+            <div class="section-header">After Getting Credentials</div>
+            <div class="section-content">
+                <ul>
+                    <li>Test credentials on SMB / WinRM / RDP / SSH</li>
+                    <li>Check local admin access on other machines</li>
+                    <li>Dump hashes if allowed: <code>secretsdump.py</code> or <code>impacket-secretsdump</code></li>
+                    <li>Check SPNs for kerberoasting opportunities</li>
+                    <li>Use BloodHound / PowerView / AD modules to enumerate rights and object permissions</li>
+                    <li>Check for cached creds / RDP / saved passwords</li>
+                    <li>Check for interesting shares: <code>Find-DomainShare</code>, <code>net view</code></li>
+                    <li>Look for service accounts / privileged users / DA membership</li>
+                    <li>Check for nested groups and delegation</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="section">
+            <div class="section-header">When Stuck</div>
+            <div class="section-content">
+                <ul>
+                    <li>Check for misconfigurations in services (ex: MSSQL, FTP, Redis)</li>
+                    <li>Try password spraying / common passwords</li>
+                    <li>Check for old backup files, database dumps, config files</li>
+                    <li>Enumerate users from logs / files / scripts</li>
+                    <li>Re-check permissions on files, shares, cron, tasks</li>
+                    <li>Re-run automated enumeration tools (LinPEAS, BloodHound, WinPEAS)</li>
+                    <li>Look for hardcoded credentials in scripts / binaries</li>
+                    <li>Check scheduled tasks / cron jobs for privilege escalation</li>
+                    <li>Scan local services for weak configurations</li>
+                </ul>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        document.querySelectorAll(".section-header").forEach(h => {
+            h.addEventListener("click", () => h.parentElement.classList.toggle("active"))
+        })
+    </script>
+
+</body>
+
+</html>

