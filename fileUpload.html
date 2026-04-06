@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Web Fuzzing - AD Notes</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+    <!-- NAVBAR -->
+    <nav>
+        <a href="index.html">Home</a>
+
+        <div class="dropdown">
+            <a href="#">AD ▾</a>
+            <div class="dropdown-content">
+                <a href="enumeration.html">Enumeration</a>
+                <a href="attacking.html">Attacking</a>
+                <a href="lateralMovement.html">Lateral Movement</a>
+                <a href="metodologie.html">Methodology</a>
+            </div>
+        </div>
+        <div class="dropdown">
+            <a href="#">Privesc ▾</a>
+            <div class="dropdown-content">
+                <a href="windows_privesc.html">Windows PrivEsc</a>
+                <a href="linux-privesc.html">Linux Privesc</a>
+            </div>
+        </div>
+        <div class="dropdown">
+            <a href="#">Web ▾</a>
+
+            <div class="dropdown-content">
+
+                <div class="dropdown-sub">
+                    <a href="#">Finger Printing ▾</a>
+
+                    <div class="dropdown-subcontent">
+                        <a href="directoryBruteForce.html">Directory Brute Force</a>
+                    </div>
+                </div>
+
+                 <div class="dropdown-sub">
+                    <a href="#">Attacks ▾</a>
+
+                    <div class="dropdown-subcontent">
+                        <a href="directoryTraversal.html">Directory Travresal</a>
+                        <a href="fileInclusions.html">File Inclusions</a>
+                        <a href="fileUpload.html">File Uploads</a>
+                        <a href="osCommand.html">OS Command Injections</a>
+                        <a href="sqli.html">SQL Injections</a>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+        <a href="file-transfer.html">File Transfer</a>
+        <a href="checklist.html">Checklist</a>
+        <a href="pivoting.html">Pivoting</a>
+    </nav>
+     <div class="search-bar">
+        <input type="text" id="global-search" placeholder="Buscar..." />
+        <button onclick="performSearch()">🔍 Search</button>
+        <button id="toggle-results" onclick="toggleSearchResults()">▲</button>
+        <div id="search-results" class="search-results collapsed"></div>
+    </div>
+    <!-- CONTENT -->
+  
+<div class="container">
+
+    <!-- CONCEPT -->
+    <div class="section">
+        <div class="section-header">Concept</div>
+        <div class="section-content">
+
+            <p>File upload vulnerabilities occur when a web application allows users to upload files without proper validation.</p>
+
+            <p>Even if uploaded files are not directly executable, they can still be abused for:</p>
+
+            <ul>
+                <li>Directory Traversal</li>
+                <li>File Overwrite</li>
+                <li>Information disclosure</li>
+                <li>Privilege escalation</li>
+            </ul>
+
+        </div>
+    </div>
+
+    <!-- DETECTION -->
+    <div class="section">
+        <div class="section-header">Detection</div>
+        <div class="section-content">
+
+            <h3>Basic tests</h3>
+            <ul>
+                <li>Upload a harmless file (e.g. <code>test.txt</code>)</li>
+                <li>Check if the file is stored and accessible</li>
+                <li>Upload the same file twice</li>
+                <li>Observe error messages or overwrite behavior</li>
+            </ul>
+
+            <h3>Intercept upload (Burp)</h3>
+            <ul>
+                <li>Capture request</li>
+                <li>Check filename parameter</li>
+                <li>Inspect response for hints</li>
+            </ul>
+
+        </div>
+    </div>
+
+    <!-- EXPLOITATION -->
+    <div class="section">
+        <div class="section-header">Exploitation</div>
+        <div class="section-content">
+
+            <h3>Filename manipulation</h3>
+            <pre><code>filename=../../../../../../../test.txt</code></pre>
+
+            <h3>Goal</h3>
+            <ul>
+                <li>Write files outside web root</li>
+                <li>Overwrite sensitive files</li>
+                <li>Attempt privilege escalation</li>
+            </ul>
+
+        </div>
+    </div>
+
+    <!-- DIRECTORY TRAVERSAL ABUSE -->
+    <div class="section">
+        <div class="section-header">Directory Traversal Abuse</div>
+        <div class="section-content">
+
+            <h3>Example overwrite target</h3>
+            <pre><code>../../../../../../../root/.ssh/authorized_keys</code></pre>
+
+            <h3>Attack steps</h3>
+            <ol>
+                <li>Create SSH keypair</li>
+                <li>Copy public key into <code>authorized_keys</code></li>
+                <li>Upload file with traversal path in filename</li>
+                <li>Overwrite target file</li>
+                <li>Authenticate via SSH using private key</li>
+            </ol>
+
+            <h3>SSH connection example</h3>
+            <pre><code>ssh -p 2222 -i fileup root@target</code></pre>
+
+        </div>
+    </div>
+
+    <!-- PRIVILEGE ESCALATION -->
+    <div class="section">
+        <div class="section-header">Privilege Escalation</div>
+        <div class="section-content">
+
+            <h3>Common targets</h3>
+            <ul>
+                <li><code>/root/.ssh/authorized_keys</code></li>
+                <li><code>/home/user/.ssh/authorized_keys</code></li>
+                <li>Application config files</li>
+                <li>Web server files</li>
+            </ul>
+
+            <h3>Goal</h3>
+            <p>Inject SSH key or modify configuration to gain access as privileged user.</p>
+
+        </div>
+    </div>
+
+    <!-- NOTES -->
+    <div class="section">
+        <div class="section-header">Notes</div>
+        <div class="section-content">
+
+            <ul>
+                <li>Web servers often run as <code>www-data</code> (Linux) or IIS identities (Windows)</li>
+                <li>Applications may run with elevated privileges if misconfigured</li>
+                <li>Blind overwrites can cause downtime</li>
+                <li>Traversal behavior depends on server-side validation</li>
+            </ul>
+
+        </div>
+    </div>
+
+</div>
+
+    <!-- SCRIPT -->
+    <script>
+                document.querySelectorAll(".section-header").forEach(h => {
+                        h.addEventListener("click", () => h.parentElement.classList.toggle("active"))
+                });
+                function toggleSearchResults() {
+                        const results = document.getElementById("search-results");
+                        const toggleBtn = document.getElementById("toggle-results");
+
+                        results.classList.toggle("collapsed");
+
+                        if (results.classList.contains("collapsed")) {
+                                toggleBtn.textContent = "▼";
+                        } else {
+                                toggleBtn.textContent = "▲";
+                        }
+                }
+
+                function performSearch() {
+                        const query = document.getElementById("global-search").value.toLowerCase();
+                        const resultsContainer = document.getElementById("search-results");
+                        resultsContainer.innerHTML = "";
+
+                        if (!query) {
+                                resultsContainer.classList.add("collapsed");
+                                return;
+                        }
+
+                        const allElements = Array.from(document.body.querySelectorAll("*"))
+                                .filter(el => el.children.length === 0 && el.textContent.toLowerCase().includes(query));
+
+                        if (allElements.length === 0) {
+                                resultsContainer.innerHTML = "<div>No se encontraron resultados</div>";
+                        } else {
+                                allElements.forEach((el, idx) => {
+                                        let container = el.closest(".section, .sub-section") || el;
+
+                                        if (!container.id) {
+                                                container.id = `search-target-${idx}`;
+                                        }
+
+                                        const div = document.createElement("div");
+                                        div.textContent = el.textContent;
+                                        div.style.cursor = "pointer";
+                                        div.style.padding = "5px 10px";
+                                        div.style.borderBottom = "1px solid #1e293b";
+                                        div.onmouseover = () => div.style.backgroundColor = "#1e293b";
+                                        div.onmouseout = () => div.style.backgroundColor = "";
+                                        div.onclick = () => {
+                                                if (container.classList.contains("section") || container.classList.contains("sub-section")) {
+                                                        container.classList.add("active");
+                                                }
+
+                                                container.scrollIntoView({ behavior: "smooth", block: "center" });
+
+                                                container.classList.add("highlight-fade");
+                                                setTimeout(() => container.classList.remove("highlight-fade"), 2000);
+                                        };
+
+                                        resultsContainer.appendChild(div);
+                                });
+                        }
+
+                        resultsContainer.classList.remove("collapsed");
+                }
+        </script>
+
+</body>
+
+</html>

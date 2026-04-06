@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Web Fuzzing - AD Notes</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+    <!-- NAVBAR -->
+    <nav>
+        <a href="index.html">Home</a>
+
+        <div class="dropdown">
+            <a href="#">AD ▾</a>
+            <div class="dropdown-content">
+                <a href="enumeration.html">Enumeration</a>
+                <a href="attacking.html">Attacking</a>
+                <a href="lateralMovement.html">Lateral Movement</a>
+                <a href="metodologie.html">Methodology</a>
+            </div>
+        </div>
+        <div class="dropdown">
+            <a href="#">Privesc ▾</a>
+            <div class="dropdown-content">
+                <a href="windows_privesc.html">Windows PrivEsc</a>
+                <a href="linux-privesc.html">Linux Privesc</a>
+            </div>
+        </div>
+        <div class="dropdown">
+            <a href="#">Web ▾</a>
+
+            <div class="dropdown-content">
+
+                <div class="dropdown-sub">
+                    <a href="#">Finger Printing ▾</a>
+
+                    <div class="dropdown-subcontent">
+                        <a href="directoryBruteForce.html">Directory Brute Force</a>
+                    </div>
+                </div>
+
+                 <div class="dropdown-sub">
+                    <a href="#">Attacks ▾</a>
+
+                    <div class="dropdown-subcontent">
+                        <a href="directoryTraversal.html">Directory Travresal</a>
+                        <a href="fileInclusions.html">File Inclusions</a>
+                        <a href="fileUpload.html">File Uploads</a>
+                        <a href="osCommand.html">OS Command Injections</a>
+                        <a href="sqli.html">SQL Injections</a>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+        <a href="file-transfer.html">File Transfer</a>
+        <a href="checklist.html">Checklist</a>
+        <a href="pivoting.html">Pivoting</a>
+    </nav>
+     <div class="search-bar">
+        <input type="text" id="global-search" placeholder="Buscar..." />
+        <button onclick="performSearch()">🔍 Search</button>
+        <button id="toggle-results" onclick="toggleSearchResults()">▲</button>
+        <div id="search-results" class="search-results collapsed"></div>
+    </div>
+    <!-- CONTENT -->
+    <div class="container">
+
+        <!-- GOBUSTER -->
+        <div class="section">
+            <div class="section-header">Gobuster</div>
+            <div class="section-content">
+
+                <h3>Directory brute force</h3>
+                <pre><code>gobuster dir -u &lt;IP&gt; -w /usr/share/wordlists/dirbuster/directory-list-2.3-medium.txt -t 50</code></pre>
+
+                <h3>Basic fuzzing</h3>
+                <pre><code>gobuster dir -u http://&lt;IP&gt;/ -w &lt;WORDLIST&gt; -c -t 50</code></pre>
+
+                <h3>Search for files with extensions</h3>
+                <pre><code>gobuster dir -u http://&lt;IP&gt;/ -w &lt;WORDLIST&gt; -x php,txt,html -c -t 50</code></pre>
+
+                <h3>Filtering (status codes)</h3>
+                <pre><code>gobuster dir -u http://&lt;IP&gt;/ -w &lt;WORDLIST&gt; -s 200,301,302 -c</code></pre>
+
+                <h3>Fuzzing parameters</h3>
+                <pre><code>gobuster dir -u "http://&lt;IP&gt;/&lt;SUBDIRECTORY&gt;/?FUZZ=1" -w &lt;WORDLIST&gt; -c</code></pre>
+
+                <h3>Fuzzing auth pages (POST)</h3>
+                <pre><code>gobuster dir -u http://&lt;IP&gt;/&lt;SUBDIRECTORY&gt;/ -w &lt;WORDLIST&gt; -m POST \
+--data 'uname=Dummy&passwd=FUZZ&submit=Submit' \
+-H 'Content-Type: application/x-www-form-urlencoded' -t 50</code></pre>
+
+                <h3>Subdomain enumeration</h3>
+                <pre><code>gobuster vhost -u http://FUZZ.mydomain.com -w &lt;WORDLIST&gt;
+gobuster vhost -u http://mydomain.com -w &lt;WORDLIST&gt; --append-domain</code></pre>
+
+                <h3>Virtual hosting</h3>
+                <pre><code>gobuster vhost -u http://mydomain.com -w &lt;WORDLIST&gt; -H 'Host: FUZZ.mydomain.com'</code></pre>
+
+                <h3>Virtual hosting with IP</h3>
+                <pre><code>gobuster vhost -u http://&lt;IP&gt; -w &lt;WORDLIST&gt; -H 'Host: FUZZ.thm'</code></pre>
+
+            </div>
+        </div>
+
+        <!-- FEROXBUSTER -->
+        <div class="section">
+            <div class="section-header">Feroxbuster</div>
+            <div class="section-content">
+
+                <h3>Full scan example</h3>
+                <pre><code>feroxbuster -u http://192.168.45.242:28080 -w /usr/share/wordlists/dirbuster/directory-list-2.3-medium.txt -t 100 -d 1</code></pre>
+
+                <h3>Basic directory fuzzing</h3>
+                <pre><code>feroxbuster -u http://&lt;IP&gt;/FUZZ -w &lt;WORDLIST&gt; -c -t 50</code></pre>
+
+                <h3>Search for files</h3>
+                <pre><code>feroxbuster -u http://&lt;IP&gt;/FUZZ -w &lt;WORDLIST&gt; -e php,txt -c</code></pre>
+
+                <h3>Filtering</h3>
+                <pre><code>feroxbuster -u http://&lt;IP&gt;/FUZZ -w &lt;WORDLIST&gt; --filter-status 403 -c</code></pre>
+
+                <h3>Fuzzing parameters</h3>
+                <pre><code>feroxbuster -u 'http://&lt;IP&gt;/&lt;SUBDIRECTORY&gt;/?FUZZ=1' -w &lt;WORDLIST&gt; --filter-size 39 -c</code></pre>
+
+                <h3>Fuzzing auth pages (POST)</h3>
+                <pre><code>feroxbuster -u http://&lt;IP&gt;/&lt;SUBDIRECTORY&gt;/ -X POST \
+-d 'uname=Dummy&passwd=FUZZ&submit=Submit' \
+-H 'Content-Type: application/x-www-form-urlencoded' \
+--filter-size 1435 -c</code></pre>
+
+                <h3>Subdomain enumeration</h3>
+                <pre><code>feroxbuster -u http://FUZZ.mydomain.com -w &lt;WORDLIST&gt; --filter-size 0 -c</code></pre>
+
+                <h3>Virtual hosting</h3>
+                <pre><code>feroxbuster -u http://mydomain.com -w &lt;WORDLIST&gt; -H 'Host: FUZZ.mydomain.com' --filter-size 0 -c</code></pre>
+
+                <h3>Virtual hosting with IP</h3>
+                <pre><code>feroxbuster -u http://&lt;IP&gt; -w &lt;WORDLIST&gt; -H 'Host: FUZZ.thm' -c</code></pre>
+
+            </div>
+        </div>
+
+        <!-- FFUF -->
+        <div class="section">
+            <div class="section-header">ffuf</div>
+            <div class="section-content">
+
+                <h3>Basic fuzzing</h3>
+                <pre><code>ffuf -c -u http://&lt;IP&gt;/FUZZ -w &lt;WORDLIST&gt; -t 50</code></pre>
+
+                <h3>Search for files</h3>
+                <pre><code>ffuf -c -u http://&lt;IP&gt;/FUZZ -w &lt;WORDLIST&gt; -e .php,.txt</code></pre>
+
+                <h3>Filtering</h3>
+                <pre><code>ffuf -c -u http://&lt;IP&gt;/FUZZ -w &lt;WORDLIST&gt; -fc 403</code></pre>
+
+                <h3>Fuzzing parameters</h3>
+                <pre><code>ffuf -u 'http://&lt;IP&gt;/&lt;SUBDIRECTORY&gt;/?FUZZ=1' -c -w &lt;WORDLIST&gt; -fw 39</code></pre>
+
+                <h3>Fuzzing auth pages (POST)</h3>
+                <pre><code>ffuf -u http://&lt;IP&gt;/&lt;SUBDIRECTORY&gt;/ -c -w &lt;WORDLIST&gt; -X POST \
+-d 'uname=Dummy&passwd=FUZZ&submit=Submit' \
+-H 'Content-Type: application/x-www-form-urlencoded' -fs 1435</code></pre>
+
+                <h3>Subdomain enumeration</h3>
+                <pre><code>ffuf -u http://FUZZ.mydomain.com -c -w &lt;WORDLIST&gt; -fs 0</code></pre>
+
+                <h3>Virtual hosting</h3>
+                <pre><code>ffuf -u http://mydomain.com -c -w &lt;WORDLIST&gt; -H 'Host: FUZZ.mydomain.com' -fs 0</code></pre>
+
+                <h3>Virtual hosting with IP</h3>
+                <pre><code>ffuf -u http://&lt;IP&gt; -H 'Host: FUZZ.thm' -w &lt;WORDLIST&gt;</code></pre>
+
+            </div>
+        </div>
+
+        <!-- WFUZZ -->
+        <div class="section">
+            <div class="section-header">wfuzz</div>
+            <div class="section-content">
+
+                <h3>Basic fuzzing</h3>
+                <pre><code>wfuzz -c -w &lt;WORDLIST&gt; http://&lt;IP&gt;/FUZZ</code></pre>
+
+                <h3>Search for files</h3>
+                <pre><code>wfuzz -c -w &lt;WORDLIST&gt; -z list,.php,.txt http://&lt;IP&gt;/FUZZ</code></pre>
+
+                <h3>Filtering (exclude 403)</h3>
+                <pre><code>wfuzz -c -w &lt;WORDLIST&gt; --hc 403 http://&lt;IP&gt;/FUZZ</code></pre>
+
+                <h3>Fuzzing parameters</h3>
+                <pre><code>wfuzz -c -w &lt;WORDLIST&gt; --hc 39 http://&lt;IP&gt;/&lt;SUBDIRECTORY&gt;/?FUZZ=1</code></pre>
+
+                <h3>Fuzzing auth pages (POST)</h3>
+                <pre><code>wfuzz -c -w &lt;WORDLIST&gt; -X POST \
+-d 'uname=Dummy&passwd=FUZZ&submit=Submit' \
+-H 'Content-Type: application/x-www-form-urlencoded' --hc 1435 \
+http://&lt;IP&gt;/&lt;SUBDIRECTORY&gt;/</code></pre>
+
+                <h3>Subdomain enumeration</h3>
+                <pre><code>wfuzz -c -w &lt;WORDLIST&gt; --hc 0 http://FUZZ.mydomain.com</code></pre>
+
+                <h3>Virtual hosting</h3>
+                <pre><code>wfuzz -c -w &lt;WORDLIST&gt; --hc 0 -H 'Host: FUZZ.mydomain.com' http://mydomain.com</code></pre>
+
+                <h3>Virtual hosting with IP</h3>
+                <pre><code>wfuzz -c -w &lt;WORDLIST&gt; -H 'Host: FUZZ.thm' http://&lt;IP&gt;</code></pre>
+
+            </div>
+        </div>
+
+    </div>
+
+    <!-- SCRIPT -->
+    <script>
+                document.querySelectorAll(".section-header").forEach(h => {
+                        h.addEventListener("click", () => h.parentElement.classList.toggle("active"))
+                });
+                function toggleSearchResults() {
+                        const results = document.getElementById("search-results");
+                        const toggleBtn = document.getElementById("toggle-results");
+
+                        results.classList.toggle("collapsed");
+
+                        if (results.classList.contains("collapsed")) {
+                                toggleBtn.textContent = "▼";
+                        } else {
+                                toggleBtn.textContent = "▲";
+                        }
+                }
+
+                function performSearch() {
+                        const query = document.getElementById("global-search").value.toLowerCase();
+                        const resultsContainer = document.getElementById("search-results");
+                        resultsContainer.innerHTML = "";
+
+                        if (!query) {
+                                resultsContainer.classList.add("collapsed");
+                                return;
+                        }
+
+                        const allElements = Array.from(document.body.querySelectorAll("*"))
+                                .filter(el => el.children.length === 0 && el.textContent.toLowerCase().includes(query));
+
+                        if (allElements.length === 0) {
+                                resultsContainer.innerHTML = "<div>No se encontraron resultados</div>";
+                        } else {
+                                allElements.forEach((el, idx) => {
+                                        let container = el.closest(".section, .sub-section") || el;
+
+                                        if (!container.id) {
+                                                container.id = `search-target-${idx}`;
+                                        }
+
+                                        const div = document.createElement("div");
+                                        div.textContent = el.textContent;
+                                        div.style.cursor = "pointer";
+                                        div.style.padding = "5px 10px";
+                                        div.style.borderBottom = "1px solid #1e293b";
+                                        div.onmouseover = () => div.style.backgroundColor = "#1e293b";
+                                        div.onmouseout = () => div.style.backgroundColor = "";
+                                        div.onclick = () => {
+                                                if (container.classList.contains("section") || container.classList.contains("sub-section")) {
+                                                        container.classList.add("active");
+                                                }
+
+                                                container.scrollIntoView({ behavior: "smooth", block: "center" });
+
+                                                container.classList.add("highlight-fade");
+                                                setTimeout(() => container.classList.remove("highlight-fade"), 2000);
+                                        };
+
+                                        resultsContainer.appendChild(div);
+                                });
+                        }
+
+                        resultsContainer.classList.remove("collapsed");
+                }
+        </script>
+
+</body>
+
+</html>

