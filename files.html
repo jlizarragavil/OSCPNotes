@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Web Fuzzing - AD Notes</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+    <!-- NAVBAR -->
+    <nav>
+        <a href="index.html">Home</a>
+
+        <div class="dropdown">
+            <a href="#">AD ▾</a>
+            <div class="dropdown-content">
+                <a href="enumeration.html">Enumeration</a>
+                <a href="attacking.html">Attacking</a>
+                <a href="lateralMovement.html">Lateral Movement</a>
+                <a href="metodologie.html">Methodology</a>
+            </div>
+        </div>
+        <div class="dropdown">
+            <a href="#">Privesc ▾</a>
+            <div class="dropdown-content">
+                <a href="windows_privesc.html">Windows PrivEsc</a>
+                <a href="linux-privesc.html">Linux Privesc</a>
+            </div>
+        </div>
+        <div class="dropdown">
+            <a href="#">Web ▾</a>
+
+            <div class="dropdown-content">
+
+                <div class="dropdown-sub">
+                    <a href="#">Finger Printing ▾</a>
+
+                    <div class="dropdown-subcontent">
+                        <a href="web/directoryBruteForce.html">Directory Brute Force</a>
+                    </div>
+                </div>
+
+                 <div class="dropdown-sub">
+                    <a href="#">Attacks ▾</a>
+
+                    <div class="dropdown-subcontent">
+                        <a href="web/directoryTraversal.html">Directory Travresal</a>
+                        <a href="web/fileInclusions.html">File Inclusions</a>
+                        <a href="web/fileUpload.html">File Uploads</a>
+                        <a href="web/osCommand.html">OS Command Injections</a>
+                        <a href="web/sqli.html">SQL Injections</a>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+        <div class="dropdown">
+            <a href="#">Passwords Attacks ▾</a>
+
+            <div class="dropdown-content">
+
+                <div class="dropdown-sub">
+                    <a href="#">Network Service login ▾</a>
+
+                    <div class="dropdown-subcontent">
+                        <a href="sshBF.html">SSH </a>
+                        <a href="rdpBF.html">RDP </a>
+                        <a href="httpPostBF.html">HTTP POST Login </a>
+                    </div>
+                </div>
+
+                 <div class="dropdown-sub">
+                    <a href="#">Password cracking ▾</a>
+
+                    <div class="dropdown-subcontent">
+                        <a href="CrakingIntro.html">Craking Intro</a>
+                        <a href="MutatingWordlist.html">Mutating Wordlist</a>
+                        <a href="CrakingMethodology.html">Craking Methodology</a>
+                        <a href="PasswordManager.html">Password Manager</a>
+                        <a href="sshPKP.html">SSH Private Key Passphrase</a>
+                    </div>
+                </div>
+
+                <div class="dropdown-sub">
+                    <a href="#">Password Hashes ▾</a>
+
+                    <div class="dropdown-subcontent">
+                        <a href="ntlmCrack.html">Cracking NTLM</a>
+                        <a href="ntlmPass.html">Passing NTLM</a>
+                        <a href="ntlm2Crack.html">Cracking Net-NTLMv2</a>
+                        <a href="ntlm2Relay.html">Relaying Net-NTLMv2</a>
+                        <a href="WindowsCredsGuard.html">Windows Credential Guard</a>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+        <a href="file-transfer.html">File Transfer</a>
+        <a href="checklist.html">Checklist</a>
+        <a href="pivoting.html">Pivoting</a>
+        <a href="tips.html">Tips</a>
+    </nav>
+     <div class="search-bar">
+        <input type="text" id="global-search" placeholder="Buscar..." />
+        <button onclick="performSearch()">🔍 Search</button>
+        <button id="toggle-results" onclick="toggleSearchResults()">▲</button>
+        <div id="search-results" class="search-results collapsed"></div>
+    </div>
+    <!-- CONTENT -->
+
+    <div class="container">
+
+    <h1>Text Processing & File Hunting (grep, awk, cut, etc.)</h1>
+
+    <!-- GREP -->
+    <div class="section">
+        <div class="section-header">grep (Filtering)</div>
+        <div class="section-content">
+
+            <p><strong>Basic search:</strong></p>
+<pre><code>grep "string" file.txt</code></pre>
+
+            <p><strong>Case insensitive:</strong></p>
+<pre><code>grep -i "admin" file.txt</code></pre>
+
+            <p><strong>Show line numbers:</strong></p>
+<pre><code>grep -n "error" file.txt</code></pre>
+
+            <p><strong>Regex:</strong></p>
+<pre><code>grep -E "^[0-9]" file.txt</code></pre>
+
+            <p><strong>Exclude lines:</strong></p>
+<pre><code>grep -v "string" file.txt</code></pre>
+
+        </div>
+    </div>
+
+    <!-- AWK -->
+    <div class="section">
+        <div class="section-header">awk (Column Extraction)</div>
+        <div class="section-content">
+
+            <p><strong>Print specific column:</strong></p>
+<pre><code>awk '{print $1}' file.txt</code></pre>
+
+            <p><strong>Multiple columns:</strong></p>
+<pre><code>awk '{print $1, $3}' file.txt</code></pre>
+
+            <p><strong>Filter + print:</strong></p>
+<pre><code>awk '$1 ~ /^[0-9]/ {print $2}' file.txt</code></pre>
+
+            <p><strong>Change delimiter:</strong></p>
+<pre><code>awk -F ':' '{print $1}' file.txt</code></pre>
+
+        </div>
+    </div>
+
+    <!-- CUT -->
+    <div class="section">
+        <div class="section-header">cut (Field Extraction)</div>
+        <div class="section-content">
+
+            <p><strong>Delimiter based:</strong></p>
+<pre><code>cut -d ':' -f1 file.txt</code></pre>
+
+            <p><strong>Multiple fields:</strong></p>
+<pre><code>cut -d ':' -f1,3 file.txt</code></pre>
+
+        </div>
+    </div>
+
+    <!-- SORT / UNIQUE -->
+    <div class="section">
+        <div class="section-header">sort / uniq (Cleaning Data)</div>
+        <div class="section-content">
+
+<pre><code>sort file.txt
+sort -u file.txt
+uniq file.txt</code></pre>
+
+            <p><strong>Count occurrences:</strong></p>
+<pre><code>sort file.txt | uniq -c</code></pre>
+
+        </div>
+    </div>
+
+    <!-- TR -->
+    <div class="section">
+        <div class="section-header">tr (Transform Text)</div>
+        <div class="section-content">
+
+            <p><strong>Lowercase:</strong></p>
+<pre><code>tr 'A-Z' 'a-z' &lt; file.txt</code></pre>
+
+            <p><strong>Remove characters:</strong></p>
+<pre><code>tr -d ':' &lt; file.txt</code></pre>
+
+        </div>
+    </div>
+
+    <!-- SED -->
+    <div class="section">
+        <div class="section-header">sed (Stream Editing)</div>
+        <div class="section-content">
+
+            <p><strong>Replace text:</strong></p>
+<pre><code>sed 's/old/new/g' file.txt</code></pre>
+
+            <p><strong>Delete lines:</strong></p>
+<pre><code>sed '/pattern/d' file.txt</code></pre>
+
+        </div>
+    </div>
+
+    <!-- FILE HUNTING -->
+    <div class="section">
+        <div class="section-header">File Hunting (find, locate, strings, etc.)</div>
+        <div class="section-content">
+
+            <p><strong>Find files:</strong></p>
+<pre><code>find / -name "*.txt" 2>/dev/null
+find / -type f -name "*.conf" 2>/dev/null
+find / -perm -4000 2>/dev/null
+find / -writable -type f 2>/dev/null</code></pre>
+
+            <p><strong>Fast search:</strong></p>
+<pre><code>locate passwd</code></pre>
+
+            <p><strong>Search inside files:</strong></p>
+<pre><code>grep -R "password" .
+rg "password" .</code></pre>
+
+            <p><strong>Binary analysis:</strong></p>
+<pre><code>strings file.bin | grep -i password</code></pre>
+
+            <p><strong>Identify file type:</strong></p>
+<pre><code>file unknown.bin</code></pre>
+
+        </div>
+    </div>
+
+    <!-- COMBINATIONS -->
+    <div class="section">
+        <div class="section-header">Real OSCP Pipelines (Very Important)</div>
+        <div class="section-content">
+
+            <p><strong>Extract ports from nmap output:</strong></p>
+<pre><code>grep "^[0-9]" openPorts | awk '{print $1}' | cut -d'/' -f1 | paste -sd,</code></pre>
+
+            <p><strong>Get IPs from file:</strong></p>
+<pre><code>grep -oE '[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+' file.txt | sort -u</code></pre>
+
+            <p><strong>Clean usernames list:</strong></p>
+<pre><code>cut -d ':' -f1 users.txt | sort -u</code></pre>
+
+            <p><strong>Filter valid results:</strong></p>
+<pre><code>cat file.txt | grep -i "open" | awk '{print $2}'</code></pre>
+
+            <p><strong>Extract emails:</strong></p>
+<pre><code>grep -oE '[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+' file.txt</code></pre>
+
+        </div>
+    </div>
+
+    <!-- TIPS -->
+    <div class="section">
+        <div class="section-header">OSCP Tips</div>
+        <div class="section-content">
+
+            <ul>
+                <li>Always think in pipelines: <code>grep | awk | cut | sort</code></li>
+                <li>Use <code>grep -o</code> to extract matches only</li>
+                <li>Use <code>sort -u</code> to remove duplicates</li>
+                <li>Use <code>paste -sd,</code> to format lists (ports, IPs)</li>
+                <li>Combine <code>find</code> + <code>grep</code> for deep searches</li>
+                <li>Prefer <code>rg</code> for large directories when available</li>
+            </ul>
+
+        </div>
+    </div>
+
+</div>
+    <!-- SCRIPT -->
+    <script>
+                document.querySelectorAll(".section-header").forEach(h => {
+                        h.addEventListener("click", () => h.parentElement.classList.toggle("active"))
+                });
+                function toggleSearchResults() {
+                        const results = document.getElementById("search-results");
+                        const toggleBtn = document.getElementById("toggle-results");
+
+                        results.classList.toggle("collapsed");
+
+                        if (results.classList.contains("collapsed")) {
+                                toggleBtn.textContent = "▼";
+                        } else {
+                                toggleBtn.textContent = "▲";
+                        }
+                }
+
+                function performSearch() {
+                        const query = document.getElementById("global-search").value.toLowerCase();
+                        const resultsContainer = document.getElementById("search-results");
+                        resultsContainer.innerHTML = "";
+
+                        if (!query) {
+                                resultsContainer.classList.add("collapsed");
+                                return;
+                        }
+
+                        const allElements = Array.from(document.body.querySelectorAll("*"))
+                                .filter(el => el.children.length === 0 && el.textContent.toLowerCase().includes(query));
+
+                        if (allElements.length === 0) {
+                                resultsContainer.innerHTML = "<div>No se encontraron resultados</div>";
+                        } else {
+                                allElements.forEach((el, idx) => {
+                                        let container = el.closest(".section, .sub-section") || el;
+
+                                        if (!container.id) {
+                                                container.id = `search-target-${idx}`;
+                                        }
+
+                                        const div = document.createElement("div");
+                                        div.textContent = el.textContent;
+                                        div.style.cursor = "pointer";
+                                        div.style.padding = "5px 10px";
+                                        div.style.borderBottom = "1px solid #1e293b";
+                                        div.onmouseover = () => div.style.backgroundColor = "#1e293b";
+                                        div.onmouseout = () => div.style.backgroundColor = "";
+                                        div.onclick = () => {
+                                                if (container.classList.contains("section") || container.classList.contains("sub-section")) {
+                                                        container.classList.add("active");
+                                                }
+
+                                                container.scrollIntoView({ behavior: "smooth", block: "center" });
+
+                                                container.classList.add("highlight-fade");
+                                                setTimeout(() => container.classList.remove("highlight-fade"), 2000);
+                                        };
+
+                                        resultsContainer.appendChild(div);
+                                });
+                        }
+
+                        resultsContainer.classList.remove("collapsed");
+                }
+        </script>
+
+</body>
+
+</html>

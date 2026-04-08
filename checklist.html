@@ -37,7 +37,7 @@
                     <a href="#">Finger Printing ▾</a>
 
                     <div class="dropdown-subcontent">
-                        <a href="directoryBruteForce.html">Directory Brute Force</a>
+                        <a href="web/directoryBruteForce.html">Directory Brute Force</a>
                     </div>
                 </div>
 
@@ -45,11 +45,52 @@
                     <a href="#">Attacks ▾</a>
 
                     <div class="dropdown-subcontent">
-                        <a href="directoryTraversal.html">Directory Travresal</a>
-                        <a href="fileInclusions.html">File Inclusions</a>
-                        <a href="fileUpload.html">File Uploads</a>
-                        <a href="osCommand.html">OS Command Injections</a>
-                        <a href="sqli.html">SQL Injections</a>
+                        <a href="web/directoryTraversal.html">Directory Travresal</a>
+                        <a href="web/fileInclusions.html">File Inclusions</a>
+                        <a href="web/fileUpload.html">File Uploads</a>
+                        <a href="web/osCommand.html">OS Command Injections</a>
+                        <a href="web/sqli.html">SQL Injections</a>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+        <div class="dropdown">
+            <a href="#">Passwords Attacks ▾</a>
+
+            <div class="dropdown-content">
+
+                <div class="dropdown-sub">
+                    <a href="#">Network Service login ▾</a>
+
+                    <div class="dropdown-subcontent">
+                        <a href="sshBF.html">SSH </a>
+                        <a href="rdpBF.html">RDP </a>
+                        <a href="httpPostBF.html">HTTP POST Login </a>
+                    </div>
+                </div>
+
+                 <div class="dropdown-sub">
+                    <a href="#">Password cracking ▾</a>
+
+                    <div class="dropdown-subcontent">
+                        <a href="CrakingIntro.html">Craking Intro</a>
+                        <a href="MutatingWordlist.html">Mutating Wordlist</a>
+                        <a href="CrakingMethodology.html">Craking Methodology</a>
+                        <a href="PasswordManager.html">Password Manager</a>
+                        <a href="sshPKP.html">SSH Private Key Passphrase</a>
+                    </div>
+                </div>
+
+                <div class="dropdown-sub">
+                    <a href="#">Password Hashes ▾</a>
+
+                    <div class="dropdown-subcontent">
+                        <a href="ntlmCrack.html">Cracking NTLM</a>
+                        <a href="ntlmPass.html">Passing NTLM</a>
+                        <a href="ntlm2Crack.html">Cracking Net-NTLMv2</a>
+                        <a href="ntlm2Relay.html">Relaying Net-NTLMv2</a>
+                        <a href="WindowsCredsGuard.html">Windows Credential Guard</a>
                     </div>
                 </div>
 
@@ -58,6 +99,7 @@
         <a href="file-transfer.html">File Transfer</a>
         <a href="checklist.html">Checklist</a>
         <a href="pivoting.html">Pivoting</a>
+        <a href="tips.html">Tips</a>
     </nav>
 
     <div class="search-bar">
@@ -66,93 +108,289 @@
         <button id="toggle-results" onclick="toggleSearchResults()">▲</button>
         <div id="search-results" class="search-results collapsed"></div>
     </div>
+
     <div class="container">
-        <h1>Checklist</h1>
+    <h1>Checklist</h1>
 
-        <div class="section">
-            <div class="section-header">Linux - After Shell</div>
-            <div class="section-content">
-                <ul>
-                    <li>Check current user: <code>whoami</code></li>
-                    <li>Check UID 0: <code>id</code></li>
-                    <li>List running processes: <code>ps auxf</code></li>
-                    <li>Check open ports: <code>ss -tulpn</code> or <code>netstat -tulpn</code></li>
-                    <li>Check kernel version: <code>uname -a</code></li>
-                    <li>Check system info: <code>cat /etc/os-release</code></li>
-                    <li>Check SUID binaries: <code>find / -perm -4000 -type f 2>/dev/null</code></li>
-                    <li>Check capabilities: <code>getcap -r / 2>/dev/null</code></li>
-                    <li>Check writable files/directories: <code>find / -writable -type f 2>/dev/null</code></li>
-                    <li>Check scheduled cron jobs: <code>crontab -l</code>, <code>ls -la /etc/cron*</code></li>
-                    <li>Check Docker/LXD groups: <code>groups</code> + <code>id</code></li>
-                    <li>Check PATH hijack opportunities: <code>echo $PATH</code> + look for writable dirs</li>
-                    <li>Check for passwords: <code>grep -i password /etc/passwd /etc/shadow /home/*/.bash_history</code>
-                    </li>
-                    <li>Look for SSH keys: <code>find /home -name '*.pem' -o -name '*.key' 2>/dev/null</code></li>
-                    <li>Run enumeration scripts (LinPEAS, LinEnum) if possible</li>
-                </ul>
-            </div>
+    <div class="section">
+        <div class="section-header">Linux - After Shell</div>
+        <div class="section-content">
+            <ul>
+                <li>Check current user: <code>whoami</code>
+                    <ul><li>Confirms your current identity and context</li></ul>
+                </li>
+
+                <li>Check UID 0: <code>id</code>
+                    <ul>
+                        <li>Look for UID=0 (root)</li>
+                        <li>Check sudo privileges</li>
+                        <li>Identify groups that may grant access</li>
+                    </ul>
+                </li>
+
+                <li>List running processes: <code>ps auxf</code>
+                    <ul>
+                        <li>Look at the USER column → identify processes running as root</li>
+                        <li>Check for binaries/scripts in unusual paths (/tmp, /dev/shm, /home)</li>
+                        <li>Identify unknown or custom services</li>
+                        <li>If root runs a script → check if you can modify it</li>
+                    </ul>
+                </li>
+
+                <li>Check open ports: <code>ss -tulpn</code> or <code>netstat -tulpn</code>
+                    <ul>
+                        <li>Look for services bound to 127.0.0.1 (internal only)</li>
+                        <li>Identify databases (3306, 5432), Redis, etc.</li>
+                        <li>Map ports to processes (PID → process)</li>
+                        <li>Check for services you can interact with locally</li>
+                    </ul>
+                </li>
+
+                <li>Check kernel version: <code>uname -a</code>
+                    <ul>
+                        <li>Search for kernel exploits if outdated</li>
+                    </ul>
+                </li>
+
+                <li>Check system info: <code>cat /etc/os-release</code></li>
+
+                <li>Check SUID binaries: <code>find / -perm -4000 -type f 2>/dev/null</code>
+                    <ul>
+                        <li>Identify binaries that run as root</li>
+                        <li>Check unusual/custom binaries</li>
+                        <li>Search in GTFOBins for exploitation</li>
+                    </ul>
+                </li>
+
+                <li>Check capabilities: <code>getcap -r / 2>/dev/null</code>
+                    <ul>
+                        <li>Look for binaries with elevated capabilities</li>
+                        <li>Some allow privilege escalation without SUID</li>
+                    </ul>
+                </li>
+
+                <li>Check writable files/directories: <code>find / -writable -type f 2>/dev/null</code>
+                    <ul>
+                        <li>Writable scripts executed by root</li>
+                        <li>Config files you can modify</li>
+                        <li>Anything in cron jobs or services</li>
+                    </ul>
+                </li>
+
+                <li>Check scheduled cron jobs: <code>crontab -l</code>, <code>ls -la /etc/cron*</code>
+                    <ul>
+                        <li>Look for scripts executed as root</li>
+                        <li>Check if scripts are writable</li>
+                        <li>Check for path abuse in cron jobs</li>
+                    </ul>
+                </li>
+
+                <li>Check Docker/LXD groups: <code>groups</code> + <code>id</code>
+                    <ul>
+                        <li>May allow container escape</li>
+                        <li>Check membership in docker/lxd groups</li>
+                    </ul>
+                </li>
+
+                <li>Check PATH hijack opportunities: <code>echo $PATH</code>
+                    <ul>
+                        <li>Look for writable directories in PATH</li>
+                        <li>Check if root executes binaries without full path</li>
+                    </ul>
+                </li>
+
+                <li>Check for passwords: <code>grep -i password /etc/passwd /etc/shadow /home/*/.bash_history</code>
+                    <ul>
+                        <li>Look for reused or hardcoded credentials</li>
+                        <li>Check config files and history files</li>
+                    </ul>
+                </li>
+
+                <li>Look for SSH keys: <code>find /home -name '*.pem' -o -name '*.key' 2>/dev/null</code>
+                    <ul>
+                        <li>Private keys can allow lateral movement</li>
+                    </ul>
+                </li>
+
+                <li>Run enumeration scripts (LinPEAS, LinEnum) if possible
+                    <ul>
+                        <li>Automates privilege escalation discovery</li>
+                    </ul>
+                </li>
+            </ul>
         </div>
-
-        <div class="section">
-            <div class="section-header">Windows - After Shell</div>
-            <div class="section-content">
-                <ul>
-                    <li>Check current user: <code>whoami</code></li>
-                    <li>Check groups and privileges: <code>whoami /groups</code></li>
-                    <li>Check if admin: <code>net session</code> (will fail if not admin)</li>
-                    <li>List running processes: <code>tasklist /v</code></li>
-                    <li>Check listening ports: <code>netstat -ano</code></li>
-                    <li>Check Windows version: <code>systeminfo</code></li>
-                    <li>Enumerate services: <code>sc query</code></li>
-                    <li>List scheduled tasks: <code>schtasks /query /fo LIST /v</code></li>
-                    <li>List SUID-equivalent binaries (Check for dangerous executables and permissions)</li>
-                    <li>Look for interesting files: <code>dir /s /b *.txt</code>, <code>dir /s /b *.config</code></li>
-                    <li>Check mapped drives and shares: <code>net use</code></li>
-                    <li>Run PowerUp, WinPEAS, Sherlock scripts if possible</li>
-                </ul>
-            </div>
-        </div>
-
-        <div class="section">
-            <div class="section-header">After Getting Credentials</div>
-            <div class="section-content">
-                <ul>
-                    <li>Test credentials on SMB / WinRM / RDP / SSH</li>
-                    <li>Check local admin access on other machines</li>
-                    <li>Dump hashes if allowed: <code>secretsdump.py</code> or <code>impacket-secretsdump</code></li>
-                    <li>Check SPNs for kerberoasting opportunities</li>
-                    <li>Use BloodHound / PowerView / AD modules to enumerate rights and object permissions</li>
-                    <li>Check for cached creds / RDP / saved passwords</li>
-                    <li>Check for interesting shares: <code>Find-DomainShare</code>, <code>net view</code></li>
-                    <li>Look for service accounts / privileged users / DA membership</li>
-                    <li>Check for nested groups and delegation</li>
-                </ul>
-            </div>
-        </div>
-
-        <div class="section">
-            <div class="section-header">When Stuck</div>
-            <div class="section-content">
-                <ul>
-                    <li>Check for misconfigurations in services (ex: MSSQL, FTP, Redis)</li>
-                    <li>Try password spraying / common passwords</li>
-                    <li>Check for old backup files, database dumps, config files</li>
-                    <li>Enumerate users from logs / files / scripts</li>
-                    <li>Re-check permissions on files, shares, cron, tasks</li>
-                    <li>Re-run automated enumeration tools (LinPEAS, BloodHound, WinPEAS)</li>
-                    <li>Look for hardcoded credentials in scripts / binaries</li>
-                    <li>Check scheduled tasks / cron jobs for privilege escalation</li>
-                    <li>Scan local services for weak configurations</li>
-                </ul>
-            </div>
-        </div>
-
     </div>
+
+    <div class="section">
+        <div class="section-header">Windows - After Shell</div>
+        <div class="section-content">
+            <ul>
+                <li>Check current user: <code>whoami</code></li>
+
+                <li>Check groups and privileges: <code>whoami /groups</code>
+                    <ul>
+                        <li>Look for SeImpersonatePrivilege</li>
+                        <li>Look for SeDebugPrivilege</li>
+                        <li>Identify privilege escalation opportunities</li>
+                    </ul>
+                </li>
+
+                <li>Check if admin: <code>net session</code>
+                    <ul><li>If it works → you are admin</li></ul>
+                </li>
+
+                <li>List running processes: <code>tasklist /v</code>
+                    <ul>
+                        <li>Identify SYSTEM processes</li>
+                        <li>Look for unknown binaries/services</li>
+                    </ul>
+                </li>
+
+                <li>Check listening ports: <code>netstat -ano</code>
+                    <ul>
+                        <li>Identify internal services</li>
+                        <li>Map PID → process</li>
+                    </ul>
+                </li>
+
+                <li>Check Windows version: <code>systeminfo</code>
+                    <ul>
+                        <li>Useful for vulnerability research</li>
+                    </ul>
+                </li>
+
+                <li>Enumerate services: <code>sc query</code>
+                    <ul>
+                        <li>Look for misconfigured services</li>
+                        <li>Check service binaries and permissions</li>
+                    </ul>
+                </li>
+
+                <li>List scheduled tasks: <code>schtasks /query /fo LIST /v</code>
+                    <ul>
+                        <li>Check tasks running as SYSTEM</li>
+                        <li>Verify executable paths are writable</li>
+                    </ul>
+                </li>
+
+                <li>List SUID-equivalent binaries
+                    <ul>
+                        <li>Check weak file permissions on executables</li>
+                    </ul>
+                </li>
+
+                <li>Look for interesting files: <code>dir /s /b *.txt</code>, <code>dir /s /b *.config</code>
+                    <ul>
+                        <li>Config files often contain credentials</li>
+                    </ul>
+                </li>
+
+                <li>Check mapped drives and shares: <code>net use</code>
+                    <ul>
+                        <li>Look for accessible shares and data</li>
+                    </ul>
+                </li>
+
+                <li>Run PowerUp, WinPEAS, Sherlock scripts if possible
+                    <ul>
+                        <li>Automates enumeration and privesc discovery</li>
+                    </ul>
+                </li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="section">
+        <div class="section-header">After Getting Credentials</div>
+        <div class="section-content">
+            <ul>
+                <li>Test credentials on SMB / WinRM / RDP / SSH
+                    <ul><li>Verify where credentials are valid</li></ul>
+                </li>
+
+                <li>Check local admin access on other machines</li>
+
+                <li>Dump hashes if allowed: <code>secretsdump.py</code> or <code>impacket-secretsdump</code>
+                    <ul><li>Used for lateral movement</li></ul>
+                </li>
+
+                <li>Check SPNs for kerberoasting opportunities
+                    <ul><li>Target service accounts in AD</li></ul>
+                </li>
+
+                <li>Use BloodHound / PowerView / AD modules
+                    <ul><li>Map relationships and attack paths</li></ul>
+                </li>
+
+                <li>Check for cached creds / RDP / saved passwords</li>
+
+                <li>Check shares: <code>net view</code>
+                    <ul><li>Look for sensitive files or credentials</li></ul>
+                </li>
+
+                <li>Look for service accounts / privileged users</li>
+
+                <li>Check nested groups and delegation
+                    <ul><li>Privilege escalation via group nesting</li></ul>
+                </li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="section">
+        <div class="section-header">When Stuck</div>
+        <div class="section-content">
+            <ul>
+                <li>Check misconfigurations (MSSQL, FTP, Redis)
+                    <ul><li>Default credentials or weak auth</li></ul>
+                </li>
+
+                <li>Try password spraying / common passwords</li>
+
+                <li>Look for backups, dumps, config files
+                    <ul><li>Often contain credentials</li></ul>
+                </li>
+
+                <li>Enumerate users from logs/scripts</li>
+
+                <li>Re-check permissions on files and tasks</li>
+
+                <li>Re-run enumeration tools (LinPEAS, BloodHound, WinPEAS)</li>
+
+                <li>Look for hardcoded credentials</li>
+
+                <li>Check scheduled tasks / cron jobs</li>
+
+                <li>Scan local services for weak configs</li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="section">
+        <div class="section-header">Password Cracking Methodology</div>
+        <div class="section-content">
+            <ul>
+                <li>Extract hashes from the target (databases, dumps, files)</li>
+                <li>Identify hash type using tools like hashid or hash-identifier</li>
+                <li>Format hashes correctly for the cracking tool</li>
+                <li>Estimate cracking feasibility (time vs keyspace vs hash rate)</li>
+                <li>Prepare and customize wordlists (rules, mutations, leak data)</li>
+                <li>Perform the cracking attack using tools like Hashcat or John</li>
+                <li>Validate hash input carefully (avoid extra spaces or newlines)</li>
+                <li>Double-check hash type if ambiguous</li>
+                <li>Iterate with different wordlists and rules if needed</li>
+                <li>Consider hardware or cloud resources for long cracking sessions</li>
+            </ul>
+        </div>
+    </div>
+
+</div>
 
     <script>
         document.querySelectorAll(".section-header").forEach(h => {
             h.addEventListener("click", () => h.parentElement.classList.toggle("active"))
         });
+
         function toggleSearchResults() {
             const results = document.getElementById("search-results");
             const toggleBtn = document.getElementById("toggle-results");

