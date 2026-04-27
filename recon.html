@@ -13,30 +13,25 @@
     <nav>
         <a href="index.html">Home</a>
 
-        <div class="dropdown">
-            <a href="#">AD ▾</a>
-            <div class="dropdown-content">
-                <a href="enumeration.html">Enumeration</a>
-                <a href="attacking.html">Attacking</a>
-                <a href="lateralMovement.html">Lateral Movement</a>
-                <a href="metodologie.html">Methodology</a>
-            </div>
-        </div>
-        <div class="dropdown">
-            <a href="#">Privesc ▾</a>
-            <div class="dropdown-content">
-                <a href="windows_privesc.html">Windows PrivEsc</a>
-                <a href="linux-privesc.html">Linux Privesc</a>
-            </div>
-        </div>
+        <!-- 1. FUNDAMENTALS / FLOW -->
+        <a href="general.html">General</a>
+        <a href="tips.html">Tips</a>
+        <a href="checklist.html">Checklist</a>
+
+        <a href="recon.html">Recon</a>
+        <a href="enumeration.html">Enumeration</a>
+
+        <a href="files.html">Files Searching</a>
+        <a href="file-transfer.html">File Transfer</a>
+
+        <!-- 2. WEB (USUAL ENTRY POINT) -->
         <div class="dropdown">
             <a href="#">Web ▾</a>
 
             <div class="dropdown-content">
 
                 <div class="dropdown-sub">
-                    <a href="#">Finger Printing ▾</a>
-
+                    <a href="#">Fingerprinting ▾</a>
                     <div class="dropdown-subcontent">
                         <a href="web/directoryBruteForce.html">Directory Brute Force</a>
                     </div>
@@ -44,48 +39,47 @@
 
                 <div class="dropdown-sub">
                     <a href="#">Attacks ▾</a>
-
                     <div class="dropdown-subcontent">
-                        <a href="web/directoryTraversal.html">Directory Travresal</a>
+                        <a href="web/directoryTraversal.html">Directory Traversal</a>
                         <a href="web/fileInclusions.html">File Inclusions</a>
                         <a href="web/fileUpload.html">File Uploads</a>
                         <a href="web/osCommand.html">OS Command Injections</a>
                         <a href="web/sqli.html">SQL Injections</a>
                     </div>
+                    <a href="web/wp.html">Wordpress</a>
                 </div>
 
             </div>
         </div>
+
+        <!-- 3. PASSWORD ATTACKS (POST-ENUM) -->
         <div class="dropdown">
             <a href="#">Passwords Attacks ▾</a>
 
             <div class="dropdown-content">
 
                 <div class="dropdown-sub">
-                    <a href="#">Network Service login ▾</a>
-
+                    <a href="#">Network Login ▾</a>
                     <div class="dropdown-subcontent">
-                        <a href="sshBF.html">SSH </a>
-                        <a href="rdpBF.html">RDP </a>
-                        <a href="httpPostBF.html">HTTP POST Login </a>
+                        <a href="sshBF.html">SSH</a>
+                        <a href="rdpBF.html">RDP</a>
+                        <a href="httpPostBF.html">HTTP POST Login</a>
                     </div>
                 </div>
 
                 <div class="dropdown-sub">
-                    <a href="#">Password cracking ▾</a>
-
+                    <a href="#">Password Cracking ▾</a>
                     <div class="dropdown-subcontent">
-                        <a href="CrakingIntro.html">Craking Intro</a>
+                        <a href="CrakingIntro.html">Cracking Intro</a>
                         <a href="MutatingWordlist.html">Mutating Wordlist</a>
-                        <a href="CrakingMethodology.html">Craking Methodology</a>
+                        <a href="CrakingMethodology.html">Cracking Methodology</a>
                         <a href="PasswordManager.html">Password Manager</a>
                         <a href="sshPKP.html">SSH Private Key Passphrase</a>
                     </div>
                 </div>
 
                 <div class="dropdown-sub">
-                    <a href="#">Password Hashes ▾</a>
-
+                    <a href="#">Hash Attacks ▾</a>
                     <div class="dropdown-subcontent">
                         <a href="ntlmCrack.html">Cracking NTLM</a>
                         <a href="ntlmPass.html">Passing NTLM</a>
@@ -97,10 +91,32 @@
 
             </div>
         </div>
-        <a href="file-transfer.html">File Transfer</a>
-        <a href="checklist.html">Checklist</a>
+
+        <!-- 4. ACTIVE DIRECTORY (AFTER INITIAL FOOTHOLD) -->
+        <div class="dropdown">
+            <a href="#">AD ▾</a>
+            <div class="dropdown-content">
+                <a href="enumeration.html">Enumeration</a>
+                <a href="attacking.html">Attacking</a>
+                <a href="lateralMovement.html">Lateral Movement</a>
+                <a href="metodologie.html">Methodology</a>
+            </div>
+        </div>
+
+        <!-- 5. PRIVESC (POST EXPLOITATION) -->
+        <div class="dropdown">
+            <a href="#">Privesc ▾</a>
+            <div class="dropdown-content">
+                <a href="linux-privesc.html">Linux Privesc</a>
+                <a href="windows_privesc.html">Windows PrivEsc</a>
+            </div>
+        </div>
+
+        <!-- 6. TOOLS / UTILS (REFERENCE SECTION) -->
+        <a href="toolsCheatsheet.html">Tools Cheatsheet</a>
         <a href="pivoting.html">Pivoting</a>
-        <a href="tips.html">Tips</a>
+        <a href="qol.html">QOL</a>
+
     </nav>
     <div class="search-bar">
         <input type="text" id="global-search" placeholder="Buscar..." />
@@ -111,262 +127,237 @@
     <!-- CONTENT -->
     <div class="container">
 
-        <h1>Recon & Enumeration Cheatsheet (OSCP Style)</h1>
+    <h1>Recon & Enumeration Cheatsheet (OSCP Style)</h1>
 
-        <!-- 1 -->
-        <div class="section">
-            <div class="section-header">1. Nmap Quick Scan (First Look)</div>
-            <div class="section-content">
+    <!-- 1 -->
+    <div class="section">
+        <div class="section-header">1. Nmap Quick Scan (First Look)</div>
+        <div class="section-content">
 
-                <pre><code>sudo nmap -p- --open --min-rate 5000 -sS -n -Pn target_ip -oN openPorts</code></pre>
+            <pre><code>sudo nmap -p- --open --min-rate 5000 -sS -n -Pn target_ip -oN openPorts</code></pre>
 
-                <p><strong>What you do:</strong></p>
-                <ul>
-                    <li>Quickly identify open ports</li>
-                    <li>Detect service versions</li>
-                    <li>Run default scripts</li>
-                </ul>
+            <p><strong>What you do:</strong></p>
+            <ul>
+                <li>Quickly identify open ports</li>
+                <li>Detect service versions</li>
+            </ul>
 
-                <p><strong>OSCP Tip:</strong> Run this first and continue working while it executes.</p>
+            <p><strong>OSCP Tip:</strong> Run this first and continue working while it executes.</p>
 
-            </div>
         </div>
+    </div>
 
-        <!-- 2 -->
-        <div class="section">
-            <div class="section-header">2. Full TCP Scan (All Ports)</div>
-            <div class="section-content">
+    <!-- 2 -->
+    <div class="section">
+        <div class="section-header">2. Full TCP Scan (All Ports)</div>
+        <div class="section-content">
 
-                <pre><code>nmap -p- -T4 -Pn -n target_ip -oN full_ports.txt</code></pre>
+            <pre><code>nmap -p- -T4 -Pn -n target_ip -oN full_ports.txt</code></pre>
 
-                <p><strong>Then:</strong></p>
+            <pre><code>nmap -sCV -p $(grep "^[0-9]" openPorts | awk '{print $1}' | cut -d'/' -f1 | paste -sd,) target_ip -oN services</code></pre>
 
-                <pre><code>nmap -sCV -p $(grep "^[0-9]" openPorts | awk '{print $1}' | cut -d'/' -f1 | paste -sd,) IP -oN services</code></pre>
-
-                <p><strong>What you are looking for:</strong></p>
-                <ul>
-                    <li>Uncommon ports</li>
-                    <li>Hidden services</li>
-                </ul>
-
-            </div>
         </div>
+    </div>
 
-        <!-- 3 -->
-        <div class="section">
-            <div class="section-header">3. UDP Scan (If Time Allows)</div>
-            <div class="section-content">
+    <!-- 3 -->
+    <div class="section">
+        <div class="section-header">3. UDP Scan (If Time Allows)</div>
+        <div class="section-content">
 
-                <pre><code>nmap -sU --top-ports 50 target_ip</code></pre>
+            <pre><code>nmap -sU --top-ports 50 target_ip</code></pre>
 
-                <p><strong>Important:</strong></p>
-                <ul>
-                    <li>Slow → run in background</li>
-                    <li>Look for DNS, SNMP, NFS</li>
-                </ul>
-
-            </div>
         </div>
+    </div>
 
-        <!-- 4 -->
-        <div class="section">
-            <div class="section-header">4. Service Enumeration Mindset</div>
-            <div class="section-content">
+    <!-- 4 -->
+    <div class="section">
+        <div class="section-header">4. Service Enumeration Mindset</div>
+        <div class="section-content">
 
-                <p>Do not think in terms of attacks → think:</p>
+            <ul>
+                <li>What service is this?</li>
+                <li>What version?</li>
+                <li>Is authentication required?</li>
+            </ul>
 
-                <ul>
-                    <li>What service is this?</li>
-                    <li>What version?</li>
-                    <li>Is authentication required?</li>
-                    <li>What data is exposed?</li>
-                </ul>
+            <pre><code>Enumerate → Find → Exploit → Repeat</code></pre>
 
-                <pre><code>Enumerate → Find → Exploit → Repeat</code></pre>
-
-            </div>
         </div>
+    </div>
 
-        <!-- 5 -->
-        <div class="section">
-            <div class="section-header">5. Port 21 - FTP</div>
-            <div class="section-content">
+    <!-- 5 FTP -->
+    <div class="section">
+        <div class="section-header">5. Port 21 - FTP</div>
+        <div class="section-content">
 
-                <pre><code>ftp target_ip
+            <pre><code>ftp target_ip
 anonymous:anonymous</code></pre>
 
-                <pre><code>nmap --script ftp-* -p 21 target_ip</code></pre>
-
-                <p><strong>What to check:</strong></p>
-                <ul>
-                    <li>Anonymous login</li>
-                    <li>Writable directories</li>
-                    <li>Interesting files</li>
-                </ul>
-
-            </div>
         </div>
+    </div>
 
-        <!-- 6 -->
-        <div class="section">
-            <div class="section-header">6. Port 22 - SSH</div>
-            <div class="section-content">
+    <!-- 6 SSH -->
+    <div class="section">
+        <div class="section-header">6. Port 22 - SSH</div>
+        <div class="section-content">
 
-                <pre><code>ssh user@target_ip</code></pre>
+            <pre><code>ssh user@target_ip</code></pre>
 
-                <pre><code>nmap --script ssh-* -p 22 target_ip</code></pre>
-
-                <p><strong>What to check:</strong></p>
-                <ul>
-                    <li>Valid credentials</li>
-                    <li>Vulnerable versions</li>
-                </ul>
-
-            </div>
         </div>
+    </div>
 
-        <!-- 7 -->
-        <div class="section">
-            <div class="section-header">7. Port 80/443 - Web</div>
-            <div class="section-content">
+    <!-- 7 WEB -->
+    <div class="section">
+        <div class="section-header">7. Port 80/443 - Web</div>
+        <div class="section-content">
 
-                <pre><code>whatweb http://target_ip
+            <pre><code>whatweb http://target_ip
 nikto -h http://target_ip</code></pre>
 
-                <pre><code>gobuster dir -u http://target_ip -w wordlist.txt</code></pre>
+            <pre><code>gobuster dir -u http://target_ip -w wordlist.txt -x php,txt,html</code></pre>
 
-                <p><strong>What to check:</strong></p>
-                <ul>
-                    <li>Hidden directories</li>
-                    <li>Login panels</li>
-                    <li>Upload functionality</li>
-                </ul>
-
-            </div>
         </div>
-
-        <!-- 8 -->
-        <div class="section">
-            <div class="section-header">8. Port 139/445 - SMB</div>
-            <div class="section-content">
-
-                <pre><code>smbclient -L //target_ip -N</code></pre>
-
-                <pre><code>enum4linux -a target_ip</code></pre>
-
-                <pre><code>crackmapexec smb target_ip --shares</code></pre>
-
-                <p><strong>What to check:</strong></p>
-                <ul>
-                    <li>Accessible shares</li>
-                    <li>Usernames</li>
-                    <li>Credentials</li>
-                </ul>
-
-            </div>
-        </div>
-
-        <!-- 9 -->
-        <div class="section">
-            <div class="section-header">9. Port 53 - DNS</div>
-            <div class="section-content">
-
-                <pre><code>dig axfr @target_ip domain.local</code></pre>
-
-                <pre><code>dnsrecon -d domain.local</code></pre>
-
-                <p><strong>What to check:</strong></p>
-                <ul>
-                    <li>Zone transfers</li>
-                    <li>Subdomains</li>
-                </ul>
-
-            </div>
-        </div>
-
-        <!-- 10 -->
-        <div class="section">
-            <div class="section-header">10. Port 389 - LDAP</div>
-            <div class="section-content">
-
-                <pre><code>ldapsearch -x -h target_ip -s base</code></pre>
-
-                <pre><code>ldapsearch -x -h target_ip -b "dc=domain,dc=local"</code></pre>
-
-                <p><strong>What to check:</strong></p>
-                <ul>
-                    <li>Users</li>
-                    <li>Domain structure</li>
-                </ul>
-
-            </div>
-        </div>
-
-        <!-- 11 -->
-        <div class="section">
-            <div class="section-header">11. Port 3389 - RDP</div>
-            <div class="section-content">
-
-                <pre><code>xfreerdp /u:user /p:password /v:target_ip</code></pre>
-
-                <p><strong>What to check:</strong></p>
-                <ul>
-                    <li>Valid login</li>
-                    <li>Credential reuse</li>
-                </ul>
-
-            </div>
-        </div>
-
-        <!-- SUMMARY -->
-        <div class="section">
-            <div class="section-header">OSCP Mental Flow</div>
-            <div class="section-content">
-
-                <ol>
-                    <li>Run quick scan (nmap -sC -sV)</li>
-                    <li>Run full port scan</li>
-                    <li>Enumerate each service</li>
-                    <li>Focus on web if available</li>
-                    <li>Check SMB / FTP</li>
-                    <li>Try credentials everywhere</li>
-                    <li>Repeat the loop</li>
-                </ol>
-
-            </div>
-        </div>
-
-        <!-- CHECKLIST -->
-        <div class="section">
-            <div class="section-header">Recon Practical Checklist</div>
-            <div class="section-content">
-
-                <form class="checklist">
-
-                    <h3>Scanning</h3>
-                    <label><input type="checkbox"> Ran quick nmap scan</label><br>
-                    <label><input type="checkbox"> Ran full port scan</label><br>
-                    <label><input type="checkbox"> Ran detailed scan</label><br>
-
-                    <h3>Service Enumeration</h3>
-                    <label><input type="checkbox"> Checked FTP</label><br>
-                    <label><input type="checkbox"> Checked SSH</label><br>
-                    <label><input type="checkbox"> Checked Web</label><br>
-                    <label><input type="checkbox"> Checked SMB</label><br>
-                    <label><input type="checkbox"> Checked DNS</label><br>
-                    <label><input type="checkbox"> Checked LDAP</label><br>
-                    <label><input type="checkbox"> Checked RDP</label><br>
-
-                    <h3>Final</h3>
-                    <label><input type="checkbox"> Tried credential reuse</label><br>
-                    <label><input type="checkbox"> Identified attack surface</label><br>
-
-                </form>
-
-            </div>
-        </div>
-
     </div>
+
+    <!-- 8 SMB -->
+    <div class="section">
+        <div class="section-header">8. Port 139/445 - SMB</div>
+        <div class="section-content">
+
+            <pre><code>smbclient -L //target_ip -N</code></pre>
+            <pre><code>enum4linux-ng target_ip</code></pre>
+            <pre><code>smbmap -H target_ip</code></pre>
+
+            <pre><code>smbclient //target_ip/share -N -c "recurse ON; prompt OFF; ls"</code></pre>
+
+            <pre><code>rpcclient -U "" target_ip</code></pre>
+
+            <p><strong>Check:</strong> shares, creds, writable folders</p>
+
+        </div>
+    </div>
+
+    <!-- 9 DNS -->
+    <div class="section">
+        <div class="section-header">9. Port 53 - DNS</div>
+        <div class="section-content">
+
+            <pre><code>dig axfr @target_ip domain.local</code></pre>
+
+        </div>
+    </div>
+
+    <!-- 10 LDAP -->
+    <div class="section">
+        <div class="section-header">10. Port 389 - LDAP</div>
+        <div class="section-content">
+
+            <pre><code>ldapsearch -x -h target_ip -b "dc=domain,dc=local"</code></pre>
+
+        </div>
+    </div>
+
+    <!-- 11 RDP -->
+    <div class="section">
+        <div class="section-header">11. Port 3389 - RDP</div>
+        <div class="section-content">
+
+            <pre><code>xfreerdp /u:user /p:password /v:target_ip</code></pre>
+
+        </div>
+    </div>
+
+    <!-- 12 WEB DEEP -->
+    <div class="section">
+        <div class="section-header">12. Web Enumeration Deep</div>
+        <div class="section-content">
+
+            <pre><code>ffuf -u http://target_ip/FUZZ -w wordlist.txt</code></pre>
+
+            <ul>
+                <li>robots.txt</li>
+                <li>view-source</li>
+                <li>JS files</li>
+                <li>hidden endpoints</li>
+            </ul>
+
+        </div>
+    </div>
+
+    <!-- 13 CREDS -->
+    <div class="section">
+        <div class="section-header">13. Credential Hunting</div>
+        <div class="section-content">
+
+            <pre><code>grep -R "password" .
+find / -name "*.conf" 2>/dev/null</code></pre>
+
+        </div>
+    </div>
+
+    <!-- 14 LINUX PRIVESC -->
+    <div class="section">
+        <div class="section-header">14. Linux PrivEsc</div>
+        <div class="section-content">
+
+            <pre><code>sudo -l
+find / -perm -4000 2>/dev/null</code></pre>
+
+            <pre><code>linpeas.sh</code></pre>
+
+        </div>
+    </div>
+
+    <!-- 15 WINDOWS PRIVESC -->
+    <div class="section">
+        <div class="section-header">15. Windows PrivEsc</div>
+        <div class="section-content">
+
+            <pre><code>whoami /priv
+systeminfo
+net user</code></pre>
+
+            <pre><code>winpeas.exe</code></pre>
+
+        </div>
+    </div>
+
+    <!-- 16 AD -->
+    <div class="section">
+        <div class="section-header">16. Active Directory Basics</div>
+        <div class="section-content">
+
+            <pre><code>rpcclient -U "" target_ip</code></pre>
+
+            <ul>
+                <li>Users</li>
+                <li>Groups</li>
+                <li>Shares</li>
+            </ul>
+
+        </div>
+    </div>
+
+    <!-- 17 LOOP -->
+    <div class="section">
+        <div class="section-header">17. OSCP Attack Loop</div>
+        <div class="section-content">
+
+            <ol>
+                <li>Full port scan</li>
+                <li>Service enumeration</li>
+                <li>Web + SMB first</li>
+                <li>Search exploits</li>
+                <li>Try creds everywhere</li>
+                <li>Repeat loop</li>
+            </ol>
+
+            <pre><code>When stuck → change vector, not machine</code></pre>
+
+        </div>
+    </div>
+
+</div>
 
     <!-- SCRIPT -->
     <script>

