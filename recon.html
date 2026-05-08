@@ -138,11 +138,11 @@
 
             <p><strong>What you do:</strong></p>
             <ul>
-                <li>Quickly identify open ports</li>
-                <li>Detect service versions</li>
+                <li>Identify attack surface quickly</li>
+                <li>Find initial entry points (web, SMB, AD, etc.)</li>
             </ul>
 
-            <p><strong>OSCP Tip:</strong> Run this first and continue working while it executes.</p>
+            <p><strong>OSCP mindset:</strong> This defines your first attack vector (NOT random enumeration).</p>
 
         </div>
     </div>
@@ -156,6 +156,13 @@
 
             <pre><code>nmap -sCV -p $(grep "^[0-9]" openPorts | awk '{print $1}' | cut -d'/' -f1 | paste -sd,) target_ip -oN services</code></pre>
 
+            <p><strong>What you want:</strong></p>
+            <ul>
+                <li>Service versions (for exploits)</li>
+                <li>Authentication boundaries (SMB, LDAP, WinRM)</li>
+                <li>High-value targets (AD, DBs, web panels)</li>
+            </ul>
+
         </div>
     </div>
 
@@ -166,98 +173,106 @@
 
             <pre><code>nmap -sU --top-ports 50 target_ip</code></pre>
 
+            <p><strong>Use when:</strong> TCP gives nothing interesting or box feels “incomplete”.</p>
+
         </div>
     </div>
 
-    <!-- 4 -->
+
+    <!-- LDAP IMPROVED -->
     <div class="section">
-        <div class="section-header">4. Service Enumeration Mindset</div>
-        <div class="section-content">
+    <div class="section-header">10. Port 389 - LDAP (Directory Enumeration)</div>
+    <div class="section-content">
 
-            <ul>
-                <li>What service is this?</li>
-                <li>What version?</li>
-                <li>Is authentication required?</li>
-            </ul>
+        <p><strong>Objective:</strong> Extract directory information (users, structure, configs, creds if exposed).</p>
 
-            <pre><code>Enumerate → Find → Exploit → Repeat</code></pre>
+        <hr>
 
-        </div>
+        <h3>1. Base discovery</h3>
+
+        <pre><code>ldapsearch -x -H ldap://target_ip -s base</code></pre>
+
+        <p><strong>Goal:</strong> identify base naming context</p>
+
+        <hr>
+
+        <h3>2. Basic enumeration</h3>
+
+        <pre><code>ldapsearch -x -H ldap://target_ip -b "DC=domain,DC=local"</code></pre>
+
+        <p><strong>Look for:</strong></p>
+        <ul>
+            <li>Users</li>
+            <li>Groups</li>
+            <li>Machines</li>
+            <li>Descriptions / notes</li>
+        </ul>
+
+        <hr>
+
+        <h3>3. User extraction</h3>
+
+        <pre><code>ldapsearch -x -H ldap://target_ip \
+-b "DC=domain,DC=local" \
+"(objectClass=user)"</code></pre>
+
+        <p><strong>Use for:</strong></p>
+        <ul>
+            <li>Password spraying</li>
+            <li>Authentication attacks</li>
+        </ul>
+
+        <hr>
+
+        <h3>4. Credential hunting</h3>
+
+        <pre><code>ldapsearch -x -H ldap://target_ip -b "DC=domain,DC=local" | grep -i password</code></pre>
+
+        <p><strong>Typical leaks:</strong></p>
+        <ul>
+            <li>User descriptions</li>
+            <li>Service account notes</li>
+            <li>Legacy configuration data</li>
+        </ul>
+
+        <hr>
+
+        <h3>5. Authenticated enumeration</h3>
+
+        <pre><code>ldapsearch -x -H ldap://target_ip \
+-D "user@domain.local" \
+-w "password" \
+-b "DC=domain,DC=local"</code></pre>
+
+        <p><strong>What changes:</strong></p>
+        <ul>
+            <li>More objects become visible</li>
+            <li>Restricted attributes may unlock</li>
+        </ul>
+
+        <hr>
+
+        <h3>6. High value data (if present)</h3>
+
+        <ul>
+            <li>Computer attributes</li>
+            <li>Service accounts</li>
+            <li>Potential LAPS / password fields</li>
+        </ul>
+
+        <hr>
+
+        <h3>7. OSCP mindset</h3>
+
+        <ul>
+            <li>LDAP = structured information leak</li>
+            <li>Always pivot to other services after enumeration</li>
+            <li>Rarely the exploit → mostly a discovery tool</li>
+        </ul>
+
     </div>
-
-    <!-- 5 FTP -->
-    <div class="section">
-        <div class="section-header">5. Port 21 - FTP</div>
-        <div class="section-content">
-
-            <pre><code>ftp target_ip
-anonymous:anonymous</code></pre>
-
-        </div>
-    </div>
-
-    <!-- 6 SSH -->
-    <div class="section">
-        <div class="section-header">6. Port 22 - SSH</div>
-        <div class="section-content">
-
-            <pre><code>ssh user@target_ip</code></pre>
-
-        </div>
-    </div>
-
-    <!-- 7 WEB -->
-    <div class="section">
-        <div class="section-header">7. Port 80/443 - Web</div>
-        <div class="section-content">
-
-            <pre><code>whatweb http://target_ip
-nikto -h http://target_ip</code></pre>
-
-            <pre><code>gobuster dir -u http://target_ip -w wordlist.txt -x php,txt,html</code></pre>
-
-        </div>
-    </div>
-
-    <!-- 8 SMB -->
-    <div class="section">
-        <div class="section-header">8. Port 139/445 - SMB</div>
-        <div class="section-content">
-
-            <pre><code>smbclient -L //target_ip -N</code></pre>
-            <pre><code>enum4linux-ng target_ip</code></pre>
-            <pre><code>smbmap -H target_ip</code></pre>
-
-            <pre><code>smbclient //target_ip/share -N -c "recurse ON; prompt OFF; ls"</code></pre>
-
-            <pre><code>rpcclient -U "" target_ip</code></pre>
-
-            <p><strong>Check:</strong> shares, creds, writable folders</p>
-
-        </div>
-    </div>
-
-    <!-- 9 DNS -->
-    <div class="section">
-        <div class="section-header">9. Port 53 - DNS</div>
-        <div class="section-content">
-
-            <pre><code>dig axfr @target_ip domain.local</code></pre>
-
-        </div>
-    </div>
-
-    <!-- 10 LDAP -->
-    <div class="section">
-        <div class="section-header">10. Port 389 - LDAP</div>
-        <div class="section-content">
-
-            <pre><code>ldapsearch -x -h target_ip -b "dc=domain,dc=local"</code></pre>
-
-        </div>
-    </div>
-
-    <!-- 11 RDP -->
+</div>
+    <!-- 11 -->
     <div class="section">
         <div class="section-header">11. Port 3389 - RDP</div>
         <div class="section-content">
@@ -266,23 +281,83 @@ nikto -h http://target_ip</code></pre>
 
         </div>
     </div>
+    <!-- 8 SMB -->
+<div class="section">
+    <div class="section-header">8. Port 139/445 - SMB (General Enumeration)</div>
+    <div class="section-content">
 
-    <!-- 12 WEB DEEP -->
-    <div class="section">
-        <div class="section-header">12. Web Enumeration Deep</div>
-        <div class="section-content">
+        <p><strong>Objective:</strong> Identify shares, misconfigurations, and possible credential exposure.</p>
 
-            <pre><code>ffuf -u http://target_ip/FUZZ -w wordlist.txt</code></pre>
+        <hr>
 
-            <ul>
-                <li>robots.txt</li>
-                <li>view-source</li>
-                <li>JS files</li>
-                <li>hidden endpoints</li>
-            </ul>
+        <h3>1. Initial check</h3>
 
-        </div>
+        <pre><code>smbclient -L //target_ip -N
+smbmap -H target_ip</code></pre>
+
+        <p><strong>What you want:</strong></p>
+        <ul>
+            <li>Anonymous access</li>
+            <li>Readable shares</li>
+            <li>Writable shares</li>
+        </ul>
+
+        <hr>
+
+        <h3>2. Share exploration</h3>
+
+        <pre><code>smbclient //target_ip/share -N</code></pre>
+
+        <p><strong>Look for:</strong></p>
+        <ul>
+            <li>Configs (.conf, .ini)</li>
+            <li>Backups (.bak, .old)</li>
+            <li>Scripts (.ps1, .bat, .sh)</li>
+            <li>Credentials in plain text</li>
+        </ul>
+
+        <hr>
+
+        <h3>3. Recursive listing</h3>
+
+        <pre><code>smbclient //target_ip/share -N -c "recurse ON; prompt OFF; ls"</code></pre>
+
+        <p><strong>Goal:</strong> map full share structure</p>
+
+        <hr>
+
+        <h3>4. Writable shares</h3>
+
+        <p><strong>If writable:</strong></p>
+
+        <ul>
+            <li>Upload files</li>
+            <li>Test execution paths (web / scripts / services)</li>
+            <li>Drop payloads if execution exists</li>
+        </ul>
+
+        <pre><code>put file.txt</code></pre>
+
+        <hr>
+
+        <h3>5. Credential hunting</h3>
+
+        <pre><code>grep -R "password" .
+find . -type f -name "*.config"
+find . -type f -name "*.txt"</code></pre>
+
+        <hr>
+
+        <h3>6. OSCP mindset</h3>
+
+        <ul>
+            <li>SMB = file-based attack surface</li>
+            <li>Always check before web brute force</li>
+            <li>Most creds in labs come from files</li>
+        </ul>
+
     </div>
+</div>
 
     <!-- 13 CREDS -->
     <div class="section">
@@ -292,73 +367,15 @@ nikto -h http://target_ip</code></pre>
             <pre><code>grep -R "password" .
 find / -name "*.conf" 2>/dev/null</code></pre>
 
-        </div>
-    </div>
-
-    <!-- 14 LINUX PRIVESC -->
-    <div class="section">
-        <div class="section-header">14. Linux PrivEsc</div>
-        <div class="section-content">
-
-            <pre><code>sudo -l
-find / -perm -4000 2>/dev/null</code></pre>
-
-            <pre><code>linpeas.sh</code></pre>
+            <p><strong>OSCP mindset:</strong> creds always exist somewhere → never assume clean environment.</p>
 
         </div>
     </div>
 
-    <!-- 15 WINDOWS PRIVESC -->
-    <div class="section">
-        <div class="section-header">15. Windows PrivEsc</div>
-        <div class="section-content">
 
-            <pre><code>whoami /priv
-systeminfo
-net user</code></pre>
 
-            <pre><code>winpeas.exe</code></pre>
-
-        </div>
-    </div>
-
-    <!-- 16 AD -->
-    <div class="section">
-        <div class="section-header">16. Active Directory Basics</div>
-        <div class="section-content">
-
-            <pre><code>rpcclient -U "" target_ip</code></pre>
-
-            <ul>
-                <li>Users</li>
-                <li>Groups</li>
-                <li>Shares</li>
-            </ul>
-
-        </div>
-    </div>
-
-    <!-- 17 LOOP -->
-    <div class="section">
-        <div class="section-header">17. OSCP Attack Loop</div>
-        <div class="section-content">
-
-            <ol>
-                <li>Full port scan</li>
-                <li>Service enumeration</li>
-                <li>Web + SMB first</li>
-                <li>Search exploits</li>
-                <li>Try creds everywhere</li>
-                <li>Repeat loop</li>
-            </ol>
-
-            <pre><code>When stuck → change vector, not machine</code></pre>
-
-        </div>
-    </div>
 
 </div>
-
     <!-- SCRIPT -->
     <script>
         document.querySelectorAll(".section-header").forEach(h => {

