@@ -11,49 +11,97 @@
   - [Enumeration](#enumeration)
     - [User Enumeration](#user-enumeration)
       - [SMB](#smb)
-      - [RPC Client](#rpc-client)
+      - [RPC Client](#prcclient)
       - [LDAP](#ldap)
-  - [Attacking Without Credentials](#attacking-without-credentials)
-    - [AS-REP Roasting](#as-rep-roasting)
-    - [Password Reuse](#password-reuse)
-  - [Attacking With Credentials](#attacking-with-credentials)
+
+  - [Attacking without password](#attacking-without-password)
+    - [ASREPRoast](#asreproast)
+    - [Same user and password](#same-user-and-password)
+    - [Enumerate shares](#enumerate-shares)
+      - [cpassword](#cpassword)
+
+  - [Attacking with credentials](#attacking-with-credentials)
+    - [Search for users](#search-for-users)
     - [Kerberoasting](#kerberoasting)
-    - [Password Spraying](#password-spraying)
-    - [Credential Validation](#credential-validation)
-    - [Pass the Hash](#pass-the-hash)
+    - [Password Spray](#password-spray)
     - [DCSync](#dcsync)
-    - [BloodHound](#bloodhound)
+    - [Pass the hash](#pass-the-hash)
+    - [Enumerate shares again](#enumerate-shares-again)
+    - [Bloodhound](#bloodhound)
+
+---
 
 - [Attacking from Victim](#attacking-from-victim)
-  - [Enumeration](#enumeration)
+
+  - [Enumeration](#enumeration-1)
+
     - [Local Enumeration](#local-enumeration)
       - [PowerView](#powerview)
+
     - [Manual Enumeration](#manual-enumeration)
       - [Enumerate SPNs](#enumerate-spns)
       - [Enumerate User ACEs](#enumerate-user-aces)
       - [Enumerate Doimain Shares](#enumerate-doimain-shares)
+
     - [Automated Enumeration](#automated-enumeration)
+
+---
+
   - [Attacking](#attacking)
+
     - [Cached AD Credentials](#cached-ad-credentials)
       - [Mimikatz](#mimikatz)
       - [Show Tickets](#show-tickets)
+
     - [AD Authentication](#ad-authentication)
-      - [Passwords Attacks](#passwords-attacks)
+      - [Passwords attacks](#passwords-attacks)
       - [ASREPRoasting](#asreproasting)
-      - [Kerberoasting](#kerberoasting)
+      - [Kerberoasting](#kerberoasting-1)
       - [Silver Tickets](#silver-tickets)
-      - [DCSync](#dcsync)
-  - [Lateral Movement](#lateral-movement)
+      - [DCSync](#dcsync-1)
+
+---
+
+  - [Lateral movement](#lateral-movement)
     - [WinRM](#winrm)
     - [PsExec](#psexec)
-    - [Pass the Hash](#pass-the-hash)
-    - [OverPass the Hash](#overpass-the-hash)
-    - [Pass the Ticket](#pass-the-ticket)
+    - [Pass the hash](#pass-the-hash-1)
+    - [OverPass the hash](#overpass-the-hash)
+    - [Pass the ticket](#pass-the-ticket)
     - [DCOM](#dcom)
+
+---
 
 - [Tips](#tips)
   - [Generate Passwords from Public Usernames](#generate-passwords-from-public-usernames)
-  - [Always Enumerate Shares Twice](#always-enumerate-shares-twice)
+  - [Always enumerate shares Twice](#always-enumerate-shares-twice)
+
+---
+
+- [Privileged Groups & Domain Escalation Reference](#privileged-groups--domain-escalation-reference)
+
+  - [Built-in High Privilege Groups](#built-in-high-privilege-groups)
+    - [Domain Admins](#domain-admins)
+    - [Enterprise Admins](#enterprise-admins)
+    - [Administrators (Built-in)](#administrators-built-in)
+
+  - [Delegated Privilege Groups](#delegated-privilege-groups)
+    - [Account Operators](#account-operators)
+    - [Server Operators](#server-operators)
+    - [Backup Operators](#backup-operators)
+    - [Print Operators](#print-operators)
+
+  - [Important AD Protection Mechanisms](#important-ad-protection-mechanisms)
+    - [AdminSDHolder](#adminsdholder)
+
+  - [Common Escalation Scenarios](#common-escalation-scenarios)
+    - [GenericAll over a user](#if-you-have-genericall-over-a-user)
+    - [GenericWrite over a user](#if-you-have-genericwrite-over-a-user)
+    - [WriteDACL](#if-you-have-writedacl)
+    - [Control over a group](#if-you-control-a-group)
+    - [RBCD / GenericAll over a Domain Controller](#if-you-have-genericall-over-a-domain-controller-object-or-rights-to-modify-delegation)
+
+  - [Quick Mental Model](#quick-mental-model)
 
 </details>
 

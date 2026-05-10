@@ -294,6 +294,18 @@ ul {
     display: block;
 }
 
+.sub-content {
+    display: none;
+}
+
+.sub-wrapper.active .sub-content {
+    display: block;
+}
+
+.sub-title {
+    cursor: pointer;
+    user-select: none;
+}
 .search-bar input {
     flex: 1;
     padding: 8px 12px;

