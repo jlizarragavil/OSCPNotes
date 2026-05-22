@@ -112,148 +112,652 @@
 
         <!-- GOBUSTER -->
         <div class="section">
-            <div class="section-header">Gobuster</div>
-            <div class="section-content">
+    <div class="section-header">Gobuster</div>
 
-                <h3>Directory brute force</h3>
-                <pre><code>gobuster dir -u &lt;IP&gt; -w /usr/share/wordlists/dirbuster/directory-list-2.3-medium.txt -t 50</code></pre>
+    <div class="section-content">
 
-                <h3>Basic fuzzing</h3>
-                <pre><code>gobuster dir -u http://&lt;IP&gt;/ -w &lt;WORDLIST&gt; -c -t 50</code></pre>
+        <h3>Directory brute force</h3>
+        <pre><code>gobuster dir -u http://&lt;IP&gt;/ \
+-w /usr/share/wordlists/dirbuster/directory-list-2.3-medium.txt \
+-t 50</code></pre>
 
-                <h3>Search for files with extensions</h3>
-                <pre><code>gobuster dir -u http://&lt;IP&gt;/ -w &lt;WORDLIST&gt; -x php,txt,html -c -t 50</code></pre>
+        <h3>Basic fuzzing</h3>
+        <pre><code>gobuster dir -u http://&lt;IP&gt;/ -w &lt;WORDLIST&gt; -t 50</code></pre>
 
-                <h3>Filtering (status codes)</h3>
-                <pre><code>gobuster dir -u http://&lt;IP&gt;/ -w &lt;WORDLIST&gt; -s 200,301,302 -c</code></pre>
+        <h3>Search for common web extensions</h3>
+        <pre><code>gobuster dir -u http://&lt;IP&gt;/ -w &lt;WORDLIST&gt; \
+-x php,txt,html,js,json \
+-t 50</code></pre>
 
-                <h3>Fuzzing parameters</h3>
-                <pre><code>gobuster dir -u "http://&lt;IP&gt;/&lt;SUBDIRECTORY&gt;/?FUZZ=1" -w &lt;WORDLIST&gt; -c</code></pre>
+        <h3>Linux / Apache / PHP extensions</h3>
+        <pre><code>gobuster dir -u http://&lt;IP&gt;/ -w &lt;WORDLIST&gt; \
+-x php,phtml,phps,php3,php4,php5,inc,txt,html,conf,ini,log \
+-t 50</code></pre>
 
-                <h3>Fuzzing auth pages (POST)</h3>
-                <pre><code>gobuster dir -u http://&lt;IP&gt;/&lt;SUBDIRECTORY&gt;/ -w &lt;WORDLIST&gt; -m POST \
+        <h3>Windows / IIS extensions</h3>
+        <pre><code>gobuster dir -u http://&lt;IP&gt;/ -w &lt;WORDLIST&gt; \
+-x asp,aspx,ashx,asmx,config,txt \
+-t 50</code></pre>
+
+        <h3>Search for backup files</h3>
+        <pre><code>gobuster dir -u http://&lt;IP&gt;/ -w &lt;WORDLIST&gt; \
+-x bak,old,save,tmp,backup,orig,swp \
+-t 50</code></pre>
+
+        <h3>Search for compressed files</h3>
+        <pre><code>gobuster dir -u http://&lt;IP&gt;/ -w &lt;WORDLIST&gt; \
+-x zip,tar,gz,tgz,bz2,7z,rar \
+-t 50</code></pre>
+
+        <h3>Search for database files</h3>
+        <pre><code>gobuster dir -u http://&lt;IP&gt;/ -w &lt;WORDLIST&gt; \
+-x sql,db,db3,sqlite,sqlite3,dump \
+-t 50</code></pre>
+
+        <h3>Search for config and secret files</h3>
+        <pre><code>gobuster dir -u http://&lt;IP&gt;/ -w &lt;WORDLIST&gt; \
+-x env,yaml,yml,json,xml,cfg,cnf,pem,key \
+-t 50</code></pre>
+
+        <h3>Search for Git and SVN repositories</h3>
+        <pre><code>gobuster dir -u http://&lt;IP&gt;/ \
+-w &lt;WORDLIST&gt; \
+-x git,svn \
+-t 50</code></pre>
+
+        <h3>Filtering (status codes)</h3>
+        <pre><code>gobuster dir -u http://&lt;IP&gt;/ \
+-w &lt;WORDLIST&gt; \
+-s 200,204,301,302,307,403 \
+-t 50</code></pre>
+
+        <h3>Exclude responses by length</h3>
+        <pre><code>gobuster dir -u http://&lt;IP&gt;/ \
+-w &lt;WORDLIST&gt; \
+--exclude-length 1234</code></pre>
+
+        <h3>Hide negative status codes</h3>
+        <pre><code>gobuster dir -u http://&lt;IP&gt;/ \
+-w &lt;WORDLIST&gt; \
+-b 404,400</code></pre>
+
+        <h3>Recursive fuzzing</h3>
+        <pre><code>gobuster dir -u http://&lt;IP&gt;/ \
+-w &lt;WORDLIST&gt; \
+-r</code></pre>
+
+        <h3>Fuzzing parameters (GET)</h3>
+        <pre><code>gobuster dir \
+-u "http://&lt;IP&gt;/&lt;SUBDIRECTORY&gt;/?FUZZ=1" \
+-w &lt;WORDLIST&gt;</code></pre>
+
+        <h3>Fuzzing auth pages (POST)</h3>
+        <pre><code>gobuster dir \
+-u http://&lt;IP&gt;/&lt;SUBDIRECTORY&gt;/ \
+-w &lt;WORDLIST&gt; \
+-m POST \
 --data 'uname=Dummy&passwd=FUZZ&submit=Submit' \
--H 'Content-Type: application/x-www-form-urlencoded' -t 50</code></pre>
+-H 'Content-Type: application/x-www-form-urlencoded' \
+-t 50</code></pre>
 
-                <h3>Subdomain enumeration</h3>
-                <pre><code>gobuster vhost -u http://FUZZ.mydomain.com -w &lt;WORDLIST&gt;
-gobuster vhost -u http://mydomain.com -w &lt;WORDLIST&gt; --append-domain</code></pre>
+        <h3>Subdomain enumeration</h3>
+        <pre><code>gobuster dns -d mydomain.com -w &lt;WORDLIST&gt;
 
-                <h3>Virtual hosting</h3>
-                <pre><code>gobuster vhost -u http://mydomain.com -w &lt;WORDLIST&gt; -H 'Host: FUZZ.mydomain.com'</code></pre>
+gobuster vhost -u http://mydomain.com \
+-w &lt;WORDLIST&gt; \
+--append-domain</code></pre>
 
-                <h3>Virtual hosting with IP</h3>
-                <pre><code>gobuster vhost -u http://&lt;IP&gt; -w &lt;WORDLIST&gt; -H 'Host: FUZZ.thm'</code></pre>
+        <h3>Virtual hosting</h3>
+        <pre><code>gobuster vhost -u http://mydomain.com \
+-w &lt;WORDLIST&gt; \
+-H 'Host: FUZZ.mydomain.com'</code></pre>
 
-            </div>
-        </div>
+        <h3>Virtual hosting with IP</h3>
+        <pre><code>gobuster vhost -u http://&lt;IP&gt; \
+-w &lt;WORDLIST&gt; \
+-H 'Host: FUZZ.thm'</code></pre>
+
+        <h3>Useful wordlists</h3>
+        <pre><code>/usr/share/seclists/Discovery/Web-Content/
+
+/usr/share/seclists/Discovery/DNS/
+
+/usr/share/wordlists/dirbuster/
+
+/usr/share/seclists/Discovery/Web-Content/common.txt
+
+/usr/share/seclists/Discovery/Web-Content/raft-medium-directories.txt
+
+/usr/share/seclists/Discovery/Web-Content/raft-medium-files.txt</code></pre>
+
+        <h3>Useful targets</h3>
+        <pre><code>.git/
+.git/config
+.git/HEAD
+.svn/
+backup/
+backups/
+dev/
+test/
+admin/
+private/
+db/
+database/
+config/
+uploads/
+api/</code></pre>
+
+        <h3>Useful notes</h3>
+        <ul>
+            <li><b>.phps</b> may disclose PHP source code.</li>
+            <li><b>.bak</b>, <b>.old</b>, <b>.save</b> often expose backups.</li>
+            <li><b>.swp</b> may contain Vim temporary data.</li>
+            <li><b>.sql</b>, <b>.sqlite</b>, <b>.db</b> may expose credentials.</li>
+            <li><b>web.config</b> is valuable on IIS servers.</li>
+            <li>403 responses are often worth investigating.</li>
+            <li>Exclude wildcard responses with --exclude-length.</li>
+        </ul>
+
+    </div>
+</div>
 
         <!-- FEROXBUSTER -->
-        <div class="section">
-            <div class="section-header">Feroxbuster</div>
-            <div class="section-content">
+<div class="section">
+    <div class="section-header">Feroxbuster</div>
 
-                <h3>Full scan example</h3>
-                <pre><code>feroxbuster -u http://192.168.45.242:28080 -w /usr/share/wordlists/dirbuster/directory-list-2.3-medium.txt -t 100 -d 1</code></pre>
+    <div class="section-content">
 
-                <h3>Basic directory fuzzing</h3>
-                <pre><code>feroxbuster -u http://&lt;IP&gt;/FUZZ -w &lt;WORDLIST&gt; -c -t 50</code></pre>
+        <h3>Full scan example</h3>
+        <pre><code>feroxbuster -u http://192.168.45.242:28080 \
+-w /usr/share/wordlists/dirbuster/directory-list-2.3-medium.txt \
+-t 100 \
+-d 1</code></pre>
 
-                <h3>Search for files</h3>
-                <pre><code>feroxbuster -u http://&lt;IP&gt;/FUZZ -w &lt;WORDLIST&gt; -e php,txt -c</code></pre>
+        <h3>Basic directory fuzzing</h3>
+        <pre><code>feroxbuster -u http://&lt;IP&gt;/FUZZ \
+-w &lt;WORDLIST&gt; \
+-t 50</code></pre>
 
-                <h3>Filtering</h3>
-                <pre><code>feroxbuster -u http://&lt;IP&gt;/FUZZ -w &lt;WORDLIST&gt; --filter-status 403 -c</code></pre>
+        <h3>Search for common web extensions</h3>
+        <pre><code>feroxbuster -u http://&lt;IP&gt;/FUZZ \
+-w &lt;WORDLIST&gt; \
+-e php,txt,html,js,json \
+-t 50</code></pre>
 
-                <h3>Fuzzing parameters</h3>
-                <pre><code>feroxbuster -u 'http://&lt;IP&gt;/&lt;SUBDIRECTORY&gt;/?FUZZ=1' -w &lt;WORDLIST&gt; --filter-size 39 -c</code></pre>
+        <h3>Linux / Apache / PHP extensions</h3>
+        <pre><code>feroxbuster -u http://&lt;IP&gt;/FUZZ \
+-w &lt;WORDLIST&gt; \
+-e php,phtml,phps,php3,php4,php5,inc,txt,html,conf,ini,log \
+-t 50</code></pre>
 
-                <h3>Fuzzing auth pages (POST)</h3>
-                <pre><code>feroxbuster -u http://&lt;IP&gt;/&lt;SUBDIRECTORY&gt;/ -X POST \
+        <h3>Windows / IIS extensions</h3>
+        <pre><code>feroxbuster -u http://&lt;IP&gt;/FUZZ \
+-w &lt;WORDLIST&gt; \
+-e asp,aspx,ashx,asmx,config,txt \
+-t 50</code></pre>
+
+        <h3>Search for backup files</h3>
+        <pre><code>feroxbuster -u http://&lt;IP&gt;/FUZZ \
+-w &lt;WORDLIST&gt; \
+-e bak,old,save,tmp,backup,orig,swp \
+-t 50</code></pre>
+
+        <h3>Search for compressed files</h3>
+        <pre><code>feroxbuster -u http://&lt;IP&gt;/FUZZ \
+-w &lt;WORDLIST&gt; \
+-e zip,tar,gz,tgz,bz2,7z,rar \
+-t 50</code></pre>
+
+        <h3>Search for database files</h3>
+        <pre><code>feroxbuster -u http://&lt;IP&gt;/FUZZ \
+-w &lt;WORDLIST&gt; \
+-e sql,db,db3,sqlite,sqlite3,dump \
+-t 50</code></pre>
+
+        <h3>Search for config and secret files</h3>
+        <pre><code>feroxbuster -u http://&lt;IP&gt;/FUZZ \
+-w &lt;WORDLIST&gt; \
+-e env,yaml,yml,json,xml,cfg,cnf,pem,key \
+-t 50</code></pre>
+
+        <h3>Recursive scanning</h3>
+        <pre><code>feroxbuster -u http://&lt;IP&gt;/ \
+-w &lt;WORDLIST&gt; \
+-r</code></pre>
+
+        <h3>Recursive scan with depth limit</h3>
+        <pre><code>feroxbuster -u http://&lt;IP&gt;/ \
+-w &lt;WORDLIST&gt; \
+-d 2</code></pre>
+
+        <h3>HTTPS scanning (self-signed certificates)</h3>
+        <pre><code>feroxbuster -u https://&lt;IP&gt;/ \
+-k \
+-w &lt;WORDLIST&gt;</code></pre>
+
+        <h3>Filtering by status code</h3>
+        <pre><code>feroxbuster -u http://&lt;IP&gt;/FUZZ \
+-w &lt;WORDLIST&gt; \
+--filter-status 404,400</code></pre>
+
+        <h3>Filtering by response size</h3>
+        <pre><code>feroxbuster -u http://&lt;IP&gt;/FUZZ \
+-w &lt;WORDLIST&gt; \
+--filter-size 1234</code></pre>
+
+        <h3>Filter words and lines</h3>
+        <pre><code>feroxbuster -u http://&lt;IP&gt;/FUZZ \
+-w &lt;WORDLIST&gt; \
+--filter-words 10 \
+--filter-lines 5</code></pre>
+
+        <h3>Extract links automatically</h3>
+        <pre><code>feroxbuster -u http://&lt;IP&gt;/ \
+-w &lt;WORDLIST&gt; \
+-x js,php,html</code></pre>
+
+        <h3>Follow redirects</h3>
+        <pre><code>feroxbuster -u http://&lt;IP&gt;/ \
+-w &lt;WORDLIST&gt; \
+-r</code></pre>
+
+        <h3>Save output</h3>
+        <pre><code>feroxbuster -u http://&lt;IP&gt;/ \
+-w &lt;WORDLIST&gt; \
+-o feroxbuster.txt</code></pre>
+
+        <h3>JSON output</h3>
+        <pre><code>feroxbuster -u http://&lt;IP&gt;/ \
+-w &lt;WORDLIST&gt; \
+--json \
+-o ferox.json</code></pre>
+
+        <h3>Use cookies</h3>
+        <pre><code>feroxbuster -u http://&lt;IP&gt;/ \
+-w &lt;WORDLIST&gt; \
+-C 'PHPSESSID=VALUE'</code></pre>
+
+        <h3>Custom headers</h3>
+        <pre><code>feroxbuster -u http://&lt;IP&gt;/ \
+-w &lt;WORDLIST&gt; \
+-H 'Authorization: Bearer TOKEN'</code></pre>
+
+        <h3>Custom User-Agent</h3>
+        <pre><code>feroxbuster -u http://&lt;IP&gt;/ \
+-w &lt;WORDLIST&gt; \
+-A 'Mozilla/5.0'</code></pre>
+
+        <h3>Fuzzing parameters (GET)</h3>
+        <pre><code>feroxbuster \
+-u 'http://&lt;IP&gt;/&lt;SUBDIRECTORY&gt;/?FUZZ=1' \
+-w &lt;WORDLIST&gt; \
+--filter-size 39</code></pre>
+
+        <h3>Fuzzing auth pages (POST)</h3>
+        <pre><code>feroxbuster \
+-u http://&lt;IP&gt;/&lt;SUBDIRECTORY&gt;/ \
+-X POST \
 -d 'uname=Dummy&passwd=FUZZ&submit=Submit' \
 -H 'Content-Type: application/x-www-form-urlencoded' \
---filter-size 1435 -c</code></pre>
+--filter-size 1435</code></pre>
 
-                <h3>Subdomain enumeration</h3>
-                <pre><code>feroxbuster -u http://FUZZ.mydomain.com -w &lt;WORDLIST&gt; --filter-size 0 -c</code></pre>
+        <h3>Subdomain enumeration</h3>
+        <pre><code>feroxbuster -u http://FUZZ.mydomain.com \
+-w &lt;WORDLIST&gt; \
+--filter-size 0</code></pre>
 
-                <h3>Virtual hosting</h3>
-                <pre><code>feroxbuster -u http://mydomain.com -w &lt;WORDLIST&gt; -H 'Host: FUZZ.mydomain.com' --filter-size 0 -c</code></pre>
+        <h3>Virtual hosting</h3>
+        <pre><code>feroxbuster -u http://mydomain.com \
+-w &lt;WORDLIST&gt; \
+-H 'Host: FUZZ.mydomain.com' \
+--filter-size 0</code></pre>
 
-                <h3>Virtual hosting with IP</h3>
-                <pre><code>feroxbuster -u http://&lt;IP&gt; -w &lt;WORDLIST&gt; -H 'Host: FUZZ.thm' -c</code></pre>
+        <h3>Virtual hosting with IP</h3>
+        <pre><code>feroxbuster -u http://&lt;IP&gt; \
+-w &lt;WORDLIST&gt; \
+-H 'Host: FUZZ.thm'</code></pre>
 
-            </div>
-        </div>
+        <h3>Useful wordlists</h3>
+        <pre><code>/usr/share/seclists/Discovery/Web-Content/
+
+/usr/share/seclists/Discovery/Web-Content/common.txt
+
+/usr/share/seclists/Discovery/Web-Content/raft-medium-directories.txt
+
+/usr/share/seclists/Discovery/Web-Content/raft-medium-files.txt
+
+/usr/share/seclists/Discovery/Web-Content/big.txt
+
+/usr/share/wordlists/dirbuster/directory-list-2.3-medium.txt</code></pre>
+
+        <h3>Useful targets</h3>
+        <pre><code>.git/
+.git/config
+.git/HEAD
+.svn/
+.hg/
+DS_Store
+.htaccess
+.htpasswd
+backup/
+backups/
+dev/
+test/
+admin/
+private/
+db/
+database/
+config/
+uploads/
+api/
+old/
+tmp/</code></pre>
+
+        <h3>Useful notes</h3>
+        <ul>
+            <li><b>Feroxbuster</b> performs recursive scans automatically.</li>
+            <li><b>.phps</b> may disclose PHP source code.</li>
+            <li><b>.bak</b>, <b>.old</b>, <b>.save</b> often expose backups.</li>
+            <li><b>.swp</b> may contain Vim temporary data.</li>
+            <li><b>.sql</b>, <b>.sqlite</b>, <b>.db</b> may expose credentials.</li>
+            <li><b>web.config</b> is valuable on IIS servers.</li>
+            <li><b>.git</b> repositories can leak source code.</li>
+            <li>403 responses are often worth investigating.</li>
+            <li>Use response filtering to eliminate wildcard results.</li>
+            <li>Use <b>-k</b> for self-signed HTTPS targets.</li>
+            <li>Feroxbuster is generally better than Gobuster for deep recursive enumeration.</li>
+        </ul>
+
+    </div>
+</div>
 
         <!-- FFUF -->
         <div class="section">
-            <div class="section-header">ffuf</div>
-            <div class="section-content">
+    <div class="section-header">ffuf</div>
 
-                <h3>Basic fuzzing</h3>
-                <pre><code>ffuf -c -u http://&lt;IP&gt;/FUZZ -w &lt;WORDLIST&gt; -t 50</code></pre>
+    <div class="section-content">
 
-                <h3>Search for files</h3>
-                <pre><code>ffuf -c -u http://&lt;IP&gt;/FUZZ -w &lt;WORDLIST&gt; -e .php,.txt</code></pre>
+        <h3>Basic fuzzing</h3>
+        <pre><code>ffuf -c -u http://&lt;IP&gt;/FUZZ -w &lt;WORDLIST&gt; -t 50</code></pre>
 
-                <h3>Filtering</h3>
-                <pre><code>ffuf -c -u http://&lt;IP&gt;/FUZZ -w &lt;WORDLIST&gt; -fc 403</code></pre>
+        <h3>Search for files with extensions</h3>
+        <pre><code>ffuf -c -u http://&lt;IP&gt;/FUZZ -w &lt;WORDLIST&gt; \
+-e .php,.txt,.html,.js,.json,.bak,.old</code></pre>
 
-                <h3>Fuzzing parameters</h3>
-                <pre><code>ffuf -u 'http://&lt;IP&gt;/&lt;SUBDIRECTORY&gt;/?FUZZ=1' -c -w &lt;WORDLIST&gt; -fw 39</code></pre>
+        <h3>Search for sensitive / backup files</h3>
+        <pre><code>ffuf -c -u http://&lt;IP&gt;/FUZZ -w &lt;WORDLIST&gt; \
+-e .bak,.old,.save,.swp,.tmp,.backup,.orig</code></pre>
 
-                <h3>Fuzzing auth pages (POST)</h3>
-                <pre><code>ffuf -u http://&lt;IP&gt;/&lt;SUBDIRECTORY&gt;/ -c -w &lt;WORDLIST&gt; -X POST \
+        <h3>Search for database files</h3>
+        <pre><code>ffuf -c -u http://&lt;IP&gt;/FUZZ -w &lt;WORDLIST&gt; \
+-e .sql,.db,.db3,.sqlite,.sqlite3,.dump</code></pre>
+
+        <h3>Search for config / secret files</h3>
+        <pre><code>ffuf -c -u http://&lt;IP&gt;/FUZZ -w &lt;WORDLIST&gt; \
+-e .env,.conf,.cfg,.ini,.json,.xml,.yaml,.yml,.pem,.key</code></pre>
+
+        <h3>Search for Windows / IIS files</h3>
+        <pre><code>ffuf -c -u http://&lt;IP&gt;/FUZZ -w &lt;WORDLIST&gt; \
+-e .asp,.aspx,.config,.ashx,.asmx,.txt</code></pre>
+
+        <h3>Filtering by status code</h3>
+        <pre><code>ffuf -c -u http://&lt;IP&gt;/FUZZ -w &lt;WORDLIST&gt; \
+-fc 404,400</code></pre>
+
+        <h3>Filtering by size (very important for wildcard responses)</h3>
+        <pre><code>ffuf -c -u http://&lt;IP&gt;/FUZZ -w &lt;WORDLIST&gt; \
+-fs 0</code></pre>
+
+        <h3>Filtering by words / lines</h3>
+        <pre><code>ffuf -c -u http://&lt;IP&gt;/FUZZ -w &lt;WORDLIST&gt; \
+-fw 39 -fl 10</code></pre>
+
+        <h3>Fuzzing parameters (GET)</h3>
+        <pre><code>ffuf -u 'http://&lt;IP&gt;/&lt;SUBDIRECTORY&gt;/?FUZZ=1' \
+-c -w &lt;WORDLIST&gt; \
+-fs 39</code></pre>
+
+        <h3>Fuzzing multiple parameters</h3>
+        <pre><code>ffuf -u 'http://&lt;IP&gt;/page.php?FUZZ1=test&FUZZ2=test' \
+-c -w &lt;WORDLIST&gt;</code></pre>
+
+        <h3>Fuzzing auth pages (POST)</h3>
+        <pre><code>ffuf -u http://&lt;IP&gt;/&lt;SUBDIRECTORY&gt;/ \
+-c -w &lt;WORDLIST&gt; \
+-X POST \
 -d 'uname=Dummy&passwd=FUZZ&submit=Submit' \
--H 'Content-Type: application/x-www-form-urlencoded' -fs 1435</code></pre>
+-H 'Content-Type: application/x-www-form-urlencoded' \
+-fs 1435</code></pre>
 
-                <h3>Subdomain enumeration</h3>
-                <pre><code>ffuf -u http://FUZZ.mydomain.com -c -w &lt;WORDLIST&gt; -fs 0</code></pre>
+        <h3>Login brute force (username + password)</h3>
+        <pre><code>ffuf -u http://&lt;IP&gt;/login \
+-X POST \
+-d 'username=FUZZ&password=FUZZ2' \
+-w users.txt:FUZZ,pass.txt:FUZZ2 \
+-c -fs 1234</code></pre>
 
-                <h3>Virtual hosting</h3>
-                <pre><code>ffuf -u http://mydomain.com -c -w &lt;WORDLIST&gt; -H 'Host: FUZZ.mydomain.com' -fs 0</code></pre>
+        <h3>Subdomain enumeration</h3>
+        <pre><code>ffuf -u http://FUZZ.mydomain.com \
+-c -w &lt;WORDLIST&gt; \
+-fs 0</code></pre>
 
-                <h3>Virtual hosting with IP</h3>
-                <pre><code>ffuf -u http://&lt;IP&gt; -H 'Host: FUZZ.thm' -w &lt;WORDLIST&gt;</code></pre>
+        <h3>Virtual hosting</h3>
+        <pre><code>ffuf -u http://mydomain.com \
+-c -w &lt;WORDLIST&gt; \
+-H 'Host: FUZZ.mydomain.com' \
+-fs 0</code></pre>
 
-            </div>
-        </div>
+        <h3>Virtual hosting with IP</h3>
+        <pre><code>ffuf -u http://&lt;IP&gt; \
+-H 'Host: FUZZ.thm' \
+-w &lt;WORDLIST&gt; \
+-fs 0</code></pre>
+
+        <h3>Recursive fuzzing (manual approach)</h3>
+        <pre><code># Step 1: discover endpoints
+ffuf -u http://&lt;IP&gt;/FUZZ -w &lt;WORDLIST&gt;
+
+# Step 2: fuzz discovered paths
+ffuf -u http://&lt;IP&gt;/admin/FUZZ -w &lt;WORDLIST&gt;</code></pre>
+
+        <h3>Extensions + recursion combined</h3>
+        <pre><code>ffuf -c -u http://&lt;IP&gt;/FUZZ -w &lt;WORDLIST&gt; \
+-e .php,.txt,.html,.bak,.old \
+-recursion</code></pre>
+
+        <h3>Useful wordlists</h3>
+        <pre><code>/usr/share/seclists/Discovery/Web-Content/
+
+/usr/share/seclists/Discovery/Web-Content/common.txt
+
+/usr/share/seclists/Discovery/Web-Content/raft-medium-directories.txt
+
+/usr/share/seclists/Discovery/Web-Content/raft-medium-files.txt
+
+/usr/share/seclists/Discovery/DNS/
+
+usr/share/wordlists/dirbuster/directory-list-2.3-medium.txt</code></pre>
+
+        <h3>Useful targets</h3>
+        <pre><code>.git/
+.git/config
+.git/HEAD
+.svn/
+.hg/
+backup/
+backups/
+dev/
+test/
+admin/
+private/
+db/
+database/
+config/
+uploads/
+api/
+old/
+tmp/
+logs/
+.env
+web.config</code></pre>
+
+        <h3>Useful notes</h3>
+        <ul>
+            <li><b>ffuf</b> is extremely fast and flexible for fuzzing.</li>
+            <li><b>-fs</b> is critical to avoid wildcard false positives.</li>
+            <li><b>-fw / -fl</b> help when responses are similar in size.</li>
+            <li><b>.env</b> and <b>config files</b> are high-value targets.</li>
+            <li><b>.git</b> exposure often leads to full source code leakage.</li>
+            <li>Always adjust filtering when switching targets.</li>
+            <li>Combine wordlists + extensions for maximum coverage.</li>
+        </ul>
+
+    </div>
+</div>
 
         <!-- WFUZZ -->
         <div class="section">
-            <div class="section-header">wfuzz</div>
-            <div class="section-content">
+    <div class="section-header">wfuzz</div>
 
-                <h3>Basic fuzzing</h3>
-                <pre><code>wfuzz -c -w &lt;WORDLIST&gt; http://&lt;IP&gt;/FUZZ</code></pre>
+    <div class="section-content">
 
-                <h3>Search for files</h3>
-                <pre><code>wfuzz -c -w &lt;WORDLIST&gt; -z list,.php,.txt http://&lt;IP&gt;/FUZZ</code></pre>
+        <h3>Basic fuzzing</h3>
+        <pre><code>wfuzz -c -w &lt;WORDLIST&gt; http://&lt;IP&gt;/FUZZ</code></pre>
 
-                <h3>Filtering (exclude 403)</h3>
-                <pre><code>wfuzz -c -w &lt;WORDLIST&gt; --hc 403 http://&lt;IP&gt;/FUZZ</code></pre>
+        <h3>Search for directories and files</h3>
+        <pre><code>wfuzz -c -w &lt;WORDLIST&gt; \
+http://&lt;IP&gt;/FUZZ</code></pre>
 
-                <h3>Fuzzing parameters</h3>
-                <pre><code>wfuzz -c -w &lt;WORDLIST&gt; --hc 39 http://&lt;IP&gt;/&lt;SUBDIRECTORY&gt;/?FUZZ=1</code></pre>
+        <h3>Search for files with extensions</h3>
+        <pre><code>wfuzz -c -w &lt;WORDLIST&gt; \
+-z list,php-txt-html-js-json-bak-old \
+http://&lt;IP&gt;/FUZZ.FUZ2Z</code></pre>
 
-                <h3>Fuzzing auth pages (POST)</h3>
-                <pre><code>wfuzz -c -w &lt;WORDLIST&gt; -X POST \
--d 'uname=Dummy&passwd=FUZZ&submit=Submit' \
--H 'Content-Type: application/x-www-form-urlencoded' --hc 1435 \
+        <h3>Alternative file extension fuzzing</h3>
+        <pre><code>wfuzz -c -w &lt;WORDLIST&gt; \
+-z list,.php,.txt,.html,.bak,.old \
+http://&lt;IP&gt;/FUZZ</code></pre>
+
+        <h3>Filtering (hide 403)</h3>
+        <pre><code>wfuzz -c -w &lt;WORDLIST&gt; \
+--hc 403 \
+http://&lt;IP&gt;/FUZZ</code></pre>
+
+        <h3>Filtering multiple response codes</h3>
+        <pre><code>wfuzz -c -w &lt;WORDLIST&gt; \
+--hc 403,404 \
+http://&lt;IP&gt;/FUZZ</code></pre>
+
+        <h3>Show only valid responses (whitelist)</h3>
+        <pre><code>wfuzz -c -w &lt;WORDLIST&gt; \
+--sc 200,301,302,307,403 \
+http://&lt;IP&gt;/FUZZ</code></pre>
+
+        <h3>Filtering by size</h3>
+        <pre><code>wfuzz -c -w &lt;WORDLIST&gt; \
+--hh 0 \
+http://&lt;IP&gt;/FUZZ</code></pre>
+
+        <h3>Fuzzing parameters (GET)</h3>
+        <pre><code>wfuzz -c -w &lt;WORDLIST&gt; \
+http://&lt;IP&gt;/&lt;SUBDIRECTORY&gt;/?FUZZ=1</code></pre>
+
+        <h3>Fuzzing multiple parameters</h3>
+        <pre><code>wfuzz -c -w users.txt \
+-w pass.txt \
+http://&lt;IP&gt;/login?user=FUZZ&pass=FUZ2Z</code></pre>
+
+        <h3>POST brute force (login)</h3>
+        <pre><code>wfuzz -c -w &lt;WORDLIST&gt; \
+-X POST \
+-d 'uname=admin&passwd=FUZZ&submit=Submit' \
+--hc 403 \
 http://&lt;IP&gt;/&lt;SUBDIRECTORY&gt;/</code></pre>
 
-                <h3>Subdomain enumeration</h3>
-                <pre><code>wfuzz -c -w &lt;WORDLIST&gt; --hc 0 http://FUZZ.mydomain.com</code></pre>
+        <h3>Login brute force (username + password)</h3>
+        <pre><code>wfuzz -c \
+-w users.txt \
+-w passwords.txt \
+-X POST \
+-d 'username=FUZZ&password=FUZ2Z' \
+--hc 401,403 \
+http://&lt;IP&gt;/login</code></pre>
 
-                <h3>Virtual hosting</h3>
-                <pre><code>wfuzz -c -w &lt;WORDLIST&gt; --hc 0 -H 'Host: FUZZ.mydomain.com' http://mydomain.com</code></pre>
+        <h3>Subdomain enumeration</h3>
+        <pre><code>wfuzz -c -w &lt;WORDLIST&gt; \
+--hc 0 \
+http://FUZZ.mydomain.com</code></pre>
 
-                <h3>Virtual hosting with IP</h3>
-                <pre><code>wfuzz -c -w &lt;WORDLIST&gt; -H 'Host: FUZZ.thm' http://&lt;IP&gt;</code></pre>
+        <h3>Virtual hosting</h3>
+        <pre><code>wfuzz -c -w &lt;WORDLIST&gt; \
+-H 'Host: FUZZ.mydomain.com' \
+--hc 0 \
+http://mydomain.com</code></pre>
 
-            </div>
-        </div>
+        <h3>Virtual hosting with IP</h3>
+        <pre><code>wfuzz -c -w &lt;WORDLIST&gt; \
+-H 'Host: FUZZ.thm' \
+http://&lt;IP&gt;</code></pre>
+
+        <h3>Fuzz headers</h3>
+        <pre><code>wfuzz -c -w &lt;WORDLIST&gt; \
+-H 'User-Agent: FUZZ' \
+http://&lt;IP&gt;/</code></pre>
+
+        <h3>Cookie fuzzing</h3>
+        <pre><code>wfuzz -c -w &lt;WORDLIST&gt; \
+-b 'session=FUZZ' \
+http://&lt;IP&gt;/</code></pre>
+
+        <h3>Recursive fuzzing (manual)</h3>
+        <pre><code># Step 1
+wfuzz -c -w &lt;WORDLIST&gt; http://&lt;IP&gt;/FUZZ
+
+# Step 2
+wfuzz -c -w &lt;WORDLIST&gt; http://&lt;IP&gt;/admin/FUZZ</code></pre>
+
+        <h3>Useful wordlists</h3>
+        <pre><code>/usr/share/seclists/Discovery/Web-Content/
+
+/usr/share/seclists/Discovery/Web-Content/common.txt
+
+/usr/share/seclists/Discovery/Web-Content/raft-medium-directories.txt
+
+/usr/share/seclists/Discovery/Web-Content/raft-medium-files.txt
+
+/usr/share/seclists/Discovery/DNS/</code></pre>
+
+        <h3>Useful targets</h3>
+        <pre><code>.git/
+.git/config
+.git/HEAD
+.svn/
+backup/
+backups/
+admin/
+test/
+dev/
+private/
+db/
+config/
+uploads/
+api/
+.env
+web.config</code></pre>
+
+        <h3>Useful notes</h3>
+        <ul>
+            <li><b>wfuzz</b> is very powerful for multi-parameter fuzzing.</li>
+            <li><b>FUZZ / FUZ2Z</b> allows multiple injection points.</li>
+            <li><b>--hc</b> hides noise responses (very important).</li>
+            <li><b>--hh</b> helps with wildcard pages.</li>
+            <li>Combine multiple wordlists for credential brute force.</li>
+            <li>Great for login forms and parameter discovery.</li>
+            <li>.git and .env files are high-value targets.</li>
+        </ul>
+
+    </div>
+</div>
 
     </div>
 

