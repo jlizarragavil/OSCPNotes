@@ -883,6 +883,102 @@ dir C:\Windows\Panther\ /s
     </div>
 </div>
 
+<div class="section">
+    <div class="section-header">Python Virtual Environments → venv Management (OSCP Toolkit)</div>
+
+    <div class="section-content">
+
+        <h3>Create and activate a virtual environment (venv)</h3>
+
+        <pre><code>
+# Create a virtual environment
+python3 -m venv venv
+
+# Activate virtual environment (Linux)
+source venv/bin/activate
+
+# Confirm activation (you should see (venv) in the prompt)
+        </code></pre>
+
+        <h3>Install dependencies inside venv</h3>
+
+        <pre><code>
+# Install requirements file
+pip install -r requirements.txt
+
+# Install packages manually
+pip install impacket ldap3
+
+# List installed packages
+pip list
+        </code></pre>
+
+        <h3>Run tools inside the venv</h3>
+
+        <pre><code>
+# Run Python script inside environment
+python3 targetedKerberoast.py -h
+
+# Example Kerberoast tool usage
+python3 targetedKerberoast.py -v \
+-d shadow.gate \
+-u jtrueblood \
+-p blood_brothers \
+--dc-ip 10.1.200.178
+        </code></pre>
+
+        <h3>Deactivate the virtual environment</h3>
+
+        <pre><code>
+# Exit venv and return to system Python
+deactivate
+        </code></pre>
+
+        <h3>Common Kali error (PEP 668 - externally managed environment)</h3>
+
+        <pre><code>
+# ERROR: externally-managed-environment
+→ Correct solution (DO NOT break system Python):
+
+✔ Use venv:
+python3 -m venv venv
+source venv/bin/activate
+
+✔ Alternative (not recommended):
+pip install --break-system-packages
+
+❌ Avoid installing Python packages globally on modern Kali
+        </code></pre>
+
+        <h3>OSCP best practices</h3>
+
+        <pre><code>
+- Always use a venv for external Python tools
+- Keep one venv per project or target
+- Do not mix system Impacket with pip-installed versions
+- Install dependencies only inside isolated environments
+- Document requirements if modifications are made
+        </code></pre>
+
+        <h3>Common mistakes</h3>
+
+        <pre><code>
+- Running pip install globally (blocked on Kali)
+- Forgetting to activate venv before running tools
+- Mixing multiple projects inside the same venv
+- Missing dependencies inside the environment
+        </code></pre>
+
+        <h3>OSCP tip</h3>
+
+        <p>
+            Always use <b>venv + Impacket + custom tools</b> to avoid dependency conflicts.
+            In OSCP labs and exams, this prevents setup issues and saves time during exploitation.
+        </p>
+
+    </div>
+</div>
+
     </div>
     <!-- SCRIPT -->
     <script>

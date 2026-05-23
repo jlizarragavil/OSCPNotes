@@ -648,6 +648,13 @@ dig axfr corp.com @&lt;IP&gt;
 
                                 <h2 class="sub-title">Phase 2 – With Credentials</h2>
 
+                                <p>Bloodhound</p>
+                                <pre><code>
+bloodhound-python -u jtrueblood -p blood_brothers -d shadow.gate -ns 10.1.200.178 -c All
+
+zip bloodhound.zip *.json
+                </code></pre>
+
                                 <p>Validate credentials</p>
                                 <pre><code>
 crackmapexec smb &lt;IP&gt; -u user -p 'Password123!' -d corp.com

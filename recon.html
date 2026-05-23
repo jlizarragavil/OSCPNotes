@@ -127,255 +127,407 @@
     <!-- CONTENT -->
     <div class="container">
 
-    <h1>Recon & Enumeration Cheatsheet (OSCP Style)</h1>
+        <h1>Recon & Enumeration Cheatsheet (OSCP Style)</h1>
 
-    <!-- 1 -->
-    <div class="section">
-        <div class="section-header">1. Nmap Quick Scan (First Look)</div>
-        <div class="section-content">
+        <!-- 1 -->
+        <div class="section">
+            <div class="section-header">1. Nmap Quick Scan (First Look)</div>
+            <div class="section-content">
 
-            <pre><code>sudo nmap -p- --open --min-rate 1000 -sS -n -Pn target_ip -oN openPorts</code></pre>
+                <pre><code>sudo nmap -p- --open --min-rate 1000 -sS -n -Pn target_ip -oN openPorts</code></pre>
 
-            <p><strong>What you do:</strong></p>
-            <ul>
-                <li>Identify attack surface quickly</li>
-                <li>Find initial entry points (web, SMB, AD, etc.)</li>
-            </ul>
+                <p><strong>What you do:</strong></p>
+                <ul>
+                    <li>Identify attack surface quickly</li>
+                    <li>Find initial entry points (web, SMB, AD, etc.)</li>
+                </ul>
 
-            <p><strong>OSCP mindset:</strong> This defines your first attack vector (NOT random enumeration).</p>
+                <p><strong>OSCP mindset:</strong> This defines your first attack vector (NOT random enumeration).</p>
 
+            </div>
         </div>
-    </div>
 
-    <!-- 2 -->
-    <div class="section">
-        <div class="section-header">2. Full TCP Scan (All Ports)</div>
-        <div class="section-content">
-
-            <pre><code>nmap -p- -T4 -Pn -n target_ip -oN full_ports.txt</code></pre>
-
-            <pre><code>nmap -sCV -p $(grep "^[0-9]" openPorts | awk '{print $1}' | cut -d'/' -f1 | paste -sd,) target_ip -oN services</code></pre>
-
-            <p><strong>What you want:</strong></p>
-            <ul>
-                <li>Service versions (for exploits)</li>
-                <li>Authentication boundaries (SMB, LDAP, WinRM)</li>
-                <li>High-value targets (AD, DBs, web panels)</li>
-            </ul>
-
-        </div>
-    </div>
-
-    <!-- 3 -->
-    <div class="section">
-        <div class="section-header">3. UDP Scan (If Time Allows)</div>
-        <div class="section-content">
-
-            <pre><code>nmap -sU --top-ports 50 target_ip</code></pre>
-
-            <p><strong>Use when:</strong> TCP gives nothing interesting or box feels “incomplete”.</p>
-
-        </div>
-    </div>
-
-
-    <!-- LDAP IMPROVED -->
-    <div class="section">
-    <div class="section-header">10. Port 389 - LDAP (Directory Enumeration)</div>
+        <div class="section">
+    <div class="section-header">2. SSH Enumeration & Attacks</div>
     <div class="section-content">
 
-        <p><strong>Objective:</strong> Extract directory information (users, structure, configs, creds if exposed).</p>
+        <pre><code>nmap -p 22 -sV -sC -Pn target_ip -oN ssh_scan</code></pre>
 
-        <hr>
-
-        <h3>1. Base discovery</h3>
-
-        <pre><code>ldapsearch -x -H ldap://target_ip -s base</code></pre>
-
-        <p><strong>Goal:</strong> identify base naming context</p>
-
-        <hr>
-
-        <h3>2. Basic enumeration</h3>
-
-        <pre><code>ldapsearch -x -H ldap://target_ip -b "DC=domain,DC=local"</code></pre>
-
-        <p><strong>Look for:</strong></p>
+        <p><strong>What you do:</strong></p>
         <ul>
-            <li>Users</li>
-            <li>Groups</li>
-            <li>Machines</li>
-            <li>Descriptions / notes</li>
+            <li>Confirm SSH version (OpenSSH, Dropbear, etc.)</li>
+            <li>Check for known vulnerabilities (CVE search)</li>
+            <li>Look for allowed auth methods (password / key / keyboard-interactive)</li>
         </ul>
 
-        <hr>
+        <p><strong>Username enumeration (if applicable):</strong></p>
+        <pre><code>nmap --script ssh-auth-methods -p 22 target_ip</code></pre>
 
-        <h3>3. User extraction</h3>
+        <p><strong>Brute force attack (OSCP classic):</strong></p>
+        <pre><code>hydra -l root -P rockyou.txt ssh://target_ip</code></pre>
 
-        <pre><code>ldapsearch -x -H ldap://target_ip \
+        <pre><code>hydra -L users.txt -P rockyou.txt ssh://target_ip</code></pre>
+
+        <p><strong>Key-based attack checks (id_rsa workflow - VERY IMPORTANT):</strong></p>
+        <ul>
+            <li>Look for exposed private keys in web/backup files</li>
+            <li>Check reused keys across machines</li>
+            <li>Check /home, /root, /var/www, backups, git repos</li>
+        </ul>
+
+        <p><strong>Finding SSH keys on the victim:</strong></p>
+        <pre><code>find / -name "id_rsa" 2>/dev/null</code></pre>
+
+        <pre><code>ls -la /home/*/.ssh/
+ls -la /root/.ssh/</code></pre>
+
+        <p><strong>Using a found private key:</strong></p>
+        <pre><code>cat id_rsa   # copy to attacker machine
+
+chmod 600 id_rsa
+
+ssh -i id_rsa user@target_ip</code></pre>
+
+        <p><strong>If SSH login fails:</strong></p>
+        <ul>
+            <li>Wrong username (most common issue)</li>
+            <li>Key requires passphrase</li>
+            <li>Host restrictions (AllowUsers / firewall / Fail2Ban)</li>
+        </ul>
+
+        <p><strong>If key has passphrase (cracking):</strong></p>
+        <pre><code>ssh2john id_rsa > hash.txt
+john hash.txt --wordlist=rockyou.txt</code></pre>
+
+        <p><strong>Key reuse (OSCP GOLD):</strong></p>
+        <ul>
+            <li>Try the same key on other users</li>
+            <li>Try internal hosts discovered via pivoting</li>
+            <li>Check cron jobs / automation scripts using SSH</li>
+        </ul>
+
+        <pre><code>ssh -i id_rsa user@internal_ip</code></pre>
+
+        <p><strong>SSH agent abuse (advanced):</strong></p>
+        <ul>
+            <li>If ssh-agent is running, keys may be reused automatically</li>
+        </ul>
+
+        <pre><code>ssh -A user@target_ip</code></pre>
+
+        <p><strong>Port forwarding (VERY OSCP important):</strong></p>
+
+        <p><strong>Local port forwarding:</strong></p>
+        <pre><code>ssh -L 8080:127.0.0.1:80 user@target_ip</code></pre>
+
+        <p><strong>Dynamic SOCKS proxy:</strong></p>
+        <pre><code>ssh -D 9050 user@target_ip</code></pre>
+
+        <p><strong>Reverse tunneling (pivoting):</strong></p>
+        <pre><code>ssh -R 4444:localhost:4444 user@target_ip</code></pre>
+
+        <p><strong>Exfiltration mindset:</strong></p>
+        <ul>
+            <li>Always download keys immediately if found</li>
+            <li>They often unlock later machines in the exam</li>
+        </ul>
+
+        <pre><code>scp user@target_ip:/home/user/.ssh/id_rsa .</code></pre>
+
+        <p><strong>OSCP mindset:</strong></p>
+        <ul>
+            <li>SSH is rarely exploited directly</li>
+            <li>It is a pivoting + credential reuse + tunneling vector</li>
+            <li>Think: “what else can this key unlock?”</li>
+        </ul>
+
+    </div>
+</div>
+        <div class="section">
+            <div class="section-header">3. FTP Enumeration & Attacks</div>
+            <div class="section-content">
+
+                <pre><code>nmap -p 21 -sV -sC -Pn target_ip -oN ftp_scan</code></pre>
+
+                <p><strong>What you do:</strong></p>
+                <ul>
+                    <li>Check FTP version (vsftpd, ProFTPD, FileZilla, etc.)</li>
+                    <li>Check if anonymous login is allowed</li>
+                    <li>Enumerate writable directories</li>
+                </ul>
+
+                <p><strong>Anonymous login test:</strong></p>
+                <pre><code>ftp target_ip
+anonymous:anonymous</code></pre>
+
+                <pre><code>nmap --script ftp-anon -p 21 target_ip</code></pre>
+
+                <p><strong>Directory enumeration / file discovery:</strong></p>
+                <ul>
+                    <li>Look for backups (.zip, .tar, .bak)</li>
+                    <li>Search for config files (db creds, ssh keys)</li>
+                </ul>
+
+                <p><strong>Download all files (important OSCP habit):</strong></p>
+                <pre><code>wget -m ftp://anonymous:anonymous@target_ip</code></pre>
+
+                <p><strong>Brute force FTP credentials:</strong></p>
+                <pre><code>hydra -L users.txt -P rockyou.txt ftp://target_ip</code></pre>
+
+                <p><strong>Writable FTP abuse (VERY IMPORTANT):</strong></p>
+                <ul>
+                    <li>If FTP is writable → possible web shell upload</li>
+                    <li>Upload reverse shell to web root (if shared with HTTP)</li>
+                </ul>
+
+                <pre><code>put shell.php</code></pre>
+
+                <p><strong>vsftpd / ProFTPD common CVEs:</strong></p>
+                <ul>
+                    <li>Search version → exploit-db / searchsploit</li>
+                    <li>Check for backdoors (classic vsftpd 2.3.4)</li>
+                </ul>
+
+                <p><strong>OSCP mindset:</strong></p>
+                <ul>
+                    <li>FTP = file leakage + credential harvesting</li>
+                    <li>Anonymous access = ALWAYS high-value recon source</li>
+                    <li>Writable FTP = potential RCE via web upload chain</li>
+                </ul>
+
+            </div>
+        </div>
+
+        <!-- 2 -->
+        <div class="section">
+            <div class="section-header">2. Full TCP Scan (All Ports)</div>
+            <div class="section-content">
+
+                <pre><code>nmap -p- -T4 -Pn -n target_ip -oN full_ports.txt</code></pre>
+
+                <pre><code>nmap -sCV -p $(grep "^[0-9]" openPorts | awk '{print $1}' | cut -d'/' -f1 | paste -sd,) target_ip -oN services</code></pre>
+
+                <p><strong>What you want:</strong></p>
+                <ul>
+                    <li>Service versions (for exploits)</li>
+                    <li>Authentication boundaries (SMB, LDAP, WinRM)</li>
+                    <li>High-value targets (AD, DBs, web panels)</li>
+                </ul>
+
+            </div>
+        </div>
+
+        <!-- 3 -->
+        <div class="section">
+            <div class="section-header">3. UDP Scan (If Time Allows)</div>
+            <div class="section-content">
+
+                <pre><code>nmap -sU --top-ports 50 target_ip</code></pre>
+
+                <p><strong>Use when:</strong> TCP gives nothing interesting or box feels “incomplete”.</p>
+
+            </div>
+        </div>
+
+
+        <!-- LDAP IMPROVED -->
+        <div class="section">
+            <div class="section-header">10. Port 389 - LDAP (Directory Enumeration)</div>
+            <div class="section-content">
+
+                <p><strong>Objective:</strong> Extract directory information (users, structure, configs, creds if
+                    exposed).</p>
+
+                <hr>
+
+                <h3>1. Base discovery</h3>
+
+                <pre><code>ldapsearch -x -H ldap://target_ip -s base</code></pre>
+
+                <p><strong>Goal:</strong> identify base naming context</p>
+
+                <hr>
+
+                <h3>2. Basic enumeration</h3>
+
+                <pre><code>ldapsearch -x -H ldap://target_ip -b "DC=domain,DC=local"</code></pre>
+
+                <p><strong>Look for:</strong></p>
+                <ul>
+                    <li>Users</li>
+                    <li>Groups</li>
+                    <li>Machines</li>
+                    <li>Descriptions / notes</li>
+                </ul>
+
+                <hr>
+
+                <h3>3. User extraction</h3>
+
+                <pre><code>ldapsearch -x -H ldap://target_ip \
 -b "DC=domain,DC=local" \
 "(objectClass=user)"</code></pre>
 
-        <p><strong>Use for:</strong></p>
-        <ul>
-            <li>Password spraying</li>
-            <li>Authentication attacks</li>
-        </ul>
+                <p><strong>Use for:</strong></p>
+                <ul>
+                    <li>Password spraying</li>
+                    <li>Authentication attacks</li>
+                </ul>
 
-        <hr>
+                <hr>
 
-        <h3>4. Credential hunting</h3>
+                <h3>4. Credential hunting</h3>
 
-        <pre><code>ldapsearch -x -H ldap://target_ip -b "DC=domain,DC=local" | grep -i password</code></pre>
+                <pre><code>ldapsearch -x -H ldap://target_ip -b "DC=domain,DC=local" | grep -i password</code></pre>
 
-        <p><strong>Typical leaks:</strong></p>
-        <ul>
-            <li>User descriptions</li>
-            <li>Service account notes</li>
-            <li>Legacy configuration data</li>
-        </ul>
+                <p><strong>Typical leaks:</strong></p>
+                <ul>
+                    <li>User descriptions</li>
+                    <li>Service account notes</li>
+                    <li>Legacy configuration data</li>
+                </ul>
 
-        <hr>
+                <hr>
 
-        <h3>5. Authenticated enumeration</h3>
+                <h3>5. Authenticated enumeration</h3>
 
-        <pre><code>ldapsearch -x -H ldap://target_ip \
+                <pre><code>ldapsearch -x -H ldap://target_ip \
 -D "user@domain.local" \
 -w "password" \
 -b "DC=domain,DC=local"</code></pre>
 
-        <p><strong>What changes:</strong></p>
-        <ul>
-            <li>More objects become visible</li>
-            <li>Restricted attributes may unlock</li>
-        </ul>
+                <p><strong>What changes:</strong></p>
+                <ul>
+                    <li>More objects become visible</li>
+                    <li>Restricted attributes may unlock</li>
+                </ul>
 
-        <hr>
+                <hr>
 
-        <h3>6. High value data (if present)</h3>
+                <h3>6. High value data (if present)</h3>
 
-        <ul>
-            <li>Computer attributes</li>
-            <li>Service accounts</li>
-            <li>Potential LAPS / password fields</li>
-        </ul>
+                <ul>
+                    <li>Computer attributes</li>
+                    <li>Service accounts</li>
+                    <li>Potential LAPS / password fields</li>
+                </ul>
 
-        <hr>
+                <hr>
 
-        <h3>7. OSCP mindset</h3>
+                <h3>7. OSCP mindset</h3>
 
-        <ul>
-            <li>LDAP = structured information leak</li>
-            <li>Always pivot to other services after enumeration</li>
-            <li>Rarely the exploit → mostly a discovery tool</li>
-        </ul>
+                <ul>
+                    <li>LDAP = structured information leak</li>
+                    <li>Always pivot to other services after enumeration</li>
+                    <li>Rarely the exploit → mostly a discovery tool</li>
+                </ul>
 
-    </div>
-</div>
-    <!-- 11 -->
-    <div class="section">
-        <div class="section-header">11. Port 3389 - RDP</div>
-        <div class="section-content">
-
-            <pre><code>xfreerdp /u:user /p:password /v:target_ip</code></pre>
-
+            </div>
         </div>
-    </div>
-    <!-- 8 SMB -->
-<div class="section">
-    <div class="section-header">8. Port 139/445 - SMB (General Enumeration)</div>
-    <div class="section-content">
+        <!-- 11 -->
+        <div class="section">
+            <div class="section-header">11. Port 3389 - RDP</div>
+            <div class="section-content">
 
-        <p><strong>Objective:</strong> Identify shares, misconfigurations, and possible credential exposure.</p>
+                <pre><code>xfreerdp /u:user /p:password /v:target_ip</code></pre>
 
-        <hr>
+            </div>
+        </div>
+        <!-- 8 SMB -->
+        <div class="section">
+            <div class="section-header">8. Port 139/445 - SMB (General Enumeration)</div>
+            <div class="section-content">
 
-        <h3>1. Initial check</h3>
+                <p><strong>Objective:</strong> Identify shares, misconfigurations, and possible credential exposure.</p>
 
-        <pre><code>smbclient -L //target_ip -N
+                <hr>
+
+                <h3>1. Initial check</h3>
+
+                <pre><code>smbclient -L //target_ip -N
 smbmap -H target_ip</code></pre>
 
-        <p><strong>What you want:</strong></p>
-        <ul>
-            <li>Anonymous access</li>
-            <li>Readable shares</li>
-            <li>Writable shares</li>
-        </ul>
+                <p><strong>What you want:</strong></p>
+                <ul>
+                    <li>Anonymous access</li>
+                    <li>Readable shares</li>
+                    <li>Writable shares</li>
+                </ul>
 
-        <hr>
+                <hr>
 
-        <h3>2. Share exploration</h3>
+                <h3>2. Share exploration</h3>
 
-        <pre><code>smbclient //target_ip/share -N</code></pre>
+                <pre><code>smbclient //target_ip/share -N</code></pre>
 
-        <p><strong>Look for:</strong></p>
-        <ul>
-            <li>Configs (.conf, .ini)</li>
-            <li>Backups (.bak, .old)</li>
-            <li>Scripts (.ps1, .bat, .sh)</li>
-            <li>Credentials in plain text</li>
-        </ul>
+                <p><strong>Look for:</strong></p>
+                <ul>
+                    <li>Configs (.conf, .ini)</li>
+                    <li>Backups (.bak, .old)</li>
+                    <li>Scripts (.ps1, .bat, .sh)</li>
+                    <li>Credentials in plain text</li>
+                </ul>
 
-        <hr>
+                <hr>
 
-        <h3>3. Recursive listing</h3>
+                <h3>3. Recursive listing</h3>
 
-        <pre><code>smbclient //target_ip/share -N -c "recurse ON; prompt OFF; ls"</code></pre>
+                <pre><code>smbclient //target_ip/share -N -c "recurse ON; prompt OFF; ls"</code></pre>
 
-        <p><strong>Goal:</strong> map full share structure</p>
+                <p><strong>Goal:</strong> map full share structure</p>
 
-        <hr>
+                <hr>
 
-        <h3>4. Writable shares</h3>
+                <h3>4. Writable shares</h3>
 
-        <p><strong>If writable:</strong></p>
+                <p><strong>If writable:</strong></p>
 
-        <ul>
-            <li>Upload files</li>
-            <li>Test execution paths (web / scripts / services)</li>
-            <li>Drop payloads if execution exists</li>
-        </ul>
+                <ul>
+                    <li>Upload files</li>
+                    <li>Test execution paths (web / scripts / services)</li>
+                    <li>Drop payloads if execution exists</li>
+                </ul>
 
-        <pre><code>put file.txt</code></pre>
+                <pre><code>put file.txt</code></pre>
 
-        <hr>
+                <hr>
 
-        <h3>5. Credential hunting</h3>
+                <h3>5. Credential hunting</h3>
 
-        <pre><code>grep -R "password" .
+                <pre><code>grep -R "password" .
 find . -type f -name "*.config"
 find . -type f -name "*.txt"</code></pre>
 
-        <hr>
+                <hr>
 
-        <h3>6. OSCP mindset</h3>
+                <h3>6. OSCP mindset</h3>
 
-        <ul>
-            <li>SMB = file-based attack surface</li>
-            <li>Always check before web brute force</li>
-            <li>Most creds in labs come from files</li>
-        </ul>
+                <ul>
+                    <li>SMB = file-based attack surface</li>
+                    <li>Always check before web brute force</li>
+                    <li>Most creds in labs come from files</li>
+                </ul>
 
-    </div>
-</div>
+            </div>
+        </div>
 
-    <!-- 13 CREDS -->
-    <div class="section">
-        <div class="section-header">13. Credential Hunting</div>
-        <div class="section-content">
+        <!-- 13 CREDS -->
+        <div class="section">
+            <div class="section-header">13. Credential Hunting</div>
+            <div class="section-content">
 
-            <pre><code>grep -R "password" .
+                <pre><code>grep -R "password" .
 find / -name "*.conf" 2>/dev/null</code></pre>
 
-            <p><strong>OSCP mindset:</strong> creds always exist somewhere → never assume clean environment.</p>
+                <p><strong>OSCP mindset:</strong> creds always exist somewhere → never assume clean environment.</p>
 
+            </div>
         </div>
+
+
+
+
     </div>
-
-
-
-
-</div>
     <!-- SCRIPT -->
     <script>
         document.querySelectorAll(".section-header").forEach(h => {
@@ -442,37 +594,37 @@ find / -name "*.conf" 2>/dev/null</code></pre>
             resultsContainer.classList.remove("collapsed");
         }
         document.querySelectorAll(".sub-title").forEach(title => {
-                        const wrapper = document.createElement("div");
-                        wrapper.classList.add("sub-wrapper");
+            const wrapper = document.createElement("div");
+            wrapper.classList.add("sub-wrapper");
 
-                        const content = document.createElement("div");
-                        content.classList.add("sub-content");
+            const content = document.createElement("div");
+            content.classList.add("sub-content");
 
-                        // meter wrapper en el DOM justo antes del título
-                        title.parentNode.insertBefore(wrapper, title);
+            // meter wrapper en el DOM justo antes del título
+            title.parentNode.insertBefore(wrapper, title);
 
-                        // mover el título dentro del wrapper
-                        wrapper.appendChild(title);
+            // mover el título dentro del wrapper
+            wrapper.appendChild(title);
 
-                        // mover todo hasta el siguiente sub-title o section-header
-                        let next = wrapper.nextSibling;
+            // mover todo hasta el siguiente sub-title o section-header
+            let next = wrapper.nextSibling;
 
-                        while (
-                                next &&
-                                !(next.classList && (next.classList.contains("sub-title") || next.classList.contains("section-header")))
-                        ) {
-                                const temp = next.nextSibling;
-                                content.appendChild(next);
-                                next = temp;
-                        }
+            while (
+                next &&
+                !(next.classList && (next.classList.contains("sub-title") || next.classList.contains("section-header")))
+            ) {
+                const temp = next.nextSibling;
+                content.appendChild(next);
+                next = temp;
+            }
 
-                        wrapper.appendChild(content);
+            wrapper.appendChild(content);
 
-                        // toggle
-                        title.addEventListener("click", () => {
-                                wrapper.classList.toggle("active");
-                        });
-                });
+            // toggle
+            title.addEventListener("click", () => {
+                wrapper.classList.toggle("active");
+            });
+        });
     </script>
 
 </body>
