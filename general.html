@@ -947,7 +947,7 @@ source venv/bin/activate
 ✔ Alternative (not recommended):
 pip install --break-system-packages
 
-❌ Avoid installing Python packages globally on modern Kali
+ Avoid installing Python packages globally on modern Kali
         </code></pre>
 
         <h3>OSCP best practices</h3>
@@ -979,6 +979,99 @@ pip install --break-system-packages
     </div>
 </div>
 
+<div class="section">
+    <div class="section-header">xfreerdp Toolkit (OSCP - RDP Access & Troubleshooting)</div>
+
+    <div class="section-content">
+
+        <h3>Basic RDP connection (standard usage)</h3>
+
+        <pre><code>
+# Basic login
+xfreerdp /v:192.168.219.46 /u:username /p:password
+
+# Specify domain if needed
+xfreerdp /v:192.168.219.46 /u:username /p:password /d:DOMAIN
+        </code></pre>
+
+        <h3>Bypass certificate issues (very common in OSCP labs)</h3>
+
+        <pre><code>
+# Ignore certificate warnings
+xfreerdp /v:192.168.219.46 /u:username /p:password /cert:ignore
+        </code></pre>
+
+        <h3>Fix NLA / TLS connection errors</h3>
+
+        <pre><code>
+# Force RDP security layer (fixes TLS handshake issues)
+xfreerdp /v:192.168.219.46 /u:username /p:password /sec:rdp
+
+# Alternative safe mode
+xfreerdp /v:192.168.219.46 /u:username /p:password /auth-only
+        </code></pre>
+
+        <h3>Clipboard & usability options (OSCP quality-of-life)</h3>
+
+        <pre><code>
+# Enable clipboard sharing
+xfreerdp /v:192.168.219.46 /u:username /p:password +clipboard
+
+# Full desktop experience
+xfreerdp /v:192.168.219.46 /u:username /p:password /cert:ignore +clipboard /dynamic-resolution
+        </code></pre>
+
+        <h3>Common error fixes (OSCP troubleshooting)</h3>
+
+        <pre><code>
+# TLS handshake failed
+→ fix:
+xfreerdp /v:IP /u:user /p:pass /sec:rdp /cert:ignore
+
+# CredSSP / NLA issues
+→ try:
+xfreerdp /v:IP /u:user /p:pass /sec:rdp
+
+# Authentication failed
+→ verify:
+- username format
+- password correctness
+- domain presence
+        </code></pre>
+
+        <h3>Credential format variations</h3>
+
+        <pre><code>
+# Local user
+/user:offsec
+
+# Domain user
+/user:DOMAIN\\offsec
+
+# UPN format
+/user:offsec@domain.local
+        </code></pre>
+
+        <h3>File transfer alternatives (RDP labs)</h3>
+
+        <pre><code>
+# Drive mount (Linux → Windows)
+xfreerdp /v:IP /u:user /p:pass /drive:share,/home/kali/share
+
+# Clipboard paste payloads
++clipboard
+        </code></pre>
+
+        <h3>OSCP methodology tip</h3>
+
+        <p>
+            Always start with /cert:ignore and basic /sec:rdp when facing connection errors.
+            If TLS fails, downgrade the security layer.
+            RDP is usually the final step after credential discovery via SMB, FTP, or web services.
+        </p>
+
+    </div>
+</div>
     </div>
     <!-- SCRIPT -->
     <script>
